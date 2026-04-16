@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../../"),
   transpilePackages: ["@knock/ui", "@knock/auth", "@knock/db", "@knock/types", "@knock/utils"],
   outputFileTracingIncludes: {
-    "/**": ["../../packages/db/generated/client/**"],
+    "/**": ["./generated/client/**"],
   },
 };
 
