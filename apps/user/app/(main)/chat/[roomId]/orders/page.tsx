@@ -6,6 +6,7 @@ import { getOrders } from "@/lib/actions/orders";
 import { getChatRoom } from "@/lib/actions/chat";
 
 type OrderList = Awaited<ReturnType<typeof getOrders>>;
+type Order = OrderList[number];
 
 function getStatusInfo(status: string) {
   switch (status) {
@@ -46,7 +47,7 @@ export default function ChatOrdersPage() {
 
         if (companyId) {
           const filtered = orderData.filter(
-            (o) =>
+            (o: Order) =>
               o.factoryFloor.company?.id === companyId ||
               o.factoryFloor.workCompany?.id === companyId ||
               o.workCompanyId === companyId
