@@ -8,3 +8,4 @@ dist/
 apps/user/public/uploads/
 .DS_Store
 .omc/
+packages/db/generated/
