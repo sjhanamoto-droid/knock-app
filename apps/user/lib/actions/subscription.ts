@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { getEffectivePrice } from "@knock/utils";
 import { requireSession } from "@/lib/session";
 

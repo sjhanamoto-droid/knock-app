@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 
 export async function getTemplates() {

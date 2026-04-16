@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { requireKyc } from "@/lib/actions/verification";
 import { generateOrderSheet, generateDeliveryNote } from "@/lib/services/document-generator";

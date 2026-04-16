@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";

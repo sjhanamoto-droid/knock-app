@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 
 // ============ 受注者検索（フィルター対応） ============

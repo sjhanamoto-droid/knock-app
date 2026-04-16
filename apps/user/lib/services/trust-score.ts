@@ -1,4 +1,4 @@
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 
 /**
  * 信用スコアを再計算

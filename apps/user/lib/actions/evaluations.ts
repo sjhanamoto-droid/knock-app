@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { recalculateTrustScore } from "@/lib/services/trust-score";
 import { sendPushToUsers } from "@/lib/push";

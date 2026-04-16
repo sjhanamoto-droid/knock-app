@@ -1,6 +1,6 @@
 import { getAdminApp } from "./firebase-admin";
 import { getMessaging } from "firebase-admin/messaging";
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 
 export async function sendPushToUsers(params: {
   userIds: string[];

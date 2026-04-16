@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import type { CreateFactoryFloorInput, UpdateFactoryFloorInput } from "@knock/types";
 

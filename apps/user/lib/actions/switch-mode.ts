@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/auth";
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 
 /**
  * モード切り替えのバリデーション。

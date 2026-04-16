@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 import { generateOrderSheetPdf, type OrderSheetPdfData } from "./order-sheet-pdf";
 import { generateDeliveryNotePdf, type DeliveryNotePdfData } from "./delivery-note-pdf";
 import { generateInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
