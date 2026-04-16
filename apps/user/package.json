@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "mkdir -p generated/client && cp ../../packages/db/generated/client/libquery_engine-* generated/client/ && next build",
+    "build": "next build && cp ../../packages/db/generated/client/libquery_engine-rhel-openssl-3.0.x.so.node .next/server/",
     "start": "next start",
     "lint": "next lint",
     "clean": "rm -rf .next"
