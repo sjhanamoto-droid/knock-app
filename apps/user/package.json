@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "mkdir -p generated/client && cp ../../packages/db/generated/client/*.wasm generated/client/ && next build",
+    "build": "next build && mkdir -p .next/standalone/apps/user/generated/client && cp ../../packages/db/generated/client/*.wasm .next/standalone/apps/user/generated/client/",
     "start": "next start",
     "lint": "next lint",
     "clean": "rm -rf .next"
