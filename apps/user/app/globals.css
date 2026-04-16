@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-knock-orange: #E8960C;
+  --color-knock-orange-light: #F5B84D;
+  --color-knock-amber: #D4870A;
+  --color-knock-blue: #3B82F6;
+  --color-knock-blue-light: #60A5FA;
+  --color-knock-blue-dark: #2563EB;
+  --color-knock-bg: #F4F3F0;
+  --color-knock-card: #FFFFFF;
+  --color-knock-text: #1A1A1A;
+  --color-knock-text-secondary: #6B6B6B;
+  --color-knock-text-muted: #9CA3AF;
+  --color-knock-border: #E8E6E1;
+  --color-knock-red: #EF4444;
+  --color-knock-nav-inactive: #8E8E93;
+
+  /* モード別アクセントカラー (CSS custom properties で切替) */
+  --color-knock-accent: var(--mode-accent, #E8960C);
+  --color-knock-accent-light: var(--mode-accent-light, #F5B84D);
+
+  --font-family-display: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+  --font-family-body: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+}
+
+/* 受注者モード（デフォルト: オレンジ） */
+:root,
+[data-mode="CONTRACTOR"] {
+  --mode-accent: #E8960C;
+  --mode-accent-light: #F5B84D;
+  --mode-accent-bg: rgba(232, 150, 12, 0.1);
+  --mode-accent-shadow: rgba(232, 150, 12, 0.35);
+}
+
+/* 発注者モード（ブルー） */
+[data-mode="ORDERER"] {
+  --mode-accent: #3B82F6;
+  --mode-accent-light: #60A5FA;
+  --mode-accent-bg: rgba(59, 130, 246, 0.1);
+  --mode-accent-shadow: rgba(59, 130, 246, 0.35);
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-family-body);
+    background-color: var(--color-knock-bg);
+    color: var(--color-knock-text);
+    overscroll-behavior: none;
+  }
+}

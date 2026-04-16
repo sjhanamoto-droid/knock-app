@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-knock-orange: #E8960C;
+  --color-knock-orange-light: #F5B84D;
+  --color-knock-amber: #D4870A;
+  --color-knock-bg: #F4F3F0;
+  --color-knock-text: #1A1A1A;
+  --color-knock-text-secondary: #6B6B6B;
+  --color-knock-text-muted: #9CA3AF;
+  --color-knock-border: #E8E6E1;
+  --color-knock-blue: #3B82F6;
+  --color-knock-red: #EF4444;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+    background-color: #F9FAFB;
+    color: #1A1A1A;
+  }
+}

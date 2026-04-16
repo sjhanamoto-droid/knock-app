@@ -1,0 +1,10 @@
+node_modules/
+.next/
+dist/
+.turbo/
+.env
+.env.local
+*.tsbuildinfo
+apps/user/public/uploads/
+.DS_Store
+.omc/

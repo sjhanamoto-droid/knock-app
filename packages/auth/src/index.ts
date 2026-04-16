@@ -1,0 +1,1 @@
+export { baseAuthConfig } from "./config";

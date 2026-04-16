@@ -1,0 +1,1151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ Enums ============
+
+enum CompanyType {
+  ORDERER
+  CONTRACTOR
+  BOTH
+}
+
+enum CompanyForm {
+  CORPORATION
+  INDIVIDUAL
+}
+
+enum UserRole {
+  REPRESENTATIVE
+  MANAGER
+  OTHER
+}
+
+enum FactoryFloorStatus {
+  DRAFT
+  NOT_ORDERED
+  ORDERED
+  ORDER_REQUESTED
+  CONFIRMED
+  IN_PROGRESS
+  INSPECTION
+  COMPLETED
+  DELIVERY_APPROVED
+  INVOICED
+  DEAL_COMPLETED
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  CONFIRMED
+}
+
+enum ChatRoomType {
+  NEGOTIATION
+  SITE_INFO
+}
+
+enum ChatRoomStatus {
+  BLOCKED
+  OPEN
+  COMPLETED
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  ACTION
+  CONFIRM
+}
+
+enum MessageActionType {
+  ORDER_REQUEST
+  ORDER_CONFIRM
+  BILLING
+}
+
+enum BillingStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ContractStatus {
+  UNSENT
+  SENT
+  CONCLUDED
+  DRAFT
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum BankAccountType {
+  ORDINARY
+  CURRENT
+}
+
+enum SubscriptionStatus {
+  TRIAL       // 無料トライアル中（現在のテスト期間）
+  ACTIVE      // 有料プランで課金中
+  PAST_DUE    // 支払い遅延
+  CANCELED    // 解約済み
+  PAUSED      // 一時停止中
+}
+
+enum PlanType {
+  CONTRACTOR  // 受注者プラン
+  ORDERER     // 発注者プラン
+}
+
+// ============ V2 Enums ============
+
+enum VerificationLevel {
+  LEVEL_1  // メール + SMS認証
+  LEVEL_2  // 本人確認書類
+  LEVEL_3  // インボイス登録確認
+}
+
+enum AvailabilityStatus {
+  AVAILABLE   // 空き
+  BUSY        // 予定あり
+  NEGOTIABLE  // 応相談
+}
+
+enum DocumentType {
+  ORDER_SHEET    // 注文書
+  DELIVERY_NOTE  // 納品書
+  INVOICE        // 請求書
+}
+
+enum DocumentStatus {
+  DRAFT      // 下書き
+  ISSUED     // 発行済
+  CONFIRMED  // 確認済
+  VOID       // 無効
+}
+
+enum JobPostingStatus {
+  DRAFT      // 下書き
+  PUBLISHED  // 公開中
+  CLOSED     // 締切
+  FILLED     // 採用済
+}
+
+enum ApplicationStatus {
+  PENDING    // 審査中
+  ACCEPTED   // 採用
+  REJECTED   // 不採用
+  WITHDRAWN  // 取下げ
+}
+
+enum CompensationType {
+  DAILY       // 日額
+  LUMP_SUM    // 一式
+  NEGOTIABLE  // 応相談
+}
+
+// ============ Admin ============
+
+model AdminCompany {
+  id                       String      @id @default(cuid())
+
+  // 基本情報
+  name                     String      @unique
+  email                    String
+  nameKana                 String?
+
+  // 住所
+  postalCode               String?
+  city                     String?
+  streetAddress            String?
+  building                 String?
+
+  // 連絡先
+  telNumber                String?
+  hpUrl                    String?
+  autoDeliveryEmail        String?
+  autoDeliveryEmailSignature String?
+
+  // 事業情報
+  invoiceNumber            String?
+
+  // 銀行口座
+  bankName                 String?
+  bankBranchName           String?
+  bankAccountType          BankAccountType?
+  bankAccountNumber        String?
+  bankAccountName          String?
+
+  isActive                 Boolean     @default(true)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+  deletedAt                DateTime?
+
+  adminUsers               AdminUser[]
+  companies                Company[]
+
+  @@map("admin_companies")
+}
+
+model AdminUser {
+  id              String       @id @default(cuid())
+  adminCompanyId  String
+  adminCompany    AdminCompany @relation(fields: [adminCompanyId], references: [id])
+  lastName        String
+  firstName       String
+  lastNameKana    String?
+  firstNameKana   String?
+  email           String       @unique
+  password        String
+  telNumber       String?
+  roleId          Int          @default(1) // 1: admin, 99: super admin
+  isActive        Boolean      @default(false)
+  resetToken      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  @@map("admin_users")
+}
+
+// ============ Users & Companies ============
+
+model User {
+  id            String    @id @default(cuid())
+  lastName      String
+  firstName     String
+  lastNameKana  String?
+  firstNameKana String?
+  email         String    @unique
+  password      String
+  dateOfBirth   String?
+  role          UserRole  @default(OTHER)
+  telNumber     String?
+  avatar        String?
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  policyStatus  Boolean   @default(false)
+  isActive      Boolean   @default(false)
+  kycType       Int?
+  resetToken    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  createdFactoryFloors FactoryFloor[]
+  factoryFloorMembers  FactoryFloorMember[]
+  chatRoomMembers      ChatRoomMember[]
+  messages             Message[]
+  notifications        Notification[]
+  billingRequests      BillingRequest[]
+  deviceTokens         DeviceToken[]
+
+  // V2: 段階的認証
+  verifications        UserVerification[]
+
+  @@map("users")
+}
+
+model Company {
+  id                    String        @id @default(cuid())
+  adminCompanyId        String
+  adminCompany          AdminCompany  @relation(fields: [adminCompanyId], references: [id])
+
+  // 基本情報
+  name                  String?
+  email                 String?
+  nameKana              String?
+  companyForm           CompanyForm?
+  type                  CompanyType
+
+  // 住所
+  postalCode            String?
+  prefecture            String?
+  city                  String?
+  streetAddress         String?
+  building              String?
+  showAddress           Boolean       @default(false)
+
+  // 連絡先
+  telNumber             String?
+  hpUrl                 String?
+
+  // 事業情報
+  invoiceNumber         String?
+  kycDocument           String?       // 本人確認書類（画像URL、任意）
+  note                  String?
+  logo                  String?
+  backgroundImage       String?
+  stampImage            String?       // 印鑑画像（PNG/JPEG URL）
+
+  // 銀行口座
+  bankName              String?
+  bankBranchName        String?
+  bankAccountType       BankAccountType?
+  bankAccountNumber     String?
+  bankAccountName       String?
+
+  // Stripe
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+
+  // 保険
+  fireInsurance         Boolean?
+  socialInsurance       Boolean?
+  otherInsurance        Boolean?
+
+  // 受入可否
+  isAcceptingWork       Boolean       @default(true)
+
+  // V2: プロフィール拡張
+  selfIntro             String?       // 自己PR文
+  yearsOfExperience     Int?          // 業界経験年数
+  isAvailabilityPublic  Boolean       @default(false) // 空き日カレンダー公開
+
+  // ステータス
+  registrationStep      Int?          // 現在の登録ステップ (null = 登録完了)
+  isActive              Boolean       @default(false)
+  contractApprovedDate  DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
+
+  users                 User[]
+  orderedFloors         FactoryFloor[]  @relation("OrderCompany")
+  workedFloors          FactoryFloor[]  @relation("WorkCompany")
+  areas                 CompanyArea[]
+  occupations           CompanyOccupation[]
+  contracts             CompanyContract[]
+  paymentInfo           PaymentInfo?
+  sentMatchings         Matching[]      @relation("InviteCompany")
+  receivedMatchings     Matching[]      @relation("InvitedCompany")
+  sentInvitations       Invited[]       @relation("InviteCompanyInvited")
+  receivedInvitations   Invited[]       @relation("InvitedCompanyInvited")
+  templateMessages      TemplateMessage[]
+  orderChatRooms        ChatRoom[]      @relation("OrderCompanyChat")
+  workerChatRooms       ChatRoom[]      @relation("WorkerCompanyChat")
+  orderInvoices         Invoice[]       @relation("OrderCompanyInvoice")
+  workerInvoices        Invoice[]       @relation("WorkerCompanyInvoice")
+  contractPdfs          CompanyContractPdf[] @relation("OrderCompanyPdf")
+  workerContractPdfs    CompanyContractPdf[] @relation("WorkerCompanyPdf")
+  subscriptions         Subscription[]
+
+  // V2: 新規リレーション
+  availabilitySlots     AvailabilitySlot[]
+  jobPostings           JobPosting[]
+  jobApplications       JobApplication[]
+  ordererDocuments      Document[]      @relation("OrderCompanyDocument")
+  workerDocuments       Document[]      @relation("WorkerCompanyDocument")
+  givenEvaluations      Evaluation[]    @relation("EvaluatorCompany")
+  receivedEvaluations   Evaluation[]    @relation("EvaluateeCompany")
+  trustScore            TrustScore?
+
+  @@map("companies")
+}
+
+// ============ Subscriptions ============
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  companyId             String
+  company               Company            @relation(fields: [companyId], references: [id])
+  planType              PlanType           // CONTRACTOR or ORDERER
+  status                SubscriptionStatus @default(TRIAL)
+  priceMonthly          Int                @default(0)    // 月額（円）。トライアル中は0
+  stripeSubscriptionId  String?            // Stripe Subscription ID（課金開始後にセット）
+  trialEndsAt           DateTime?          // トライアル終了日
+  currentPeriodStart    DateTime?          // 現在の課金期間の開始日
+  currentPeriodEnd      DateTime?          // 現在の課金期間の終了日
+  canceledAt            DateTime?          // 解約日
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@unique([companyId, planType])
+  @@map("subscriptions")
+}
+
+// ============ Factory Floors ============
+
+model FactoryFloor {
+  id               String              @id @default(cuid())
+  createdUserId    String
+  createdUser      User                @relation(fields: [createdUserId], references: [id])
+  companyId        String
+  company          Company             @relation("OrderCompany", fields: [companyId], references: [id])
+  workCompanyId    String?
+  workCompany      Company?            @relation("WorkCompany", fields: [workCompanyId], references: [id])
+  status           FactoryFloorStatus  @default(NOT_ORDERED)
+  code             String?
+  name             String?
+  contentRequest   String?
+  startDayRequest  DateTime?
+  endDayRequest    DateTime?
+  finishDay        DateTime?
+  address          String?
+  deliveryDest     String?
+  latitude         Decimal?            @db.Decimal(20, 14)
+  longitude        Decimal?            @db.Decimal(20, 14)
+  totalAmount      BigInt?
+  totalAdvancePayment Int?
+  paymentType      Int?
+  paymentLatterMonth Int?
+  paymentLatterDay   Int?
+  remarks          String?
+  expenses         BigInt?
+  orderNumber      Int?
+  orderCompleteNumber Int?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  deletedAt        DateTime?
+
+  members          FactoryFloorMember[]
+  orders           FactoryFloorOrder[]
+  images           FactoryFloorImage[]
+  pdfs             FactoryFloorPdf[]
+  priceDetails     PriceOrderDetail[]
+  occupations      FactoryFloorOccupation[]
+  chatRooms        ChatRoom[]
+
+  // V2: 案件掲載
+  jobPostings      JobPosting[]
+
+  @@map("factory_floors")
+}
+
+model FactoryFloorMember {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  factoryFloorId String
+  factoryFloor   FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  type           Int          @default(1) // 1: manager
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@map("factory_floor_members")
+}
+
+model FactoryFloorOrder {
+  id                 String       @id @default(cuid())
+  factoryFloorId     String
+  factoryFloor       FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  workCompanyId      String
+  status             OrderStatus?
+  actualAmount       BigInt?
+  inspectionData     Json?
+  answersTimeExpired DateTime?
+  message            String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
+
+  billingRequests    BillingRequest[]
+  additionalOrders   AdditionalOrder[]
+  messages           Message[]
+
+  // V2: 帳票・評価・完了報告
+  documents          Document[]
+  evaluations        Evaluation[]
+  completionReport   CompletionReport?
+
+  @@map("factory_floor_orders")
+}
+
+model FactoryFloorImage {
+  id             String       @id @default(cuid())
+  factoryFloorId String
+  factoryFloor   FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  url            String
+  type           Int          // 1: drawings, 2: photos
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@map("factory_floor_images")
+}
+
+model FactoryFloorPdf {
+  id                  String             @id @default(cuid())
+  factoryFloorId      String
+  factoryFloor        FactoryFloor       @relation(fields: [factoryFloorId], references: [id])
+  url                 String
+  type                Int                // 1: invoice, 2: purchase order
+  factoryFloorOrderId String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+
+  @@map("factory_floor_pdfs")
+}
+
+model FactoryFloorOccupation {
+  id                   String           @id @default(cuid())
+  factoryFloorId       String
+  factoryFloor         FactoryFloor     @relation(fields: [factoryFloorId], references: [id])
+  occupationSubItemId  String
+  occupationSubItem    OccupationSubItem @relation(fields: [occupationSubItemId], references: [id])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@map("factory_floor_occupations")
+}
+
+model PriceOrderDetail {
+  id             String       @id @default(cuid())
+  factoryFloorId String
+  factoryFloor   FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  name           String
+  quantity       Int
+  unitId         String?
+  unit           Unit?        @relation(fields: [unitId], references: [id])
+  priceUnit      BigInt
+  specifications String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  billingRequestDetails BillingRequestDetail[]
+
+  @@map("price_order_details")
+}
+
+// ============ Chat ============
+
+model ChatRoom {
+  id              String         @id @default(cuid())
+  orderCompanyId  String
+  orderCompany    Company        @relation("OrderCompanyChat", fields: [orderCompanyId], references: [id])
+  workerCompanyId String
+  workerCompany   Company        @relation("WorkerCompanyChat", fields: [workerCompanyId], references: [id])
+  factoryFloorId  String?
+  factoryFloor    FactoryFloor?  @relation(fields: [factoryFloorId], references: [id])
+  type            ChatRoomType?
+  status          ChatRoomStatus @default(OPEN)
+  lastMessageTime DateTime?
+  countSubNo      Int?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  members         ChatRoomMember[]
+  messages        Message[]
+  billingRequests BillingRequest[]
+  tmpReports      TmpReport[]
+
+  @@map("chat_rooms")
+}
+
+model ChatRoomMember {
+  id           String   @id @default(cuid())
+  roomId       String
+  room         ChatRoom @relation(fields: [roomId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  roleUser     Int?     // 1: admin, 2: member
+  roomChatKey  String?
+  unreadCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@map("chat_room_members")
+}
+
+model Message {
+  id                  String             @id @default(cuid())
+  roomId              String
+  room                ChatRoom           @relation(fields: [roomId], references: [id])
+  userId              String
+  user                User               @relation(fields: [userId], references: [id])
+  factoryFloorOrderId String?
+  factoryFloorOrder   FactoryFloorOrder? @relation(fields: [factoryFloorOrderId], references: [id])
+  message             String?
+  file                String?
+  type                MessageType?
+  tabType             Int?               // 1: site chat, 2: order amount chat
+  actionType          MessageActionType?
+  buttonClick         Boolean?
+  keyCollection       String?
+  jsonImage           Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+
+  @@map("messages")
+}
+
+// ============ Billing ============
+
+model BillingRequest {
+  id                        String             @id @default(cuid())
+  subNo                     Int?
+  totalAmount               BigInt?
+  tax                       BigInt?
+  advancePaymentAmount      Int?
+  constructionPaymentAmount Int?
+  totalAdditionalAmount     BigInt?
+  adjustmentAmount          BigInt?
+  expense                   BigInt?            @default(0)
+  status                    BillingStatus      @default(DRAFT)
+  factoryFloorOrderId       String?
+  factoryFloorOrder         FactoryFloorOrder? @relation(fields: [factoryFloorOrderId], references: [id])
+  userId                    String
+  user                      User               @relation(fields: [userId], references: [id])
+  roomId                    String
+  room                      ChatRoom           @relation(fields: [roomId], references: [id])
+  remark                    String?
+  dayConfirm                DateTime?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  deletedAt                 DateTime?
+
+  details                   BillingRequestDetail[]
+  additionalOrders          AdditionalOrder[]
+
+  @@map("billing_requests")
+}
+
+model BillingRequestDetail {
+  id                  String            @id @default(cuid())
+  billingRequestId    String
+  billingRequest      BillingRequest    @relation(fields: [billingRequestId], references: [id])
+  name                String?
+  quantity            Int?
+  unitId              String?
+  unit                Unit?             @relation(fields: [unitId], references: [id])
+  priceUnit           BigInt?
+  specifications      String?
+  priceOrderDetailId  String?
+  priceOrderDetail    PriceOrderDetail? @relation(fields: [priceOrderDetailId], references: [id])
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  @@map("billing_request_details")
+}
+
+model AdditionalOrder {
+  id                  String             @id @default(cuid())
+  billingRequestId    String
+  billingRequest      BillingRequest     @relation(fields: [billingRequestId], references: [id])
+  factoryFloorOrderId String?
+  factoryFloorOrder   FactoryFloorOrder? @relation(fields: [factoryFloorOrderId], references: [id])
+  name                String?
+  quantity            Int?
+  unitId              String?
+  unit                Unit?              @relation(fields: [unitId], references: [id])
+  priceUnit           BigInt?
+  specifications      String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@map("additional_orders")
+}
+
+model Invoice {
+  id                 String   @id @default(cuid())
+  orderCompanyId     String
+  orderCompany       Company  @relation("OrderCompanyInvoice", fields: [orderCompanyId], references: [id])
+  workerCompanyId    String
+  workerCompany      Company  @relation("WorkerCompanyInvoice", fields: [workerCompanyId], references: [id])
+  url                String
+  invoiceYearMonth   String   @db.Char(6) // YYYYMM
+  status             Int?     // 1: complete, 2: error
+  totalInvoiceAmount BigInt
+  billUnit           Int
+  totalAmount        BigInt
+  advancePayment     BigInt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  @@map("invoices")
+}
+
+// ============ Contracts ============
+
+model ContractMaster {
+  id               String   @id @default(cuid())
+  name             String
+  type             Int      // 1: basic, 2: additional
+  form             String   // contract form
+  numberOfAccount  Int
+  price            Int
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  @@map("contract_masters")
+}
+
+model CompanyContract {
+  id                    String        @id @default(cuid())
+  companyId             String
+  company               Company       @relation(fields: [companyId], references: [id])
+  contractBasicId       String
+  contractAdditionalId1 String?
+  contractAdditionalId2 String?
+  contractStatus        ContractStatus @default(UNSENT)
+  paymentStatus         PaymentStatus  @default(UNPAID)
+  initialPayFlag        Boolean        @default(false)
+  initialFee            Int?
+  usedAccountNumber     Int            @default(0)
+  name                  String?
+  type                  Int?
+  form                  Int?
+  numberOfAccount       Int?
+  price                 Int?
+  preTotalAmount        Int?
+  editAmount            Int?
+  totalAmount           Int?
+  paymentMethod         String?       // 1: bank transfer
+  planPayDate           DateTime?
+  actualPayDate         DateTime?
+  contractStartDate     DateTime?
+  contractEndDate       DateTime?
+  remarks               String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
+
+  @@map("company_contracts")
+}
+
+model CompanyContractPdf {
+  id              String  @id @default(cuid())
+  path            String
+  orderCompanyId  String
+  orderCompany    Company @relation("OrderCompanyPdf", fields: [orderCompanyId], references: [id])
+  workerCompanyId String
+  workerCompany   Company @relation("WorkerCompanyPdf", fields: [workerCompanyId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@map("company_contract_pdfs")
+}
+
+model PaymentInfo {
+  id              String   @id @default(cuid())
+  companyId       String   @unique
+  company         Company  @relation(fields: [companyId], references: [id])
+  cardLastFour    String?
+  cardExpiryMonth String?
+  cardExpiryYear  String?
+  stripePaymentMethodId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@map("payment_infos")
+}
+
+// ============ Matching ============
+
+model Matching {
+  id               String   @id @default(cuid())
+  inviteCompanyId  String
+  inviteCompany    Company  @relation("InviteCompany", fields: [inviteCompanyId], references: [id])
+  beInviteCompanyId String
+  beInviteCompany  Company  @relation("InvitedCompany", fields: [beInviteCompanyId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  @@map("matchings")
+}
+
+model Invited {
+  id               String   @id @default(cuid())
+  inviteCompanyId  String
+  inviteCompany    Company  @relation("InviteCompanyInvited", fields: [inviteCompanyId], references: [id])
+  invitedCompanyId String
+  invitedCompany   Company  @relation("InvitedCompanyInvited", fields: [invitedCompanyId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  @@map("invited")
+}
+
+// ============ Master Data ============
+
+model Area {
+  id           String        @id @default(cuid())
+  serialNumber Int
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  companyAreas CompanyArea[]
+
+  @@map("areas")
+}
+
+model CompanyArea {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  areaId    String
+  area      Area     @relation(fields: [areaId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("company_areas")
+}
+
+model Prefecture {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  cities    City[]
+
+  @@map("prefectures")
+}
+
+model City {
+  id           String     @id @default(cuid())
+  name         String
+  nameKana     String
+  prefectureId String
+  prefecture   Prefecture @relation(fields: [prefectureId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  towns        Town[]
+
+  @@map("cities")
+}
+
+model Town {
+  id         String   @id @default(cuid())
+  name       String
+  nameKana   String
+  postalCode String
+  cityId     String
+  city       City     @relation(fields: [cityId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@map("towns")
+}
+
+model OccupationMajorItem {
+  id        String              @id @default(cuid())
+  name      String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  deletedAt DateTime?
+
+  subItems  OccupationSubItem[]
+
+  @@map("occupation_major_items")
+}
+
+model OccupationSubItem {
+  id                    String              @id @default(cuid())
+  occupationMajorItemId String
+  occupationMajorItem   OccupationMajorItem @relation(fields: [occupationMajorItemId], references: [id])
+  name                  String
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+
+  companyOccupations    CompanyOccupation[]
+  factoryFloorOccupations FactoryFloorOccupation[]
+  jobPostings           JobPosting[]
+
+  @@map("occupation_sub_items")
+}
+
+model CompanyOccupation {
+  id                  String            @id @default(cuid())
+  companyId           String
+  company             Company           @relation(fields: [companyId], references: [id])
+  occupationSubItemId String
+  occupationSubItem   OccupationSubItem @relation(fields: [occupationSubItemId], references: [id])
+  note                String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("company_occupations")
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  priceOrderDetails     PriceOrderDetail[]
+  billingRequestDetails BillingRequestDetail[]
+  additionalOrders      AdditionalOrder[]
+
+  @@map("units")
+}
+
+model TaxMaster {
+  id         String   @id @default(cuid())
+  name       String?
+  percentage Decimal? @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("tax_masters")
+}
+
+// ============ Notifications & Tokens ============
+
+model Notification {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  title          String
+  content        String
+  type           Int
+  seenFlag       Boolean   @default(false)
+  urlRedirect    String?
+  factoryFloorId String?
+  roomId         String?
+  targetId       String?
+  messageId      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  @@map("notifications")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("device_tokens")
+}
+
+// ============ Templates & Reports ============
+
+model TemplateMessage {
+  id        String   @id @default(cuid())
+  name      String?
+  content   String?
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@map("template_messages")
+}
+
+model TmpReport {
+  id        String   @id @default(cuid())
+  content   String
+  images    Json?
+  expense   BigInt   @default(0)
+  status    Int
+  roomId    String
+  room      ChatRoom @relation(fields: [roomId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@map("tmp_reports")
+}
+
+// ============ V2: 段階的認証 ============
+
+model UserVerification {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  level          VerificationLevel
+  verifiedAt     DateTime?         // 認証完了日時（null = 申請中）
+  document       String?           // 本人確認書類URL（Level 2用）
+  invoiceNumber  String?           // インボイス番号（Level 3用）
+  rejectedReason String?           // 却下理由
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([userId, level])
+  @@map("user_verifications")
+}
+
+// ============ V2: 空き日カレンダー ============
+
+model AvailabilitySlot {
+  id        String             @id @default(cuid())
+  companyId String
+  company   Company            @relation(fields: [companyId], references: [id])
+  date      DateTime           @db.Date
+  status    AvailabilityStatus @default(AVAILABLE)
+  isPublic  Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([companyId, date])
+  @@map("availability_slots")
+}
+
+// ============ V2: 案件掲載・応募（双方向マッチング） ============
+
+model JobPosting {
+  id                    String           @id @default(cuid())
+  companyId             String
+  company               Company          @relation(fields: [companyId], references: [id])
+  factoryFloorId        String?
+  factoryFloor          FactoryFloor?    @relation(fields: [factoryFloorId], references: [id])
+  occupationSubItemId   String?
+  occupationSubItem     OccupationSubItem? @relation(fields: [occupationSubItemId], references: [id])
+  title                 String
+  description           String?
+  requirements          String?          // 求める条件（テキスト）
+  requireInvoice        Boolean          @default(false)
+  requireExperienceYears Int?            // 最低経験年数
+  compensationType      CompensationType @default(NEGOTIABLE)
+  compensationAmount    BigInt?          // 報酬金額
+  startDate             DateTime?
+  endDate               DateTime?
+  address               String?
+  latitude              Decimal?         @db.Decimal(20, 14)
+  longitude             Decimal?         @db.Decimal(20, 14)
+  images                Json?            // 現場写真URL配列
+  status                JobPostingStatus @default(DRAFT)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  deletedAt             DateTime?
+
+  applications          JobApplication[]
+
+  @@map("job_postings")
+}
+
+model JobApplication {
+  id            String            @id @default(cuid())
+  jobPostingId  String
+  jobPosting    JobPosting        @relation(fields: [jobPostingId], references: [id])
+  companyId     String
+  company       Company           @relation(fields: [companyId], references: [id])
+  message       String?           // 応募メッセージ
+  status        ApplicationStatus @default(PENDING)
+  respondedAt   DateTime?         // 発注者の回答日時
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([jobPostingId, companyId])
+  @@map("job_applications")
+}
+
+// ============ V2: 帳票自動生成 ============
+
+model Document {
+  id                  String             @id @default(cuid())
+  type                DocumentType
+  status              DocumentStatus     @default(DRAFT)
+  documentNumber      String             @unique  // 帳票番号（自動採番）
+  factoryFloorOrderId String
+  factoryFloorOrder   FactoryFloorOrder  @relation(fields: [factoryFloorOrderId], references: [id])
+  orderCompanyId      String
+  orderCompany        Company            @relation("OrderCompanyDocument", fields: [orderCompanyId], references: [id])
+  workerCompanyId     String
+  workerCompany       Company            @relation("WorkerCompanyDocument", fields: [workerCompanyId], references: [id])
+  subtotal            BigInt?            // 小計
+  taxAmount           BigInt?            // 消費税額
+  totalAmount         BigInt?            // 合計金額
+  invoiceNumber       String?            // インボイス番号（請求書用）
+  pdfUrl              String?            // 生成PDF URL
+  issuedAt            DateTime?          // 発行日
+  confirmedAt         DateTime?          // 確認日
+  yearMonth           String?            @db.Char(6)  // YYYYMM（請求書の対象月）
+  metadata            Json?              // 帳票固有の追加データ
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+
+  @@map("documents")
+}
+
+// ============ V2: 完了報告 ============
+
+model CompletionReport {
+  id                      String            @id @default(cuid())
+  factoryFloorOrderId     String            @unique
+  factoryFloorOrder       FactoryFloorOrder @relation(fields: [factoryFloorOrderId], references: [id])
+  completionDate          DateTime
+  comment                 String?           // 完了報告コメント
+  photos                  Json              // 施工写真URL配列（必須）
+  hasAdditionalWork       Boolean           @default(false)
+  additionalWorkDescription String?         // 追加工事内容
+  additionalWorkAmount    BigInt?           // 追加工事金額
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  @@map("completion_reports")
+}
+
+// ============ V2: 評価・信用スコア ============
+
+model Evaluation {
+  id                  String            @id @default(cuid())
+  factoryFloorOrderId String
+  factoryFloorOrder   FactoryFloorOrder @relation(fields: [factoryFloorOrderId], references: [id])
+  evaluatorCompanyId  String
+  evaluatorCompany    Company           @relation("EvaluatorCompany", fields: [evaluatorCompanyId], references: [id])
+  evaluateeCompanyId  String
+  evaluateeCompany    Company           @relation("EvaluateeCompany", fields: [evaluateeCompanyId], references: [id])
+  technicalSkill      Int               // 技術力（1〜5）
+  communication       Int               // コミュニケーション（1〜5）
+  reliability         Int               // 信頼性（1〜5）
+  comment             String?           // コメント（任意）
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([factoryFloorOrderId, evaluatorCompanyId])
+  @@map("evaluations")
+}
+
+model TrustScore {
+  id                String   @id @default(cuid())
+  companyId         String   @unique
+  company           Company  @relation(fields: [companyId], references: [id])
+  overallScore      Decimal  @default(0) @db.Decimal(3, 2)  // 総合スコア（0.00〜5.00）
+  technicalAvg      Decimal  @default(0) @db.Decimal(3, 2)
+  communicationAvg  Decimal  @default(0) @db.Decimal(3, 2)
+  reliabilityAvg    Decimal  @default(0) @db.Decimal(3, 2)
+  totalTransactions Int      @default(0)  // 完了取引数
+  totalAmount       BigInt   @default(0)  // 取引総額
+  onTimeRate        Decimal  @default(0) @db.Decimal(5, 2)  // 納期遵守率（%）
+  repeatRate        Decimal  @default(0) @db.Decimal(5, 2)  // リピート率（%）
+  lastCalculatedAt  DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("trust_scores")
+}
+

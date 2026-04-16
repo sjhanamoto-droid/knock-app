@@ -1,0 +1,31 @@
+{
+  "name": "knock",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "clean": "rm -rf apps/user/.next apps/admin/.next .turbo",
+    "dev:user": "turbo dev --filter=@knock/user",
+    "dev:admin": "turbo dev --filter=@knock/admin",
+    "db:generate": "pnpm --filter @knock/db generate",
+    "db:push": "pnpm --filter @knock/db push",
+    "db:seed": "pnpm --filter @knock/db seed"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "sharp"
+    ]
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=20"
+  }
+}
