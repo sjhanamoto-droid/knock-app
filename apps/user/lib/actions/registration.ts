@@ -73,7 +73,8 @@ export async function registerStep1(
     return { success: true, companyId: result.id };
   } catch (error) {
     console.error("[Registration Step1] Error:", error);
-    return { error: "登録に失敗しました。もう一度お試しください。" };
+    const detail = error instanceof Error ? error.message : String(error);
+    return { error: `登録に失敗しました: ${detail}` };
   }
 }
 
