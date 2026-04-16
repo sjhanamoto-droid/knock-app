@@ -10,6 +10,7 @@ import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
 
 type SiteData = NonNullable<Awaited<ReturnType<typeof getSite>>>;
 type TemplateData = Awaited<ReturnType<typeof getTemplates>>;
+type Template = TemplateData[number];
 
 function fmtDate(d: string | Date | null | undefined): string {
   if (!d) return "未設定";
@@ -286,7 +287,7 @@ export default function ChatOrderPage() {
                   テンプレートがありません
                 </p>
               ) : (
-                templates.map((tpl) => (
+                templates.map((tpl: Template) => (
                   <button
                     key={tpl.id}
                     onClick={() => {
