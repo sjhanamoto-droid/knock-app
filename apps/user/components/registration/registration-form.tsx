@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -312,6 +312,7 @@ function Step2Form({
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegistrationStep2Input>({
     resolver: zodResolver(registrationStep2Schema),
@@ -327,30 +328,35 @@ function Step2Form({
     onSuccess();
   };
 
-  const handlePostalCodeChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = e.target.value.replace(/[^0-9]/g, "");
-    if (value.length === 7) {
-      setIsLoadingAddress(true);
-      try {
-        const res = await fetch(
-          `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${value}`
-        );
-        const json = await res.json();
-        if (json.results && json.results[0]) {
-          const result = json.results[0];
-          setValue("prefecture", result.address1, { shouldValidate: true });
-          setValue("city", result.address2, { shouldValidate: true });
-          setValue("streetAddress", result.address3, { shouldValidate: true });
-        }
-      } catch {
+  const postalCode = watch("postalCode");
+
+  useEffect(() => {
+    const cleaned = (postalCode ?? "").replace(/[^0-9]/g, "");
+    if (cleaned.length !== 7) return;
+
+    let cancelled = false;
+    setIsLoadingAddress(true);
+
+    fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${cleaned}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled || !json.results?.[0]) return;
+        const r = json.results[0];
+        setValue("prefecture", r.address1, { shouldValidate: true });
+        setValue("city", r.address2, { shouldValidate: true });
+        setValue("streetAddress", r.address3, { shouldValidate: true });
+      })
+      .catch(() => {
         // 郵便番号APIエラーは無視（手動入力可能）
-      } finally {
-        setIsLoadingAddress(false);
-      }
-    }
-  };
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingAddress(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [postalCode, setValue]);
 
   const inputClass =
     "mt-1.5 block w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] text-knock-text placeholder:text-knock-text-muted focus:outline-none focus:ring-2 focus:ring-knock-orange/30";
@@ -434,7 +440,7 @@ function Step2Form({
               id="postalCode"
               type="text"
               placeholder="1234567"
-              {...register("postalCode", { onChange: handlePostalCodeChange })}
+              {...register("postalCode")}
               className={inputClass}
             />
             {isLoadingAddress && (
