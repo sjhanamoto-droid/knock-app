@@ -26,7 +26,15 @@ function toNumberOrNull(v: any): number | null {
 
 // ============ 一覧取得 ============
 
-export async function getSites(status?: string, search?: string) {
+export type SiteSortField = "createdAt" | "startDayRequest" | "endDayRequest";
+export type SiteSortOrder = "asc" | "desc";
+
+export async function getSites(
+  status?: string,
+  search?: string,
+  sortBy: SiteSortField = "createdAt",
+  sortOrder: SiteSortOrder = "desc"
+) {
   const user = await requireSession();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,7 +57,7 @@ export async function getSites(status?: string, search?: string) {
 
   const sites = await prisma.factoryFloor.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: { [sortBy]: sortOrder },
     include: {
       workCompany: { select: { name: true } },
       _count: { select: { members: true, orders: true } },
@@ -61,7 +69,12 @@ export async function getSites(status?: string, search?: string) {
 
 // ============ 受注者向け一覧取得 ============
 
-export async function getContractorSites(status?: string, search?: string) {
+export async function getContractorSites(
+  status?: string,
+  search?: string,
+  sortBy: SiteSortField = "createdAt",
+  sortOrder: SiteSortOrder = "desc"
+) {
   const user = await requireSession();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,7 +97,7 @@ export async function getContractorSites(status?: string, search?: string) {
 
   const sites = await prisma.factoryFloor.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: { [sortBy]: sortOrder },
     include: {
       company: { select: { name: true } },
       _count: { select: { members: true, orders: true } },

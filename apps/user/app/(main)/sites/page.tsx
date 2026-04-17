@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { getSites, getContractorSites } from "@/lib/actions/sites";
+import {
+  getSites,
+  getContractorSites,
+  type SiteSortField,
+  type SiteSortOrder,
+} from "@/lib/actions/sites";
 import { useMode } from "@/lib/hooks/use-mode";
 import {
   factoryFloorStatusLabels,
@@ -144,8 +149,20 @@ export default function SitesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState<SiteSortField>("createdAt");
+  const [sortOrder, setSortOrder] = useState<SiteSortOrder>("desc");
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   const statusTabs = isOrderer ? ORDERER_STATUS_TABS : CONTRACTOR_STATUS_TABS;
+
+  const SORT_OPTIONS: { field: SiteSortField; order: SiteSortOrder; label: string }[] = [
+    { field: "createdAt", order: "desc", label: "登録日（新しい順）" },
+    { field: "createdAt", order: "asc", label: "登録日（古い順）" },
+    { field: "startDayRequest", order: "desc", label: "工期開始日（新しい順）" },
+    { field: "startDayRequest", order: "asc", label: "工期開始日（古い順）" },
+    { field: "endDayRequest", order: "desc", label: "工期終了日（新しい順）" },
+    { field: "endDayRequest", order: "asc", label: "工期終了日（古い順）" },
+  ];
 
   // 検索デバウンス
   useEffect(() => {
@@ -159,13 +176,15 @@ export default function SitesPage() {
       const fetcher = isOrderer ? getSites : getContractorSites;
       const data = await fetcher(
         activeTab || undefined,
-        debouncedSearch || undefined
+        debouncedSearch || undefined,
+        sortBy,
+        sortOrder
       );
       setSites(data as Site[]);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, debouncedSearch, isOrderer]);
+  }, [activeTab, debouncedSearch, isOrderer, sortBy, sortOrder]);
 
   useEffect(() => {
     fetchSites();
@@ -243,7 +262,56 @@ export default function SitesPage() {
           </div>
         </div>
 
-        {/* Status Tabs */}
+        {/* Sort + Status Tabs */}
+        <div className="flex items-center justify-between px-4 pb-2">
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-[12px] font-medium text-gray-600 transition-colors active:bg-gray-50"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+                <path d="M2 4H12M4 7H10M6 10H8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+              {SORT_OPTIONS.find((o) => o.field === sortBy && o.order === sortOrder)?.label ?? "並び替え"}
+            </button>
+            {showSortMenu && (
+              <>
+                <div
+                  className="fixed inset-0 z-50"
+                  onClick={() => setShowSortMenu(false)}
+                />
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                  {SORT_OPTIONS.map((opt) => {
+                    const isActive = sortBy === opt.field && sortOrder === opt.order;
+                    return (
+                      <button
+                        key={`${opt.field}-${opt.order}`}
+                        onClick={() => {
+                          setSortBy(opt.field);
+                          setSortOrder(opt.order);
+                          setShowSortMenu(false);
+                        }}
+                        className={`flex w-full items-center px-4 py-2.5 text-left text-[13px] transition-colors ${
+                          isActive
+                            ? "bg-gray-50 font-bold text-knock-text"
+                            : "text-gray-600 active:bg-gray-50"
+                        }`}
+                      >
+                        {opt.label}
+                        {isActive && (
+                          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="ml-auto shrink-0">
+                            <path d="M3 7L6 10L11 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide">
           {statusTabs.map((tab) => (
             <button
