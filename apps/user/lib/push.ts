@@ -1,6 +1,13 @@
-import { getAdminApp } from "./firebase-admin";
-import { getMessaging } from "firebase-admin/messaging";
+import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
+
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? "";
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT ?? "mailto:noreply@knock-app.jp";
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
 
 export async function sendPushToUsers(params: {
   userIds: string[];
@@ -10,49 +17,45 @@ export async function sendPushToUsers(params: {
 }) {
   const { userIds, title, body, url } = params;
   if (userIds.length === 0) return;
-
-  const app = getAdminApp();
-  if (!app) return;
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
   const tokens = await prisma.deviceToken.findMany({
     where: { userId: { in: userIds } },
-    select: { token: true },
+    select: { id: true, token: true },
   });
 
   if (tokens.length === 0) return;
 
-  const messaging = getMessaging(app);
-  const tokenStrings = tokens.map((t) => t.token);
-
-  const response = await messaging.sendEachForMulticast({
-    tokens: tokenStrings,
-    notification: { title, body },
-    webpush: {
-      fcmOptions: { link: url ?? "/" },
-      notification: {
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-192x192.png",
-      },
-    },
-    data: url ? { url } : undefined,
+  const payload = JSON.stringify({
+    title,
+    body,
+    url: url ?? "/",
+    icon: "/icons/icon-192x192.png",
   });
 
-  // Remove invalid tokens
-  const invalidTokens: string[] = [];
-  response.responses.forEach((res, i) => {
-    if (
-      !res.success &&
-      res.error &&
-      (res.error.code === "messaging/registration-token-not-registered" ||
-        res.error.code === "messaging/invalid-registration-token")
-    ) {
-      invalidTokens.push(tokenStrings[i]);
-    }
-  });
+  const invalidTokenIds: string[] = [];
 
-  if (invalidTokens.length > 0) {
+  await Promise.allSettled(
+    tokens.map(async (t) => {
+      try {
+        const subscription = JSON.parse(t.token);
+        await webpush.sendNotification(subscription, payload);
+      } catch (err: unknown) {
+        const statusCode =
+          err && typeof err === "object" && "statusCode" in err
+            ? (err as { statusCode: number }).statusCode
+            : 0;
+        // 410 Gone or 404 = subscription expired/invalid
+        if (statusCode === 410 || statusCode === 404) {
+          invalidTokenIds.push(t.id);
+        }
+      }
+    })
+  );
+
+  if (invalidTokenIds.length > 0) {
     await prisma.deviceToken.deleteMany({
-      where: { token: { in: invalidTokens } },
+      where: { id: { in: invalidTokenIds } },
     });
   }
 }

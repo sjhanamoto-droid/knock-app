@@ -1,7 +1,19 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getFCMToken } from "@/lib/firebase";
+
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export function PushNotificationProvider() {
   const [showBanner, setShowBanner] = useState(false);
@@ -10,23 +22,30 @@ export function PushNotificationProvider() {
     if (typeof window === "undefined") return;
     if (!("Notification" in window)) return;
     if (!("serviceWorker" in navigator)) return;
+    if (!("PushManager" in window)) return;
+    if (!VAPID_PUBLIC_KEY) return;
 
     if (Notification.permission === "granted") {
-      registerToken();
+      registerSubscription();
     } else if (Notification.permission === "default") {
-      // iOS Safari PWA requires user gesture, show banner
       setShowBanner(true);
     }
   }, []);
 
-  const registerToken = useCallback(async () => {
+  const registerSubscription = useCallback(async () => {
     try {
-      const token = await getFCMToken();
-      if (!token) return;
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
+      });
+
       await fetch("/api/push/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ subscription }),
       });
     } catch {
       // Silently fail
@@ -38,12 +57,12 @@ export function PushNotificationProvider() {
     try {
       const permission = await Notification.requestPermission();
       if (permission === "granted") {
-        await registerToken();
+        await registerSubscription();
       }
     } catch {
       // Silently fail
     }
-  }, [registerToken]);
+  }, [registerSubscription]);
 
   if (!showBanner) return null;
 

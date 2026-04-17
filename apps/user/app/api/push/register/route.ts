@@ -5,11 +5,19 @@ import { prisma } from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     const user = await requireSession();
-    const { token } = (await req.json()) as { token?: string };
-    if (!token) {
-      return NextResponse.json({ error: "token is required" }, { status: 400 });
+    const { subscription } = (await req.json()) as {
+      subscription?: PushSubscription;
+    };
+    if (!subscription || !subscription.endpoint) {
+      return NextResponse.json(
+        { error: "subscription is required" },
+        { status: 400 }
+      );
     }
 
+    const token = JSON.stringify(subscription);
+
+    // Use endpoint as unique identifier, store full subscription as token
     await prisma.deviceToken.upsert({
       where: { token },
       create: {

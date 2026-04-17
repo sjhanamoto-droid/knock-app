@@ -19,8 +19,6 @@
     "@knock/utils": "workspace:*",
     "@prisma/adapter-pg": "^7.7.0",
     "bcryptjs": "^3.0.2",
-    "firebase": "^12.12.0",
-    "firebase-admin": "^13.8.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "mapbox-gl": "^3.20.0",
@@ -31,6 +29,7 @@
     "react-dom": "^19.1.0",
     "react-hook-form": "^7.56.0",
     "react-map-gl": "^8.1.0",
+    "web-push": "^3.6.7",
     "zod": "^3.24.0",
     "zustand": "^5.0.0"
   },
@@ -41,6 +40,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/web-push": "^3.6.4",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0"
   }
