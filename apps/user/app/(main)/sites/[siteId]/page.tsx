@@ -332,7 +332,7 @@ export default function SiteDetailPage() {
 
       {/* ─── "画像" tab content ─── */}
       {activeTab === "images" && (
-        <div className={`flex flex-col gap-3 px-4 pt-3 ${site.status === "NOT_ORDERED" && isOrderer ? "pb-40" : "pb-8"}`}>
+        <div className={`flex flex-col gap-3 px-4 pt-3 ${site.status === "NOT_ORDERED" && isOrderer && !isParentSite ? "pb-40" : "pb-8"}`}>
           {drawings.length === 0 && photos.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-2xl bg-white py-12 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
@@ -467,7 +467,7 @@ export default function SiteDetailPage() {
 
       {/* ─── "現場詳細" tab content ─── */}
       {activeTab === "detail" && (
-        <div className={`flex flex-col gap-3 px-4 pt-3 ${site.status === "NOT_ORDERED" && isOrderer ? "pb-40" : "pb-8"}`}>
+        <div className={`flex flex-col gap-3 px-4 pt-3 ${site.status === "NOT_ORDERED" && isOrderer && !isParentSite ? "pb-40" : "pb-8"}`}>
 
           {/* 予算管理カード（親現場のみ） */}
           {isParentSite && projectSummary && (
@@ -933,8 +933,8 @@ export default function SiteDetailPage() {
         </div>
       )}
 
-      {/* 発注アクションボタン */}
-      {site.status === "NOT_ORDERED" && isOrderer && (
+      {/* 発注アクションボタン（子現場のみ。親現場は管理用なので発注不要） */}
+      {site.status === "NOT_ORDERED" && isOrderer && !isParentSite && (
         <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+60px)] left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-4">
           <div className="flex flex-col gap-2 pb-3">
             <Link
