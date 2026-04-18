@@ -35,6 +35,8 @@ type SiteData = {
   code?: string | null;
   contentRequest?: string | null;
   address?: string | null;
+  parentId?: string | null;
+  budget?: number | bigint | null;
   startDayRequest?: string | Date | null;
   endDayRequest?: string | Date | null;
   occupations?: {
@@ -169,7 +171,7 @@ export default function SiteForm({
       occupations: defaultOccupations,
       priceDetails: defaultPriceDetails,
       parentId: parentId ?? undefined,
-      budget: "",
+      budget: initialData?.budget != null ? Number(initialData.budget) : "",
     },
   });
 
@@ -468,8 +470,8 @@ export default function SiteForm({
             />
           </div>
 
-          {/* 全体予算（親現場作成時のみ） */}
-          {!isChildSite && mode === "create" && (
+          {/* 全体予算（親現場のみ） */}
+          {!isChildSite && (
             <div>
               <label className={labelClass}>全体予算（受注金額）</label>
               <div className="relative">

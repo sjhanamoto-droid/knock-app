@@ -1017,7 +1017,7 @@ const config = {
   },
   "relativeEnvPaths": {
     "rootEnvPath": null,
-    "schemaEnvPath": "../../../../packages/db/.env"
+    "schemaEnvPath": "../../../user/.env"
   },
   "relativePath": "../../../../packages/db/prisma",
   "clientVersion": "6.19.2",
@@ -1044,8 +1044,8 @@ const fs = require('fs')
 config.dirname = __dirname
 if (!fs.existsSync(path.join(__dirname, 'schema.prisma'))) {
   const alternativePaths = [
-    "../../apps/admin/generated/prisma",
-    "../apps/admin/generated/prisma",
+    "../admin/generated/prisma",
+    "admin/generated/prisma",
   ]
   
   const alternativePath = alternativePaths.find((altPath) => {
@@ -1083,4 +1083,4 @@ Object.assign(exports, Prisma)
 
 // file annotations for bundling tools to include these files
 path.join(__dirname, "schema.prisma");
-path.join(process.cwd(), "../../apps/admin/generated/prisma/schema.prisma")
+path.join(process.cwd(), "../admin/generated/prisma/schema.prisma")

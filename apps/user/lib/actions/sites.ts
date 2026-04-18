@@ -349,6 +349,7 @@ export async function updateSite(
         paymentType: toNumberOrNull(data.paymentType) ?? undefined,
         paymentLatterMonth: toNumberOrNull(data.paymentLatterMonth) ?? undefined,
         paymentLatterDay: toNumberOrNull(data.paymentLatterDay) ?? undefined,
+        budget: toBigIntOrNull(data.budget) ?? undefined,
       },
     });
 

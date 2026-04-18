@@ -91,7 +91,7 @@ export default function EditSitePage() {
           </button>
           <div className="flex flex-col items-center gap-0.5">
             <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
-              現場を編集
+              {site && !site.parentId ? "プロジェクトを編集" : "現場を編集"}
             </h1>
             <svg width="40" height="6" viewBox="0 0 40 6" fill="none">
               <path
@@ -114,6 +114,7 @@ export default function EditSitePage() {
           onSubmit={handleUpdate}
           occupationMasters={occupationMasters}
           units={units}
+          parentId={site.parentId ?? undefined}
         />
       </div>
     </div>
