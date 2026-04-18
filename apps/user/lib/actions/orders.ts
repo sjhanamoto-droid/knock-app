@@ -1088,3 +1088,95 @@ export async function getOrderDetail(orderId: string) {
     },
   });
 }
+
+// ============ 追加工事（現場情報ルームから追加注文書を作成） ============
+
+export async function createAdditionalOrder(
+  factoryFloorId: string,
+  items: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[],
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await requireSession();
+
+    if (!items.length) return { success: false, error: "明細を入力してください" };
+
+    const floor = await prisma.factoryFloor.findFirst({
+      where: { id: factoryFloorId, deletedAt: null },
+      select: { id: true, name: true, companyId: true, workCompanyId: true, status: true },
+    });
+    if (!floor) return { success: false, error: "現場が見つかりません" };
+    if (floor.companyId !== user.companyId) return { success: false, error: "発注者のみ追加工事を登録できます" };
+    if (floor.status !== "IN_PROGRESS" && floor.status !== "CONFIRMED") {
+      return { success: false, error: "施工中の現場のみ追加工事を登録できます" };
+    }
+    if (!floor.workCompanyId) return { success: false, error: "受注者が設定されていません" };
+
+    // 新しい FactoryFloorOrder を作成
+    const newOrder = await prisma.factoryFloorOrder.create({
+      data: {
+        factoryFloorId,
+        workCompanyId: floor.workCompanyId,
+        status: "CONFIRMED",
+        inspectionData: {
+          type: "ADDITIONAL_ORDER",
+          priceDetails: items,
+        },
+      },
+    });
+
+    // 注文書を生成（トランザクション外）
+    const documentId = await generateOrderSheet(newOrder.id);
+
+    // SITE_INFO ルームにメッセージ + 通知
+    await prisma.$transaction(async (tx) => {
+      const siteRoom = await tx.chatRoom.findFirst({
+        where: { factoryFloorId, type: "SITE_INFO", deletedAt: null },
+      });
+      if (!siteRoom) return;
+
+      await tx.message.create({
+        data: {
+          roomId: siteRoom.id,
+          userId: user.id,
+          message: "追加注文書が発行されました",
+          type: "ACTION",
+          actionType: "ORDER_CONFIRM",
+          factoryFloorOrderId: newOrder.id,
+          keyCollection: documentId,
+        },
+      });
+      await tx.chatRoom.update({
+        where: { id: siteRoom.id },
+        data: { lastMessageTime: new Date() },
+      });
+
+      // 受注者に通知
+      const contractorUsers = await tx.user.findMany({
+        where: { companyId: floor.workCompanyId!, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (contractorUsers.length > 0) {
+        await tx.notification.createMany({
+          data: contractorUsers.map((u) => ({
+            userId: u.id,
+            title: "追加工事",
+            content: `${floor.name}の追加注文書が発行されました`,
+            type: 24,
+            factoryFloorId,
+            targetId: siteRoom.id,
+          })),
+        });
+        void sendPushToUsers({
+          userIds: contractorUsers.map((u) => u.id),
+          title: "追加工事",
+          body: `${floor.name}の追加注文書が発行されました`,
+          url: `/chat/${siteRoom.id}`,
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}

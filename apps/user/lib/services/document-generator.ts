@@ -82,7 +82,7 @@ function buildAddress(company: {
 }
 
 /**
- * 注文書を自動生成（発注確定時にトリガー）
+ * 注文書を自動生成（発注確定時 / 追加工事時にトリガー）
  */
 export async function generateOrderSheet(orderId: string): Promise<string> {
   const order = await prisma.factoryFloorOrder.findUniqueOrThrow({
@@ -102,15 +102,57 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
   const documentNumber = await generateDocumentNumber("ORDER_SHEET");
   const issuedAt = new Date();
 
-  // 金額計算（明細を優先）
-  const priceDetailsTotal = floor.priceDetails.reduce(
-    (sum, p) => sum + Math.ceil((p.quantity ?? 0) * Number(p.priceUnit ?? 0)),
-    0
-  );
-  const subtotal = priceDetailsTotal > 0 ? BigInt(priceDetailsTotal) : (floor.totalAmount ?? BigInt(0));
+  // 追加注文の場合: inspectionData から明細を取得
+  type AdditionalOrderData = {
+    type?: string;
+    priceDetails?: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[];
+  };
+  const additionalData = order.inspectionData as AdditionalOrderData | null;
+  const isAdditionalOrder = additionalData?.type === "ADDITIONAL_ORDER";
+
+  let pdfPriceDetails: { name: string; specifications: string; quantity: number; unit: string; priceUnit: number }[];
+  let subtotal: bigint;
+
+  if (isAdditionalOrder && additionalData.priceDetails?.length) {
+    // 追加注文: unitId から unit 名を解決
+    const unitIds = additionalData.priceDetails.map((p) => p.unitId).filter(Boolean) as string[];
+    const units = unitIds.length > 0
+      ? await prisma.unit.findMany({ where: { id: { in: unitIds } } })
+      : [];
+    const unitMap = new Map(units.map((u) => [u.id, u.name]));
+
+    pdfPriceDetails = additionalData.priceDetails.map((p) => ({
+      name: p.name,
+      specifications: p.specifications ?? "",
+      quantity: p.quantity,
+      unit: p.unitId ? (unitMap.get(p.unitId) ?? "") : "",
+      priceUnit: p.priceUnit,
+    }));
+
+    const detailsTotal = additionalData.priceDetails.reduce(
+      (sum, p) => sum + Math.ceil(p.quantity * p.priceUnit), 0
+    );
+    subtotal = BigInt(detailsTotal);
+  } else {
+    // 通常注文: floor.priceDetails を使用
+    pdfPriceDetails = floor.priceDetails.map((p) => ({
+      name: p.name ?? "",
+      specifications: p.specifications ?? "",
+      quantity: p.quantity ?? 0,
+      unit: p.unit?.name ?? "",
+      priceUnit: Number(p.priceUnit ?? 0),
+    }));
+
+    const priceDetailsTotal = floor.priceDetails.reduce(
+      (sum, p) => sum + Math.ceil((p.quantity ?? 0) * Number(p.priceUnit ?? 0)),
+      0
+    );
+    subtotal = priceDetailsTotal > 0 ? BigInt(priceDetailsTotal) : (floor.totalAmount ?? BigInt(0));
+  }
+
   const taxRate = 0.10;
   const taxAmount = BigInt(Math.ceil(Number(subtotal) * taxRate));
-  const totalAmount = subtotal + taxAmount;
+  const totalAmount = BigInt(Number(subtotal)) + taxAmount;
 
   // 担当者名（現場作成者）
   const createdUser = await prisma.user.findUnique({
@@ -141,17 +183,11 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
     siteName: floor.name ?? "",
     deliveryDate: floor.endDayRequest,
     // 明細
-    priceDetails: floor.priceDetails.map((p) => ({
-      name: p.name ?? "",
-      specifications: p.specifications ?? "",
-      quantity: p.quantity ?? 0,
-      unit: p.unit?.name ?? "",
-      priceUnit: Number(p.priceUnit ?? 0),
-    })),
+    priceDetails: pdfPriceDetails,
     subtotal: Number(subtotal),
     taxAmount10: Number(taxAmount),
     totalAmount: Number(totalAmount),
-    remarks: floor.remarks ?? "",
+    remarks: isAdditionalOrder ? "追加工事" : (floor.remarks ?? ""),
     stampImageBase64: loadStampImageBase64(floor.company?.stampImage),
   };
 
@@ -230,7 +266,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
   const documentNumber = await generateDocumentNumber("DELIVERY_NOTE");
   const issuedAt = new Date();
 
-  // inspectionData から追加工事・諸経費・調整金額・前払金・備考を取得
+  // inspectionData から諸経費・調整金額・前払金・備考を取得
   type InspectionData = {
     additionalItems?: { name: string; quantity: number; unitId: string; priceUnit: number; specifications: string }[];
     expenses?: number;
@@ -240,7 +276,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
   };
   const inspectionData = (order.inspectionData as InspectionData | null) ?? {};
 
-  // 追加工事の単位名を解決
+  // 追加工事の単位名を解決（inspectionData経由の旧方式もフォールバック対応）
   let pdfAdditionalItems: DeliveryNotePdfData["additionalItems"];
   const additionalTotal = inspectionData.additionalItems?.reduce(
     (sum, item) => sum + Math.ceil(item.quantity * item.priceUnit), 0
@@ -266,14 +302,34 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
   const adjustmentAmount = inspectionData.adjustmentAmount ?? 0;
   const advancePayment = inspectionData.advancePayment ?? 0;
 
-  // 金額計算
-  const priceDetailsTotal = floor.priceDetails.reduce(
-    (sum, p) => sum + Math.ceil((p.quantity ?? 0) * Number(p.priceUnit ?? 0)),
-    0
-  );
-  const baseSubtotal = priceDetailsTotal > 0 ? priceDetailsTotal : Number(floor.totalAmount ?? 0);
+  // 金額計算: 全注文書（ORDER_SHEET）の小計を合算
+  const allOrderSheets = await prisma.document.findMany({
+    where: {
+      type: "ORDER_SHEET",
+      factoryFloorOrder: { factoryFloorId: floor.id, deletedAt: null },
+      deletedAt: null,
+      status: { not: "VOID" },
+    },
+    select: { subtotal: true },
+  });
+
+  let baseSubtotal: number;
+  if (allOrderSheets.length > 0) {
+    // 注文書が存在する場合は全注文書の小計を合算
+    baseSubtotal = allOrderSheets.reduce(
+      (sum, doc) => sum + Number(doc.subtotal ?? 0), 0
+    );
+  } else {
+    // フォールバック: 注文書がない場合は明細から計算
+    const priceDetailsTotal = floor.priceDetails.reduce(
+      (sum, p) => sum + Math.ceil((p.quantity ?? 0) * Number(p.priceUnit ?? 0)),
+      0
+    );
+    baseSubtotal = priceDetailsTotal > 0 ? priceDetailsTotal : Number(floor.totalAmount ?? 0);
+  }
+
   const taxRate = 0.10;
-  // 消費税は工事金額 + 追加工事に対して計算
+  // 消費税は工事金額合算 + inspectionData追加工事に対して計算
   const allItemsSubtotal = baseSubtotal + additionalTotal;
   const taxAmount = Math.ceil(allItemsSubtotal * taxRate);
   // 合計 = 小計 + 追加工事 + 消費税 + 諸経費 + 調整金額

@@ -388,6 +388,18 @@ export default function ChatRoomPage() {
                         完了報告を確認
                       </button>
                     )}
+                    {/* 発注者: 追加工事（施工中のみ） */}
+                    {isOrderer && data.room.factoryFloor?.status === "IN_PROGRESS" && (
+                      <button
+                        onClick={() => { router.push(`/chat/${params.roomId}/additional-order`); setShowMenu(false); }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 2V14M2 8H14" stroke="#666" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
+                        追加工事
+                      </button>
+                    )}
                     <button
                       onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }}
                       disabled={uploading}
