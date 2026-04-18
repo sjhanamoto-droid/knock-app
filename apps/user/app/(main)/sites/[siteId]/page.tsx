@@ -449,7 +449,7 @@ export default function SiteDetailPage() {
                     )}
                     {child.totalAmount != null && Number(child.totalAmount) > 0 && (
                       <span className="text-[12px] font-semibold text-knock-text">
-                        {fmtAmount(child.totalAmount)}
+                        {fmtAmount(Math.floor(Number(child.totalAmount) * 1.1))}
                       </span>
                     )}
                   </div>
@@ -479,17 +479,17 @@ export default function SiteDetailPage() {
               <div className="px-4 pb-4">
                 <div className={dividerClass} />
                 <div className="flex items-center justify-between">
-                  <p className={labelClass}>全体予算</p>
+                  <p className={labelClass}>全体予算（税込）</p>
                   <p className="text-[15px] font-bold text-knock-text">{fmtAmount(projectSummary.budget)}</p>
                 </div>
                 <div className={dividerClass} />
                 <div className="flex items-center justify-between">
-                  <p className={labelClass}>発注合計</p>
+                  <p className={labelClass}>発注合計（税込）</p>
                   <p className={valueClass}>{fmtAmount(projectSummary.orderedTotal)}</p>
                 </div>
                 <div className={dividerClass} />
                 <div className="flex items-center justify-between">
-                  <p className={labelClass}>実績合計</p>
+                  <p className={labelClass}>実績合計（税込）</p>
                   <p className={valueClass}>{fmtAmount(projectSummary.actualTotal)}</p>
                 </div>
                 <div className={dividerClass} />

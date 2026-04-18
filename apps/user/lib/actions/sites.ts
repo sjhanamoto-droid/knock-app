@@ -751,17 +751,19 @@ export async function getProjectSummary(parentId: string) {
     },
   });
 
-  // 発注合計（子現場の totalAmount 合計）
-  const orderedTotal = children.reduce((sum, c) => {
+  // 発注合計（子現場の totalAmount 合計 × 1.1 = 税込）
+  const orderedSubtotal = children.reduce((sum, c) => {
     return sum + (c.totalAmount ? Number(c.totalAmount) : 0);
   }, 0);
+  const orderedTotal = Math.floor(orderedSubtotal * 1.1);
 
-  // 実績合計（完了済みオーダーの actualAmount 合計）
-  const actualTotal = children.reduce((sum, c) => {
+  // 実績合計（完了済みオーダーの actualAmount 合計 × 1.1 = 税込）
+  const actualSubtotal = children.reduce((sum, c) => {
     return sum + c.orders.reduce((oSum, o) => {
       return oSum + (o.actualAmount ? Number(o.actualAmount) : 0);
     }, 0);
   }, 0);
+  const actualTotal = Math.floor(actualSubtotal * 1.1);
 
   const budget = parent.budget ? Number(parent.budget) : 0;
 

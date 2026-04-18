@@ -415,7 +415,7 @@ export default function SiteForm({
                         <p>業者: {child.workCompany.name}</p>
                       )}
                       {child.totalAmount != null && Number(child.totalAmount) > 0 && (
-                        <p>金額: {Number(child.totalAmount).toLocaleString("ja-JP")}円</p>
+                        <p>金額: {Math.floor(Number(child.totalAmount) * 1.1).toLocaleString("ja-JP")}円（税込）</p>
                       )}
                       {(child.startDayRequest || child.endDayRequest) && (
                         <p>
@@ -771,7 +771,8 @@ export default function SiteForm({
             const newCount = childEntries.filter((c) => c.name.trim()).length;
             const newTotal = childEntries.reduce((sum, c) => sum + getChildTotal(c), 0);
             const totalCount = existingCount + newCount;
-            const totalAmount = existingTotal + newTotal;
+            const subtotal = existingTotal + newTotal;
+            const totalWithTax = Math.floor(subtotal * 1.1);
             if (totalCount === 0) return null;
             return (
               <div className="rounded-xl bg-knock-accent/5 px-4 py-3">
@@ -780,9 +781,9 @@ export default function SiteForm({
                   <span className="font-bold text-knock-text">{totalCount}件</span>
                 </div>
                 <div className="flex justify-between text-[13px] mt-1">
-                  <span className="text-gray-600">発注合計</span>
+                  <span className="text-gray-600">発注合計（税込）</span>
                   <span className="font-bold text-knock-accent">
-                    {totalAmount.toLocaleString("ja-JP")}円
+                    {totalWithTax.toLocaleString("ja-JP")}円
                   </span>
                 </div>
               </div>
