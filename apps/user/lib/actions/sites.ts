@@ -321,6 +321,7 @@ export async function updateSite(
     imagePhotoUrls?: string[];
     pdfInvoiceUrls?: string[];
     pdfPurchaseOrderUrls?: string[];
+    children?: ChildSiteInput[];
   }
 ) {
   const user = await requireSession();
@@ -435,6 +436,33 @@ export async function updateSite(
     ];
     if (newPdfs.length > 0) {
       await tx.factoryFloorPdf.createMany({ data: newPdfs });
+    }
+
+    // 8. 子現場の追加（プロジェクト編集時）
+    if (data.children && data.children.length > 0) {
+      for (const child of data.children) {
+        const childSite = await tx.factoryFloor.create({
+          data: {
+            createdUserId: user.id,
+            companyId: user.companyId,
+            status: "NOT_ORDERED",
+            parentId: id,
+            name: child.name,
+            contentRequest: child.contentRequest || null,
+            address: site.address || null,
+            startDayRequest: child.startDayRequest ? new Date(child.startDayRequest) : null,
+            endDayRequest: child.endDayRequest ? new Date(child.endDayRequest) : null,
+            totalAmount: toBigIntOrNull(child.totalAmount),
+          },
+        });
+        await tx.factoryFloorMember.create({
+          data: {
+            factoryFloorId: childSite.id,
+            userId: user.id,
+            type: 1,
+          },
+        });
+      }
     }
 
     return site;

@@ -57,6 +57,16 @@ type SiteData = {
   }[];
   images?: { id: string; url: string; type: number }[];
   pdfs?: { id: string; url: string; type: number }[];
+  children?: {
+    id: string;
+    name: string | null;
+    status: string;
+    totalAmount?: number | bigint | null;
+    contentRequest?: string | null;
+    startDayRequest?: string | Date | null;
+    endDayRequest?: string | Date | null;
+    workCompany?: { id: string; name: string | null } | null;
+  }[];
 };
 
 interface SiteFormProps {
@@ -114,7 +124,8 @@ export default function SiteForm({
   parentId,
 }: SiteFormProps) {
   const isChildSite = !!parentId;
-  const isParentCreate = !isChildSite && mode === "create";
+  const isParentSite = !isChildSite;
+  const isParentCreate = isParentSite && mode === "create";
   const [formTab, setFormTab] = useState<"overview" | "children">("overview");
   const [childEntries, setChildEntries] = useState<ChildSiteInput[]>([]);
   const [serverError, setServerError] = useState("");
@@ -253,7 +264,7 @@ export default function SiteForm({
           deletedImageIds.length > 0 ? deletedImageIds : undefined,
         deletedPdfIds:
           deletedPdfIds.length > 0 ? deletedPdfIds : undefined,
-        ...(isParentCreate && childEntries.length > 0
+        ...(isParentSite && childEntries.length > 0
           ? { children: childEntries.filter((c) => c.name.trim()) }
           : {}),
       } as Parameters<typeof onSubmit>[0]);
@@ -278,8 +289,8 @@ export default function SiteForm({
       {/* parentId hidden field */}
       {parentId && <input type="hidden" {...register("parentId")} />}
 
-      {/* タブ切替（親現場作成時のみ） */}
-      {isParentCreate && (
+      {/* タブ切替（親現場のみ） */}
+      {isParentSite && (
         <div className="flex gap-1 rounded-full bg-gray-100 p-1">
           <button
             type="button"
@@ -301,14 +312,69 @@ export default function SiteForm({
                 : "text-gray-500"
             }`}
           >
-            工事一覧 {childEntries.length > 0 && `(${childEntries.length})`}
+            工事一覧
+            {(() => {
+              const existingCount = initialData?.children?.length ?? 0;
+              const total = existingCount + childEntries.length;
+              return total > 0 ? ` (${total})` : "";
+            })()}
           </button>
         </div>
       )}
 
-      {/* ======== 工事一覧タブ（親現場作成時） ======== */}
-      {isParentCreate && formTab === "children" && (
+      {/* ======== 工事一覧タブ（親現場） ======== */}
+      {isParentSite && formTab === "children" && (
         <>
+          {/* 既存の子現場（編集時） */}
+          {mode === "edit" && initialData?.children && initialData.children.length > 0 && (
+            <>
+              <p className={sectionTitleClass}>登録済みの工事</p>
+              {initialData.children.map((child) => {
+                const statusLabels: Record<string, { label: string; color: string }> = {
+                  NOT_ORDERED: { label: "未発注", color: "text-gray-500 bg-gray-100" },
+                  ORDER_REQUESTED: { label: "発注依頼中", color: "text-yellow-700 bg-yellow-50" },
+                  ORDERED: { label: "発注済", color: "text-blue-700 bg-blue-50" },
+                  CONFIRMED: { label: "受注確認", color: "text-blue-700 bg-blue-50" },
+                  WORKING: { label: "施工中", color: "text-knock-accent bg-knock-accent/10" },
+                  COMPLETED: { label: "完了", color: "text-green-700 bg-green-50" },
+                  INSPECTED: { label: "検収済", color: "text-green-700 bg-green-50" },
+                };
+                const s = statusLabels[child.status] ?? { label: child.status, color: "text-gray-500 bg-gray-100" };
+                return (
+                  <div key={child.id} className={cardClass}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[14px] font-bold text-knock-text">{child.name || "未設定"}</p>
+                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.color}`}>
+                        {s.label}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-1 text-[12px] text-gray-500">
+                      {child.workCompany?.name && (
+                        <p>業者: {child.workCompany.name}</p>
+                      )}
+                      {child.totalAmount != null && Number(child.totalAmount) > 0 && (
+                        <p>金額: {Number(child.totalAmount).toLocaleString("ja-JP")}円</p>
+                      )}
+                      {(child.startDayRequest || child.endDayRequest) && (
+                        <p>
+                          工期: {child.startDayRequest ? formatDate(child.startDayRequest) : "—"} 〜 {child.endDayRequest ? formatDate(child.endDayRequest) : "—"}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+
+          {/* 新規追加セクション */}
+          {mode === "edit" && childEntries.length === 0 && (
+            <p className={sectionTitleClass}>工事を追加</p>
+          )}
+          {mode === "edit" && childEntries.length > 0 && (
+            <p className={sectionTitleClass}>追加する工事</p>
+          )}
+
           <button
             type="button"
             onClick={() =>
@@ -419,27 +485,34 @@ export default function SiteForm({
             </div>
           ))}
 
-          {childEntries.length > 0 && (
-            <div className="rounded-xl bg-knock-accent/5 px-4 py-3">
-              <div className="flex justify-between text-[13px]">
-                <span className="text-gray-600">工事数</span>
-                <span className="font-bold text-knock-text">{childEntries.filter((c) => c.name.trim()).length}件</span>
+          {(() => {
+            const existingCount = initialData?.children?.length ?? 0;
+            const existingTotal = initialData?.children?.reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0) ?? 0;
+            const newCount = childEntries.filter((c) => c.name.trim()).length;
+            const newTotal = childEntries.reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0);
+            const totalCount = existingCount + newCount;
+            const totalAmount = existingTotal + newTotal;
+            if (totalCount === 0) return null;
+            return (
+              <div className="rounded-xl bg-knock-accent/5 px-4 py-3">
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-gray-600">工事数</span>
+                  <span className="font-bold text-knock-text">{totalCount}件</span>
+                </div>
+                <div className="flex justify-between text-[13px] mt-1">
+                  <span className="text-gray-600">発注合計</span>
+                  <span className="font-bold text-knock-accent">
+                    {totalAmount.toLocaleString("ja-JP")}円
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between text-[13px] mt-1">
-                <span className="text-gray-600">発注合計</span>
-                <span className="font-bold text-knock-accent">
-                  {childEntries
-                    .reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0)
-                    .toLocaleString("ja-JP")}円
-                </span>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </>
       )}
 
-      {/* ======== 概要タブの内容（親作成時はタブ切替、それ以外は常時表示） ======== */}
-      {(!isParentCreate || formTab === "overview") && <>
+      {/* ======== 概要タブの内容（親現場はタブ切替、子現場は常時表示） ======== */}
+      {(!isParentSite || formTab === "overview") && <>
 
       {/* ======== 1. 基本情報 ======== */}
       <div className={cardClass}>
