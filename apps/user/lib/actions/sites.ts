@@ -170,6 +170,11 @@ export async function getSite(id: string) {
             where: { deletedAt: null },
             select: { id: true, status: true, actualAmount: true },
           },
+          chatRooms: {
+            where: { type: "SITE_INFO", deletedAt: null },
+            select: { id: true, status: true },
+            take: 1,
+          },
         },
       },
     },

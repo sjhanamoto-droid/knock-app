@@ -68,6 +68,7 @@ export default function SiteDetailPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("detail");
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [projectSummary, setProjectSummary] = useState<ProjectSummary | null>(null);
+  const [showOrderAlert, setShowOrderAlert] = useState<string | null>(null); // child site id
 
   useEffect(() => {
     getSite(params.siteId as string)
@@ -895,7 +896,72 @@ export default function SiteDetailPage() {
             </div>
           )}
 
-          {/* 8. 発注（子現場・発注者のみ） */}
+          {/* 8. 現場情報ルーム一覧（親現場のみ） */}
+          {isParentSite && site.children && site.children.length > 0 && (
+            <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <div className="px-4 pt-4 pb-1">
+                <h3 className="text-[14px] font-bold text-knock-text">
+                  現場情報ルーム
+                </h3>
+              </div>
+              <div className="px-4 pb-4">
+                <div className={dividerClass} />
+                <div className="flex flex-col gap-2">
+                  {site.children.map((child: {
+                    id: string;
+                    name: string | null;
+                    status: string;
+                    chatRooms?: { id: string; status: string }[];
+                  }) => {
+                    const chatRoom = child.chatRooms?.[0];
+                    const isOrdered = !["NOT_ORDERED", "DRAFT"].includes(child.status);
+                    return (
+                      <button
+                        key={child.id}
+                        type="button"
+                        onClick={() => {
+                          if (chatRoom) {
+                            router.push(`/chat/${chatRoom.id}`);
+                          } else if (!isOrdered) {
+                            setShowOrderAlert(child.id);
+                          }
+                        }}
+                        className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-3 text-left transition-colors active:bg-gray-100"
+                      >
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${chatRoom ? "bg-blue-100" : "bg-gray-200"}`}>
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M14 8C14 10.761 11.538 13 8.5 13C7.55 13 6.652 12.808 5.852 12.462L3 13L3.876 10.904C3.32 10.139 3 9.236 3 8.269C3 5.508 5.462 3.269 8.5 3.269"
+                              stroke={chatRoom ? "#3B82F6" : "#9CA3AF"}
+                              strokeWidth="1.3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <circle cx="6.5" cy="8" r="0.7" fill={chatRoom ? "#3B82F6" : "#9CA3AF"} />
+                            <circle cx="8.5" cy="8" r="0.7" fill={chatRoom ? "#3B82F6" : "#9CA3AF"} />
+                            <circle cx="10.5" cy="8" r="0.7" fill={chatRoom ? "#3B82F6" : "#9CA3AF"} />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-medium text-knock-text truncate">
+                            {child.name ?? "名称未設定"}
+                          </p>
+                          <p className={`text-[11px] ${chatRoom ? "text-blue-500" : "text-gray-400"}`}>
+                            {chatRoom ? "メッセージを確認" : "未発注"}
+                          </p>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <path d="M5 3L9 7L5 11" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 9. 発注（子現場・発注者のみ） */}
           {!isParentSite && isOrderer && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <div className="px-4 pt-4 pb-1">
@@ -986,6 +1052,22 @@ export default function SiteDetailPage() {
         confirmLabel={deleting ? "削除中..." : "削除"}
         cancelLabel="キャンセル"
         variant="danger"
+      />
+
+      {/* 未発注アラートダイアログ */}
+      <ConfirmDialog
+        open={!!showOrderAlert}
+        onClose={() => setShowOrderAlert(null)}
+        onConfirm={() => {
+          if (showOrderAlert) {
+            router.push(`/sites/${showOrderAlert}`);
+          }
+          setShowOrderAlert(null);
+        }}
+        title="発注前です"
+        message="この工事はまだ発注されていません。現場情報ルームは発注後に利用できます。発注画面に移動しますか？"
+        confirmLabel="発注画面へ"
+        cancelLabel="キャンセル"
       />
     </div>
   );
