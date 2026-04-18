@@ -13,6 +13,7 @@ import type { z } from "zod";
 type FormValues = z.input<typeof createFactoryFloorSchema>;
 import { FileUpload } from "@knock/ui";
 import OccupationSelector from "@/components/occupation-selector";
+import type { ChildSiteInput } from "@/lib/actions/sites";
 
 // ============ Types ============
 
@@ -111,6 +112,9 @@ export default function SiteForm({
   parentId,
 }: SiteFormProps) {
   const isChildSite = !!parentId;
+  const isParentCreate = !isChildSite && mode === "create";
+  const [formTab, setFormTab] = useState<"overview" | "children">("overview");
+  const [childEntries, setChildEntries] = useState<ChildSiteInput[]>([]);
   const [serverError, setServerError] = useState("");
   const [deletedPriceDetailIds, setDeletedPriceDetailIds] = useState<string[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
@@ -247,7 +251,10 @@ export default function SiteForm({
           deletedImageIds.length > 0 ? deletedImageIds : undefined,
         deletedPdfIds:
           deletedPdfIds.length > 0 ? deletedPdfIds : undefined,
-      });
+        ...(isParentCreate && childEntries.length > 0
+          ? { children: childEntries.filter((c) => c.name.trim()) }
+          : {}),
+      } as Parameters<typeof onSubmit>[0]);
     } catch (err) {
       setServerError(
         err instanceof Error ? err.message : "エラーが発生しました"
@@ -268,6 +275,169 @@ export default function SiteForm({
 
       {/* parentId hidden field */}
       {parentId && <input type="hidden" {...register("parentId")} />}
+
+      {/* タブ切替（親現場作成時のみ） */}
+      {isParentCreate && (
+        <div className="flex gap-1 rounded-full bg-gray-100 p-1">
+          <button
+            type="button"
+            onClick={() => setFormTab("overview")}
+            className={`flex-1 rounded-full py-2 text-[13px] font-bold transition-colors ${
+              formTab === "overview"
+                ? "bg-knock-text text-white shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            概要
+          </button>
+          <button
+            type="button"
+            onClick={() => setFormTab("children")}
+            className={`flex-1 rounded-full py-2 text-[13px] font-bold transition-colors ${
+              formTab === "children"
+                ? "bg-knock-text text-white shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            工事一覧 {childEntries.length > 0 && `(${childEntries.length})`}
+          </button>
+        </div>
+      )}
+
+      {/* ======== 工事一覧タブ（親現場作成時） ======== */}
+      {isParentCreate && formTab === "children" && (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              setChildEntries([
+                ...childEntries,
+                { name: "", contentRequest: "", startDayRequest: "", endDayRequest: "", totalAmount: "" },
+              ])
+            }
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 py-4 text-[14px] font-bold text-gray-500 transition-all active:scale-[0.98] active:border-gray-400"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M9 3V15M3 9H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            工事を追加
+          </button>
+
+          {childEntries.map((child, idx) => (
+            <div key={idx} className={cardClass}>
+              <div className="mb-3 flex items-center justify-between">
+                <p className={sectionTitleClass + " mb-0"}>工事 #{idx + 1}</p>
+                <button
+                  type="button"
+                  onClick={() => setChildEntries(childEntries.filter((_, i) => i !== idx))}
+                  className="text-[12px] text-knock-red"
+                >
+                  削除
+                </button>
+              </div>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className={labelClass}>
+                    工事名 <span className="text-knock-red">*</span>
+                  </label>
+                  <input
+                    value={child.name}
+                    onChange={(e) => {
+                      const updated = [...childEntries];
+                      updated[idx] = { ...updated[idx], name: e.target.value };
+                      setChildEntries(updated);
+                    }}
+                    className={inputClass}
+                    placeholder="例: 電気工事"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>依頼内容</label>
+                  <textarea
+                    value={child.contentRequest ?? ""}
+                    onChange={(e) => {
+                      const updated = [...childEntries];
+                      updated[idx] = { ...updated[idx], contentRequest: e.target.value };
+                      setChildEntries(updated);
+                    }}
+                    rows={2}
+                    className={inputClass}
+                    placeholder="工事内容を入力"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>工期開始</label>
+                    <input
+                      type="date"
+                      value={child.startDayRequest ?? ""}
+                      onChange={(e) => {
+                        const updated = [...childEntries];
+                        updated[idx] = { ...updated[idx], startDayRequest: e.target.value };
+                        setChildEntries(updated);
+                      }}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>工期終了</label>
+                    <input
+                      type="date"
+                      value={child.endDayRequest ?? ""}
+                      onChange={(e) => {
+                        const updated = [...childEntries];
+                        updated[idx] = { ...updated[idx], endDayRequest: e.target.value };
+                        setChildEntries(updated);
+                      }}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClass}>金額</label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={child.totalAmount ?? ""}
+                      onChange={(e) => {
+                        const updated = [...childEntries];
+                        updated[idx] = { ...updated[idx], totalAmount: e.target.value };
+                        setChildEntries(updated);
+                      }}
+                      className={`${inputClass} pr-8`}
+                      placeholder="0"
+                      min="0"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">
+                      円
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {childEntries.length > 0 && (
+            <div className="rounded-xl bg-knock-accent/5 px-4 py-3">
+              <div className="flex justify-between text-[13px]">
+                <span className="text-gray-600">工事数</span>
+                <span className="font-bold text-knock-text">{childEntries.filter((c) => c.name.trim()).length}件</span>
+              </div>
+              <div className="flex justify-between text-[13px] mt-1">
+                <span className="text-gray-600">発注合計</span>
+                <span className="font-bold text-knock-accent">
+                  {childEntries
+                    .reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0)
+                    .toLocaleString("ja-JP")}円
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ======== 概要タブの内容（親作成時はタブ切替、それ以外は常時表示） ======== */}
+      {(!isParentCreate || formTab === "overview") && <>
 
       {/* ======== 1. 基本情報 ======== */}
       <div className={cardClass}>
@@ -664,6 +834,8 @@ export default function SiteForm({
         </div>
       </div>
 
+      </>}
+
       {/* ======== 送信ボタン ======== */}
       <button
         type="submit"
@@ -675,7 +847,7 @@ export default function SiteForm({
             ? isChildSite ? "追加中..." : "作成中..."
             : "更新中..."
           : mode === "create"
-            ? isChildSite ? "工事を追加" : "現場を作成"
+            ? isChildSite ? "工事を追加" : "プロジェクトを作成"
             : "変更を保存"}
       </button>
     </form>

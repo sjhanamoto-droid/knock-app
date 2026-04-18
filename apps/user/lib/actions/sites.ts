@@ -180,11 +180,20 @@ export async function getSite(id: string) {
 
 // ============ 新規作成 ============
 
+export type ChildSiteInput = {
+  name: string;
+  contentRequest?: string;
+  startDayRequest?: string;
+  endDayRequest?: string;
+  totalAmount?: number | string;
+};
+
 export async function createSite(data: CreateFactoryFloorInput & {
   imageDrawingUrls?: string[];
   imagePhotoUrls?: string[];
   pdfInvoiceUrls?: string[];
   pdfPurchaseOrderUrls?: string[];
+  children?: ChildSiteInput[];
 }) {
   const user = await requireSession();
 
@@ -264,6 +273,33 @@ export async function createSite(data: CreateFactoryFloorInput & {
         type: 1,
       },
     });
+
+    // 7. 子現場の一括作成（親現場作成時）
+    if (data.children && data.children.length > 0) {
+      for (const child of data.children) {
+        const childSite = await tx.factoryFloor.create({
+          data: {
+            createdUserId: user.id,
+            companyId: user.companyId,
+            status: "NOT_ORDERED",
+            parentId: site.id,
+            name: child.name,
+            contentRequest: child.contentRequest || null,
+            address: data.address || null,
+            startDayRequest: child.startDayRequest ? new Date(child.startDayRequest) : null,
+            endDayRequest: child.endDayRequest ? new Date(child.endDayRequest) : null,
+            totalAmount: toBigIntOrNull(child.totalAmount),
+          },
+        });
+        await tx.factoryFloorMember.create({
+          data: {
+            factoryFloorId: childSite.id,
+            userId: user.id,
+            type: 1,
+          },
+        });
+      }
+    }
 
     return site;
   });
