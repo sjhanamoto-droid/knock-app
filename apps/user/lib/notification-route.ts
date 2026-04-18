@@ -25,6 +25,9 @@ export function getNotificationRoute(type: number, targetId: string | null): str
     case 26: return `/orders/${targetId}/delivery-approval`; // 納品承認依頼
     // V2: 発注辞退
     case 31: return `/sites/${targetId}`;                  // 発注辞退 → 現場詳細
+    // V2: 追加工事
+    case 32: return `/orders/${targetId}/additional-review`; // 追加工事依頼 → 承諾/辞退
+    case 33: return `/orders/${targetId}/additional-review`; // 追加工事承諾 → 確定
     // V2: マッチング
     case 27: return `/jobs/${targetId}`;               // 案件応募通知
     case 28: return `/jobs/${targetId}`;               // 応募結果通知
