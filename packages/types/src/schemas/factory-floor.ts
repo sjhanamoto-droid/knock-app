@@ -23,6 +23,10 @@ export type OccupationSelectionInput = z.infer<typeof occupationSelectionSchema>
 // ============ Main schemas ============
 
 export const createFactoryFloorSchema = z.object({
+  // 親子関係
+  parentId: z.string().optional(),
+  budget: z.coerce.number().int().min(0).optional().or(z.literal("")),
+
   // 基本情報
   name: z.string().min(1, "現場名を入力してください"),
   code: z.string().optional(),

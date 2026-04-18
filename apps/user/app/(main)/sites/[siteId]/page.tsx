@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSite, deleteSite, duplicateSite } from "@/lib/actions/sites";
+import { getSite, deleteSite, duplicateSite, getProjectSummary } from "@/lib/actions/sites";
 import {
   factoryFloorStatusLabels,
   factoryFloorStatusColors,
@@ -12,7 +12,8 @@ import { ConfirmDialog, useToast } from "@knock/ui";
 import { useMode } from "@/lib/hooks/use-mode";
 
 type SiteDetail = NonNullable<Awaited<ReturnType<typeof getSite>>>;
-type ActiveTab = "detail" | "images";
+type ActiveTab = "detail" | "images" | "children";
+type ProjectSummary = Awaited<ReturnType<typeof getProjectSummary>>;
 
 function fmtDate(d: string | Date | null | undefined): string {
   if (!d) return "未設定";
@@ -66,10 +67,17 @@ export default function SiteDetailPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<ActiveTab>("detail");
   const [showActionMenu, setShowActionMenu] = useState(false);
+  const [projectSummary, setProjectSummary] = useState<ProjectSummary | null>(null);
 
   useEffect(() => {
     getSite(params.siteId as string)
-      .then(setSite)
+      .then((s) => {
+        setSite(s);
+        // 親現場の場合、予算管理データを取得
+        if (s && !s.parentId) {
+          getProjectSummary(s.id).then(setProjectSummary).catch(() => {});
+        }
+      })
       .finally(() => setLoading(false));
   }, [params.siteId]);
 
@@ -143,8 +151,11 @@ export default function SiteDetailPage() {
   const siteInfoRoom = site.chatRooms?.[0] ?? null;
   const siteInfoRoomId = siteInfoRoom?.id ?? null;
 
+  // 親現場かどうか（parentId がなく発注者の場合）
+  const isParentSite = !site.parentId && isOrderer;
+
   // Site type label: orderer sees 発注現場, contractor sees 受注現場
-  const siteTypeLabel = isOrderer ? "発注現場" : "受注現場";
+  const siteTypeLabel = isParentSite ? "プロジェクト" : isOrderer ? "発注現場" : "受注現場";
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
@@ -170,7 +181,7 @@ export default function SiteDetailPage() {
           {/* Centered title */}
           <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5">
             <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
-              現場詳細情報
+              {isParentSite ? "プロジェクト詳細" : "現場詳細情報"}
             </h1>
             <WavyUnderline color={accentColor} />
           </div>
@@ -292,8 +303,20 @@ export default function SiteDetailPage() {
                 : "text-gray-500"
             }`}
           >
-            現場詳細
+            {isParentSite ? "概要" : "現場詳細"}
           </button>
+          {isParentSite && (
+            <button
+              onClick={() => setActiveTab("children")}
+              className={`flex-1 rounded-full py-2 text-[13px] font-bold transition-colors ${
+                activeTab === "children"
+                  ? "bg-knock-text text-white shadow-sm"
+                  : "text-gray-500"
+              }`}
+            >
+              工事一覧
+            </button>
+          )}
           <button
             onClick={() => setActiveTab("images")}
             className={`flex-1 rounded-full py-2 text-[13px] font-bold transition-colors ${
@@ -371,9 +394,139 @@ export default function SiteDetailPage() {
         </div>
       )}
 
+      {/* ─── "工事一覧" tab content (parent sites only) ─── */}
+      {activeTab === "children" && isParentSite && (
+        <div className="flex flex-col gap-3 px-4 pt-3 pb-8">
+          {/* 工事を追加ボタン */}
+          <Link
+            href={`/sites/new?parentId=${site.id}`}
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 py-4 text-[14px] font-bold text-gray-500 transition-all active:scale-[0.98] active:border-gray-400"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M9 3V15M3 9H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            工事を追加
+          </Link>
+
+          {/* 子現場一覧 */}
+          {site.children && site.children.length > 0 ? (
+            site.children.map((child: {
+              id: string;
+              name: string | null;
+              status: string;
+              totalAmount: number | bigint | null;
+              workCompany?: { id: string; name: string | null } | null;
+              orders?: { id: string; status: string | null; actualAmount: number | bigint | null }[];
+            }) => (
+              <Link
+                key={child.id}
+                href={`/sites/${child.id}`}
+                className="overflow-hidden rounded-xl bg-white shadow-[0_1px_6px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
+                style={{ borderLeft: `4px solid ${accentColor}` }}
+              >
+                <div className="px-4 py-3">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                        factoryFloorStatusColors[child.status] ?? "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {factoryFloorStatusLabels[child.status] ?? child.status}
+                    </span>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <path d="M5 3L9 7L5 11" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-[14px] font-bold text-knock-text">
+                    {child.name ?? "名称未設定"}
+                  </p>
+                  <div className="mt-1.5 flex items-center justify-between">
+                    {child.workCompany ? (
+                      <span className="text-[12px] text-gray-500">{child.workCompany.name}</span>
+                    ) : (
+                      <span className="text-[12px] text-gray-400">業者未選択</span>
+                    )}
+                    {child.totalAmount != null && Number(child.totalAmount) > 0 && (
+                      <span className="text-[12px] font-semibold text-knock-text">
+                        {fmtAmount(child.totalAmount)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <div className="flex flex-col items-center gap-3 rounded-2xl bg-white py-12 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <span className="text-[13px] text-knock-text-muted">
+                工事がありません
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ─── "現場詳細" tab content ─── */}
       {activeTab === "detail" && (
         <div className={`flex flex-col gap-3 px-4 pt-3 ${site.status === "NOT_ORDERED" && isOrderer ? "pb-40" : "pb-8"}`}>
+
+          {/* 予算管理カード（親現場のみ） */}
+          {isParentSite && projectSummary && (
+            <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <div className="px-4 pt-4 pb-1">
+                <h3 className="text-[14px] font-bold text-knock-text">予算管理</h3>
+              </div>
+              <div className="px-4 pb-4">
+                <div className={dividerClass} />
+                <div className="flex items-center justify-between">
+                  <p className={labelClass}>全体予算</p>
+                  <p className="text-[15px] font-bold text-knock-text">{fmtAmount(projectSummary.budget)}</p>
+                </div>
+                <div className={dividerClass} />
+                <div className="flex items-center justify-between">
+                  <p className={labelClass}>発注合計</p>
+                  <p className={valueClass}>{fmtAmount(projectSummary.orderedTotal)}</p>
+                </div>
+                <div className={dividerClass} />
+                <div className="flex items-center justify-between">
+                  <p className={labelClass}>実績合計</p>
+                  <p className={valueClass}>{fmtAmount(projectSummary.actualTotal)}</p>
+                </div>
+                <div className={dividerClass} />
+                <div className="flex items-center justify-between">
+                  <p className={labelClass}>差額（予算 − 発注）</p>
+                  <p className={`text-[15px] font-bold ${projectSummary.diff >= 0 ? "text-green-600" : "text-red-600"}`}>
+                    {projectSummary.diff >= 0 ? "+" : ""}{fmtAmount(projectSummary.diff)}
+                  </p>
+                </div>
+                {/* 消化率プログレスバー */}
+                {projectSummary.budget > 0 && (
+                  <>
+                    <div className={dividerClass} />
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <p className="text-[11px] text-gray-500">予算消化率</p>
+                        <p className="text-[11px] font-bold text-knock-text">
+                          {Math.min(100, Math.round((projectSummary.orderedTotal / projectSummary.budget) * 100))}%
+                        </p>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            projectSummary.orderedTotal / projectSummary.budget > 1
+                              ? "bg-red-500"
+                              : "bg-green-500"
+                          }`}
+                          style={{
+                            width: `${Math.min(100, Math.round((projectSummary.orderedTotal / projectSummary.budget) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* 1. 基本情報 */}
           <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">

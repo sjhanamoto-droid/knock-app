@@ -71,6 +71,7 @@ interface SiteFormProps {
   ) => Promise<void>;
   occupationMasters: MajorItem[];
   units: UnitOption[];
+  parentId?: string;
 }
 
 // ============ Helpers ============
@@ -107,7 +108,9 @@ export default function SiteForm({
   onSubmit,
   occupationMasters,
   units,
+  parentId,
 }: SiteFormProps) {
+  const isChildSite = !!parentId;
   const [serverError, setServerError] = useState("");
   const [deletedPriceDetailIds, setDeletedPriceDetailIds] = useState<string[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
@@ -161,6 +164,8 @@ export default function SiteForm({
       endDayRequest: formatDate(initialData?.endDayRequest),
       occupations: defaultOccupations,
       priceDetails: defaultPriceDetails,
+      parentId: parentId ?? undefined,
+      budget: "",
     },
   });
 
@@ -261,18 +266,21 @@ export default function SiteForm({
         </div>
       )}
 
+      {/* parentId hidden field */}
+      {parentId && <input type="hidden" {...register("parentId")} />}
+
       {/* ======== 1. 基本情報 ======== */}
       <div className={cardClass}>
         <p className={sectionTitleClass}>基本情報</p>
         <div className="flex flex-col gap-4">
           <div>
             <label className={labelClass}>
-              現場名 <span className="text-knock-red">*</span>
+              {isChildSite ? "工事名" : "現場名"} <span className="text-knock-red">*</span>
             </label>
             <input
               {...register("name")}
               className={inputClass}
-              placeholder="例: 新宿オフィスビル改修工事"
+              placeholder={isChildSite ? "例: 電気工事" : "例: 新宿オフィスビル改修工事"}
             />
             {errors.name && (
               <p className="mt-1 text-[12px] text-knock-red">
@@ -289,6 +297,25 @@ export default function SiteForm({
               placeholder="例: SJ-2026-001"
             />
           </div>
+
+          {/* 全体予算（親現場作成時のみ） */}
+          {!isChildSite && mode === "create" && (
+            <div>
+              <label className={labelClass}>全体予算（受注金額）</label>
+              <div className="relative">
+                <input
+                  type="number"
+                  {...register("budget")}
+                  className={`${inputClass} pr-8`}
+                  placeholder="0"
+                  min="0"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">
+                  円
+                </span>
+              </div>
+            </div>
+          )}
 
           <div>
             <label className={labelClass}>依頼内容</label>
@@ -645,10 +672,10 @@ export default function SiteForm({
       >
         {isSubmitting
           ? mode === "create"
-            ? "作成中..."
+            ? isChildSite ? "追加中..." : "作成中..."
             : "更新中..."
           : mode === "create"
-            ? "現場を作成"
+            ? isChildSite ? "工事を追加" : "現場を作成"
             : "変更を保存"}
       </button>
     </form>

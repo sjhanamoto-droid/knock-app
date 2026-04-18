@@ -41,6 +41,7 @@ export async function getSites(
   const where: any = {
     companyId: user.companyId,
     deletedAt: null,
+    parentId: null, // 親現場のみ表示
   };
 
   if (status) {
@@ -60,7 +61,7 @@ export async function getSites(
     orderBy: { [sortBy]: sortOrder },
     include: {
       workCompany: { select: { name: true } },
-      _count: { select: { members: true, orders: true } },
+      _count: { select: { members: true, orders: true, children: true } },
     },
   });
 
@@ -160,6 +161,17 @@ export async function getSite(id: string) {
         select: { id: true, status: true },
         take: 1,
       },
+      children: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "asc" },
+        include: {
+          workCompany: { select: { id: true, name: true } },
+          orders: {
+            where: { deletedAt: null },
+            select: { id: true, status: true, actualAmount: true },
+          },
+        },
+      },
     },
   });
 
@@ -197,6 +209,8 @@ export async function createSite(data: CreateFactoryFloorInput & {
         paymentType: toNumberOrNull(data.paymentType),
         paymentLatterMonth: toNumberOrNull(data.paymentLatterMonth),
         paymentLatterDay: toNumberOrNull(data.paymentLatterDay),
+        parentId: data.parentId || null,
+        budget: toBigIntOrNull(data.budget),
       },
     });
 
@@ -496,6 +510,87 @@ export async function duplicateSite(id: string) {
   });
 
   return serializeBigInt(result);
+}
+
+// ============ 子現場一覧取得 ============
+
+export async function getChildSites(parentId: string) {
+  const user = await requireSession();
+
+  const sites = await prisma.factoryFloor.findMany({
+    where: {
+      parentId,
+      companyId: user.companyId,
+      deletedAt: null,
+    },
+    orderBy: { createdAt: "asc" },
+    include: {
+      workCompany: { select: { id: true, name: true } },
+      orders: {
+        where: { deletedAt: null },
+        select: { id: true, status: true, actualAmount: true },
+      },
+      _count: { select: { members: true } },
+    },
+  });
+
+  return serializeBigInt(sites);
+}
+
+// ============ プロジェクト予算管理 ============
+
+export async function getProjectSummary(parentId: string) {
+  const user = await requireSession();
+
+  const parent = await prisma.factoryFloor.findFirst({
+    where: {
+      id: parentId,
+      companyId: user.companyId,
+      deletedAt: null,
+      parentId: null,
+    },
+    select: { id: true, budget: true },
+  });
+  if (!parent) throw new Error("プロジェクトが見つかりません");
+
+  const children = await prisma.factoryFloor.findMany({
+    where: {
+      parentId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      totalAmount: true,
+      orders: {
+        where: { deletedAt: null },
+        select: { actualAmount: true, status: true },
+      },
+    },
+  });
+
+  // 発注合計（子現場の totalAmount 合計）
+  const orderedTotal = children.reduce((sum, c) => {
+    return sum + (c.totalAmount ? Number(c.totalAmount) : 0);
+  }, 0);
+
+  // 実績合計（完了済みオーダーの actualAmount 合計）
+  const actualTotal = children.reduce((sum, c) => {
+    return sum + c.orders.reduce((oSum, o) => {
+      return oSum + (o.actualAmount ? Number(o.actualAmount) : 0);
+    }, 0);
+  }, 0);
+
+  const budget = parent.budget ? Number(parent.budget) : 0;
+
+  return {
+    budget,
+    orderedTotal,
+    actualTotal,
+    diff: budget - orderedTotal,
+    childCount: children.length,
+  };
 }
 
 // ============ マスタデータ ============

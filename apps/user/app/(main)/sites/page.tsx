@@ -407,10 +407,20 @@ export default function SitesPage() {
                     </div>
                   </div>
 
-                  {/* Site name */}
-                  <p className="mb-2 text-[14px] font-bold text-knock-text leading-snug">
-                    {site.name ?? "名称未設定"}
-                  </p>
+                  {/* Site name + child count */}
+                  <div className="mb-2 flex items-center gap-2">
+                    <p className="text-[14px] font-bold text-knock-text leading-snug">
+                      {site.name ?? "名称未設定"}
+                    </p>
+                    {(() => {
+                      const cnt = (site._count as { children?: number })?.children ?? 0;
+                      return cnt > 0 ? (
+                        <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                          {cnt}工事
+                        </span>
+                      ) : null;
+                    })()}
+                  </div>
 
                   {/* Details */}
                   <div className="flex flex-col gap-1">

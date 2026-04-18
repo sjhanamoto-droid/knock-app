@@ -414,9 +414,18 @@ model FactoryFloor {
   expenses            BigInt?
   orderNumber         Int?
   orderCompleteNumber Int?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  deletedAt           DateTime?
+
+  // ── 親子関係 ──
+  parentId String?
+  parent   FactoryFloor?  @relation("SiteHierarchy", fields: [parentId], references: [id])
+  children FactoryFloor[] @relation("SiteHierarchy")
+
+  // ── プロジェクト予算管理（親現場で使用） ──
+  budget BigInt?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   members      FactoryFloorMember[]
   orders       FactoryFloorOrder[]

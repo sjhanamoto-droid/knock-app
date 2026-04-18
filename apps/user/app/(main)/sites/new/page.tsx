@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { createSite } from "@/lib/actions/sites";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createSite, getSite } from "@/lib/actions/sites";
 import { getUnits } from "@/lib/actions/sites";
 import { getOccupationMasters } from "@/lib/actions/occupations";
 import { useToast } from "@knock/ui";
@@ -18,25 +18,35 @@ type UnitOption = { id: string; name: string };
 
 export default function NewSitePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const parentId = searchParams.get("parentId");
   const { toast } = useToast();
   const { accentColor } = useMode();
   const [occupationMasters, setOccupationMasters] = useState<MajorItem[]>([]);
   const [units, setUnits] = useState<UnitOption[]>([]);
+  const [parentName, setParentName] = useState<string>("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getOccupationMasters(), getUnits()])
-      .then(([masters, unitData]) => {
-        setOccupationMasters(masters);
-        setUnits(unitData);
+    const promises: Promise<unknown>[] = [getOccupationMasters(), getUnits()];
+    if (parentId) {
+      promises.push(getSite(parentId));
+    }
+    Promise.all(promises)
+      .then(([masters, unitData, parentSite]) => {
+        setOccupationMasters(masters as MajorItem[]);
+        setUnits(unitData as UnitOption[]);
+        if (parentSite) {
+          setParentName((parentSite as { name: string | null }).name ?? "");
+        }
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [parentId]);
 
   async function handleCreate(data: Parameters<typeof createSite>[0]) {
     await createSite(data);
-    toast("現場を作成しました");
-    router.push("/sites");
+    toast(parentId ? "工事を追加しました" : "現場を作成しました");
+    router.push(parentId ? `/sites/${parentId}` : "/sites");
     router.refresh();
   }
 
@@ -68,7 +78,7 @@ export default function NewSitePage() {
           </button>
           <div className="flex flex-col items-center gap-0.5">
             <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
-              現場を作成
+              {parentId ? "工事を追加" : "現場を作成"}
             </h1>
             <svg width="40" height="6" viewBox="0 0 40 6" fill="none">
               <path
@@ -82,6 +92,13 @@ export default function NewSitePage() {
           </div>
           <div className="w-10" />
         </div>
+        {parentId && parentName && (
+          <div className="px-4 pb-2">
+            <p className="text-[12px] text-gray-500">
+              プロジェクト: <span className="font-bold text-knock-text">{parentName}</span>
+            </p>
+          </div>
+        )}
       </header>
 
       <div className="bg-[#F5F5F5] pt-3">
@@ -90,6 +107,7 @@ export default function NewSitePage() {
           onSubmit={handleCreate}
           occupationMasters={occupationMasters}
           units={units}
+          parentId={parentId ?? undefined}
         />
       </div>
     </div>
