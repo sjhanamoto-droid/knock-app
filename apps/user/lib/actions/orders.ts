@@ -422,7 +422,8 @@ export async function createOrderRequest(data: {
 
 // ============ V2: 発注確定（注文書自動生成） ============
 
-export async function confirmOrder(orderId: string) {
+export async function confirmOrder(orderId: string): Promise<{ success: boolean; error?: string; orderId?: string; documentId?: string }> {
+  try {
   const user = await requireSession();
 
   const order = await prisma.factoryFloorOrder.findFirst({
@@ -437,17 +438,17 @@ export async function confirmOrder(orderId: string) {
       },
     },
   });
-  if (!order) throw new Error("発注が見つかりません");
+  if (!order) return { success: false, error: "発注が見つかりません" };
 
   // 受注者の了承後のみ確定可能
   if (order.status !== "APPROVED") {
-    throw new Error("受注者が了承していない発注は確定できません");
+    return { success: false, error: `受注者が了承していない発注は確定できません（現在のステータス: ${order.status}）` };
   }
 
   // 注文書を先に生成（トランザクション外で実行しコネクションプール枯渇を防ぐ）
   const documentId = await generateOrderSheet(orderId);
 
-  return prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
     await tx.notification.updateMany({
       where: { userId: user.id, targetId: orderId, seenFlag: false },
@@ -553,6 +554,11 @@ export async function confirmOrder(orderId: string) {
 
     return { orderId, documentId };
   });
+
+  return { success: true, orderId, documentId };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
 
 // ============ V2: 受注確認 ============

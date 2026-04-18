@@ -47,7 +47,14 @@ export default function OrderConfirmPage() {
   async function handleConfirm() {
     setSubmitting(true);
     try {
-      await confirmOrder(orderId);
+      const result = await confirmOrder(orderId);
+      if (!result.success) {
+        setShowConfirmDialog(false);
+        toast(result.error ?? "エラーが発生しました");
+        alert(result.error ?? "エラーが発生しました");
+        setSubmitting(false);
+        return;
+      }
       setShowConfirmDialog(false);
       toast("注文書を作成しました");
       setTimeout(() => {
