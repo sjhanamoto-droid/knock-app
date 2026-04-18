@@ -31,24 +31,12 @@ async function generateDocumentNumber(type: "ORDER_SHEET" | "DELIVERY_NOTE" | "I
 }
 
 /**
- * PDFデータURIをファイルに保存し、相対パスを返す
+ * PDFデータURIを返す（サーバーレス環境対応）
+ * Vercel等のread-onlyファイルシステムではファイル書き込みできないため、
+ * data URIをそのまま返してDBに保存する。
  */
-export function savePdfToFile(pdfDataUri: string, documentNumber: string): string {
-  const uploadsDir = path.join(process.cwd(), "public/uploads/documents");
-
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-
-  const base64Data = pdfDataUri.replace(/^data:application\/pdf;[^,]*,/, "");
-  const buffer = Buffer.from(base64Data, "base64");
-
-  const fileName = `${documentNumber}.pdf`;
-  const filePath = path.join(uploadsDir, fileName);
-
-  fs.writeFileSync(filePath, buffer);
-
-  return `/uploads/documents/${fileName}`;
+export function savePdfToFile(pdfDataUri: string, _documentNumber: string): string {
+  return pdfDataUri;
 }
 
 /**

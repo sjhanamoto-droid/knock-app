@@ -122,8 +122,8 @@ export function ConfirmDialog({
           {cancelLabel}
         </button>
         <button
-          onClick={() => {
-            onConfirm();
+          onClick={async () => {
+            await Promise.resolve(onConfirm());
             onClose();
           }}
           className="flex-1 rounded-lg px-4 py-2.5 text-[14px] font-medium text-white transition-opacity active:opacity-80"

@@ -444,6 +444,9 @@ export async function confirmOrder(orderId: string) {
     throw new Error("受注者が了承していない発注は確定できません");
   }
 
+  // 注文書を先に生成（トランザクション外で実行しコネクションプール枯渇を防ぐ）
+  const documentId = await generateOrderSheet(orderId);
+
   return prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
     await tx.notification.updateMany({
@@ -463,10 +466,7 @@ export async function confirmOrder(orderId: string) {
       data: { status: "IN_PROGRESS" },
     });
 
-    // 3. 注文書を自動生成
-    const documentId = await generateOrderSheet(orderId);
-
-    // 4. SITE_INFO チャットルームを作成（施工確定時に初めて作成）
+    // 3. SITE_INFOチャットルームを作成（施工確定時に初めて作成）
     let siteRoom = await tx.chatRoom.findFirst({
       where: {
         factoryFloorId: order.factoryFloor.id,
@@ -508,7 +508,7 @@ export async function confirmOrder(orderId: string) {
       }
     }
 
-    // 5. SITE_INFOルームにACTIONメッセージ追加
+    // 4. SITE_INFOルームにACTIONメッセージ追加
     await tx.message.create({
       data: {
         roomId: siteRoom.id,
@@ -525,7 +525,7 @@ export async function confirmOrder(orderId: string) {
       data: { lastMessageTime: new Date() },
     });
 
-    // 6. 受注者に通知（type 24 → /chat/${chatRoomId}）
+    // 5. 受注者に通知（type 24 → /chat/${chatRoomId}）
     if (order.factoryFloor.workCompanyId) {
       const contractorUsers = await tx.user.findMany({
         where: { companyId: order.factoryFloor.workCompanyId, isActive: true, deletedAt: null },
@@ -967,6 +967,9 @@ export async function approveDelivery(orderId: string) {
   if (!order) throw new Error("取引が見つかりません");
   if (order.factoryFloor.status !== "COMPLETED") throw new Error("納品承認できる状態ではありません");
 
+  // 納品書を先に生成（トランザクション外で実行しコネクションプール枯渇を防ぐ）
+  const documentId = await generateDeliveryNote(orderId);
+
   return prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
     await tx.notification.updateMany({
@@ -980,10 +983,7 @@ export async function approveDelivery(orderId: string) {
       data: { status: "DELIVERY_APPROVED" },
     });
 
-    // 2. 納品書を自動生成
-    const documentId = await generateDeliveryNote(orderId);
-
-    // 3. 発注者に通知
+    // 2. 発注者に通知
     const ordererUsers = await tx.user.findMany({
       where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
       select: { id: true },
