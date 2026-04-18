@@ -5,6 +5,7 @@ import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import { getEffectivePrice } from "@knock/utils";
+import { createDefaultTemplates } from "@/lib/actions/templates";
 
 export async function registerStep1(
   data: { email: string; password: string },
@@ -191,6 +192,9 @@ export async function registerStep3(
         });
       }
     });
+
+    // デフォルトテンプレートを作成（非同期・エラー無視）
+    void createDefaultTemplates(companyId);
 
     // 登録完了後、自動ログインしてオンボーディングへリダイレクト
     await signIn("credentials", {
