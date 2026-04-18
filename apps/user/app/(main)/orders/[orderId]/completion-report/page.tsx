@@ -41,9 +41,6 @@ export default function CompletionReportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const [hasAdditionalWork, setHasAdditionalWork] = useState(false);
-  const [additionalDesc, setAdditionalDesc] = useState("");
-  const [additionalAmount, setAdditionalAmount] = useState("");
 
   useEffect(() => {
     getOrderDetail(orderId)
@@ -61,11 +58,6 @@ export default function CompletionReportPage() {
         completionDate,
         comment: comment || undefined,
         photos,
-        hasAdditionalWork,
-        additionalWorkDescription: hasAdditionalWork ? additionalDesc : undefined,
-        additionalWorkAmount: hasAdditionalWork && additionalAmount
-          ? parseInt(additionalAmount)
-          : undefined,
       });
       setSuccessMessage("完了報告を送信しました");
     } catch (e) {
@@ -217,55 +209,6 @@ export default function CompletionReportPage() {
               )}
             </button>
           </div>
-        </div>
-
-        {/* 追加工事 */}
-        <div>
-          <label className="mb-2 block text-[13px] font-bold text-knock-text">追加工事の有無</label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setHasAdditionalWork(true)}
-              className="flex-1 rounded-xl py-2.5 text-[14px] font-bold transition-all"
-              style={
-                hasAdditionalWork
-                  ? { backgroundColor: accentColor, color: "#fff" }
-                  : { backgroundColor: "#F0F0F0", color: "#888" }
-              }
-            >
-              あり
-            </button>
-            <button
-              type="button"
-              onClick={() => setHasAdditionalWork(false)}
-              className="flex-1 rounded-xl py-2.5 text-[14px] font-bold transition-all"
-              style={
-                !hasAdditionalWork
-                  ? { backgroundColor: accentColor, color: "#fff" }
-                  : { backgroundColor: "#F0F0F0", color: "#888" }
-              }
-            >
-              なし
-            </button>
-          </div>
-          {hasAdditionalWork && (
-            <div className="mt-3 flex flex-col gap-2">
-              <input
-                type="text"
-                value={additionalDesc}
-                onChange={(e) => setAdditionalDesc(e.target.value)}
-                placeholder="追加工事内容"
-                className="w-full rounded-xl border-none bg-[#F0F0F0] px-4 py-3 text-[14px]"
-              />
-              <input
-                type="number"
-                value={additionalAmount}
-                onChange={(e) => setAdditionalAmount(e.target.value)}
-                placeholder="金額（円）"
-                className="w-full rounded-xl border-none bg-[#F0F0F0] px-4 py-3 text-[14px]"
-              />
-            </div>
-          )}
         </div>
 
         <button
