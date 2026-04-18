@@ -72,14 +72,14 @@ export function AlertDialog({
   onClose,
   title,
   message,
-  buttonLabel = "OK",
+  buttonLabel = "閉じる",
 }: AlertDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} title={title}>
       <p className="mb-5 text-[14px] text-gray-600">{message}</p>
       <button
         onClick={onClose}
-        className="w-full rounded-lg bg-[#2563EB] px-4 py-2.5 text-[14px] font-medium text-white transition-opacity active:opacity-80"
+        className="w-full rounded-xl bg-[#2563EB] px-4 py-3.5 text-[15px] font-bold text-white shadow-sm transition-opacity active:opacity-80"
       >
         {buttonLabel}
       </button>
