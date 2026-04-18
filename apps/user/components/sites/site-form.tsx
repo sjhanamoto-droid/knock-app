@@ -370,8 +370,8 @@ export default function SiteForm({
       </div>
 
 
-      {/* ======== 6. 工種選択 ======== */}
-      {occupationMasters.length > 0 && (
+      {/* ======== 6. 工種選択（子現場のみ） ======== */}
+      {isChildSite && occupationMasters.length > 0 && (
         <div className={cardClass}>
           <p className={sectionTitleClass}>工種</p>
           <Controller
@@ -388,8 +388,8 @@ export default function SiteForm({
         </div>
       )}
 
-      {/* ======== 7. 明細 ======== */}
-      <div className={cardClass}>
+      {/* ======== 7. 明細（子現場のみ） ======== */}
+      {isChildSite && <div className={cardClass}>
         <div className="mb-3 flex items-center justify-between">
           <p className={sectionTitleClass + " mb-0"}>明細</p>
           <button
@@ -527,7 +527,7 @@ export default function SiteForm({
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ======== 8. 画像 ======== */}
       <div className={cardClass}>

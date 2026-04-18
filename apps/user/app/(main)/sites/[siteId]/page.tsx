@@ -611,8 +611,8 @@ export default function SiteDetailPage() {
             </div>
           </div>
 
-          {/* 2. 金額情報 */}
-          {hasFinancial && (
+          {/* 2. 金額情報（子現場のみ） */}
+          {!isParentSite && hasFinancial && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <div className="px-4 pt-4 pb-1">
                 <h3 className="text-[14px] font-bold text-knock-text">金額情報</h3>
@@ -669,8 +669,8 @@ export default function SiteDetailPage() {
             </div>
           )}
 
-          {/* 3. 支払条件 */}
-          {hasPaymentTerms && (
+          {/* 3. 支払条件（子現場のみ） */}
+          {!isParentSite && hasPaymentTerms && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <div className="px-4 pt-4 pb-1">
                 <h3 className="text-[14px] font-bold text-knock-text">支払条件</h3>
@@ -714,8 +714,8 @@ export default function SiteDetailPage() {
             </div>
           )}
 
-          {/* 4. 工種 */}
-          {site.occupations && site.occupations.length > 0 && (
+          {/* 4. 工種（子現場のみ） */}
+          {!isParentSite && site.occupations && site.occupations.length > 0 && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <div className="px-4 pt-4 pb-1">
                 <h3 className="text-[14px] font-bold text-knock-text">
@@ -743,8 +743,8 @@ export default function SiteDetailPage() {
             </div>
           )}
 
-          {/* 5. 明細 */}
-          {site.priceDetails && site.priceDetails.length > 0 && (
+          {/* 5. 明細（子現場のみ） */}
+          {!isParentSite && site.priceDetails && site.priceDetails.length > 0 && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <div className="px-4 pt-4 pb-1">
                 <h3 className="text-[14px] font-bold text-knock-text">
@@ -895,8 +895,8 @@ export default function SiteDetailPage() {
             </div>
           )}
 
-          {/* 8. 発注（発注者のみ） */}
-          {isOrderer && (
+          {/* 8. 発注（子現場・発注者のみ） */}
+          {!isParentSite && isOrderer && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <div className="px-4 pt-4 pb-1">
                 <h3 className="text-[14px] font-bold text-knock-text">
