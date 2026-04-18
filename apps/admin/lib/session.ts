@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { prisma } from "@knock/db";
+import { prisma } from "@/lib/prisma";
 
 export interface AdminSession {
   id: string;

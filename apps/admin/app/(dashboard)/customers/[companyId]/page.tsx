@@ -198,7 +198,7 @@ export default function CompanyDetailPage() {
             onUserUpdated={(updated) =>
               setCompany({
                 ...company,
-                users: company.users.map((u) =>
+                users: company.users.map((u: UserItem) =>
                   u.id === updated.id ? updated : u
                 ),
               })
