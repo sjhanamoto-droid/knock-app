@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
-import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -11,19 +8,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ファイルがありません" }, { status: 400 });
   }
 
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
-
   const urls: string[] = [];
 
   for (const file of files) {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = path.extname(file.name) || ".bin";
-    const filename = `${crypto.randomUUID()}${ext}`;
-    const filepath = path.join(uploadDir, filename);
-
-    await writeFile(filepath, buffer);
-    urls.push(`/uploads/${filename}`);
+    const base64 = buffer.toString("base64");
+    const mimeType = file.type || "application/octet-stream";
+    urls.push(`data:${mimeType};base64,${base64}`);
   }
 
   return NextResponse.json({ urls });
