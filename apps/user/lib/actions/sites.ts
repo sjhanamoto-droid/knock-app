@@ -466,6 +466,20 @@ export async function updateSite(
       }
     }
 
+    // 3.5. 明細から totalAmount を再計算
+    if (data.priceDetails !== undefined || (data.deletedPriceDetailIds && data.deletedPriceDetailIds.length > 0)) {
+      const currentDetails = await tx.priceOrderDetail.findMany({
+        where: { factoryFloorId: id, deletedAt: null },
+      });
+      const computedTotal = currentDetails.reduce((sum, d) => {
+        return sum + Math.ceil((d.quantity ?? 0) * Number(d.priceUnit ?? 0));
+      }, 0);
+      await tx.factoryFloor.update({
+        where: { id },
+        data: { totalAmount: BigInt(computedTotal) },
+      });
+    }
+
     // 4. 画像削除
     if (data.deletedImageIds && data.deletedImageIds.length > 0) {
       await tx.factoryFloorImage.updateMany({
