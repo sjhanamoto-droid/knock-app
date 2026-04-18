@@ -10,3 +10,4 @@ apps/user/public/uploads/
 .omc/
 packages/db/generated/
 apps/user/generated/
+.vercel
