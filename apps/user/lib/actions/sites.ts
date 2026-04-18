@@ -187,10 +187,23 @@ export async function getSite(id: string) {
 
 export type ChildSiteInput = {
   name: string;
+  code?: string;
   contentRequest?: string;
+  address?: string;
   startDayRequest?: string;
   endDayRequest?: string;
   totalAmount?: number | string;
+  occupations?: { occupationSubItemId: string }[];
+  priceDetails?: {
+    name: string;
+    quantity: number;
+    unitId?: string;
+    priceUnit: number;
+    specifications?: string;
+  }[];
+  imageDrawingUrls?: string[];
+  imagePhotoUrls?: string[];
+  pdfInvoiceUrls?: string[];
 };
 
 export async function createSite(data: CreateFactoryFloorInput & {
@@ -289,13 +302,52 @@ export async function createSite(data: CreateFactoryFloorInput & {
             status: "NOT_ORDERED",
             parentId: site.id,
             name: child.name,
+            code: child.code || null,
             contentRequest: child.contentRequest || null,
-            address: data.address || null,
+            address: child.address || data.address || null,
             startDayRequest: child.startDayRequest ? new Date(child.startDayRequest) : null,
             endDayRequest: child.endDayRequest ? new Date(child.endDayRequest) : null,
             totalAmount: toBigIntOrNull(child.totalAmount),
           },
         });
+        // 工種
+        if (child.occupations && child.occupations.length > 0) {
+          await tx.factoryFloorOccupation.createMany({
+            data: child.occupations.map((o) => ({
+              factoryFloorId: childSite.id,
+              occupationSubItemId: o.occupationSubItemId,
+            })),
+          });
+        }
+        // 明細
+        if (child.priceDetails && child.priceDetails.length > 0) {
+          for (const d of child.priceDetails) {
+            await tx.priceOrderDetail.create({
+              data: {
+                factoryFloorId: childSite.id,
+                name: d.name,
+                quantity: d.quantity,
+                unitId: d.unitId || null,
+                priceUnit: BigInt(d.priceUnit),
+                specifications: d.specifications || null,
+              },
+            });
+          }
+        }
+        // 画像
+        const childImages = [
+          ...(child.imageDrawingUrls ?? []).map((url) => ({ factoryFloorId: childSite.id, url, type: 1 })),
+          ...(child.imagePhotoUrls ?? []).map((url) => ({ factoryFloorId: childSite.id, url, type: 2 })),
+        ];
+        if (childImages.length > 0) {
+          await tx.factoryFloorImage.createMany({ data: childImages });
+        }
+        // PDF
+        const childPdfs = (child.pdfInvoiceUrls ?? []).map((url) => ({ factoryFloorId: childSite.id, url, type: 1 }));
+        if (childPdfs.length > 0) {
+          await tx.factoryFloorPdf.createMany({ data: childPdfs });
+        }
+        // メンバー
         await tx.factoryFloorMember.create({
           data: {
             factoryFloorId: childSite.id,
@@ -448,13 +500,52 @@ export async function updateSite(
             status: "NOT_ORDERED",
             parentId: id,
             name: child.name,
+            code: child.code || null,
             contentRequest: child.contentRequest || null,
-            address: site.address || null,
+            address: child.address || site.address || null,
             startDayRequest: child.startDayRequest ? new Date(child.startDayRequest) : null,
             endDayRequest: child.endDayRequest ? new Date(child.endDayRequest) : null,
             totalAmount: toBigIntOrNull(child.totalAmount),
           },
         });
+        // 工種
+        if (child.occupations && child.occupations.length > 0) {
+          await tx.factoryFloorOccupation.createMany({
+            data: child.occupations.map((o) => ({
+              factoryFloorId: childSite.id,
+              occupationSubItemId: o.occupationSubItemId,
+            })),
+          });
+        }
+        // 明細
+        if (child.priceDetails && child.priceDetails.length > 0) {
+          for (const d of child.priceDetails) {
+            await tx.priceOrderDetail.create({
+              data: {
+                factoryFloorId: childSite.id,
+                name: d.name,
+                quantity: d.quantity,
+                unitId: d.unitId || null,
+                priceUnit: BigInt(d.priceUnit),
+                specifications: d.specifications || null,
+              },
+            });
+          }
+        }
+        // 画像
+        const childImages = [
+          ...(child.imageDrawingUrls ?? []).map((url) => ({ factoryFloorId: childSite.id, url, type: 1 })),
+          ...(child.imagePhotoUrls ?? []).map((url) => ({ factoryFloorId: childSite.id, url, type: 2 })),
+        ];
+        if (childImages.length > 0) {
+          await tx.factoryFloorImage.createMany({ data: childImages });
+        }
+        // PDF
+        const childPdfs = (child.pdfInvoiceUrls ?? []).map((url) => ({ factoryFloorId: childSite.id, url, type: 1 }));
+        if (childPdfs.length > 0) {
+          await tx.factoryFloorPdf.createMany({ data: childPdfs });
+        }
+        // メンバー
         await tx.factoryFloorMember.create({
           data: {
             factoryFloorId: childSite.id,

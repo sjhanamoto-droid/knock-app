@@ -15,6 +15,28 @@ import { FileUpload } from "@knock/ui";
 import OccupationSelector from "@/components/occupation-selector";
 import type { ChildSiteInput } from "@/lib/actions/sites";
 
+// 子現場フォーム用ローカル型（File オブジェクトを含む）
+type ChildFormEntry = {
+  name: string;
+  code: string;
+  contentRequest: string;
+  address: string;
+  startDayRequest: string;
+  endDayRequest: string;
+  occupations: { occupationSubItemId: string }[];
+  priceDetails: {
+    name: string;
+    quantity: number;
+    unitId?: string;
+    priceUnit: number;
+    specifications?: string;
+  }[];
+  drawingFiles: File[];
+  photoFiles: File[];
+  invoicePdfFiles: File[];
+  expanded: boolean;
+};
+
 // ============ Types ============
 
 type MajorItem = {
@@ -127,7 +149,19 @@ export default function SiteForm({
   const isParentSite = !isChildSite;
   const isParentCreate = isParentSite && mode === "create";
   const [formTab, setFormTab] = useState<"overview" | "children">("overview");
-  const [childEntries, setChildEntries] = useState<ChildSiteInput[]>([]);
+  const [childEntries, setChildEntries] = useState<ChildFormEntry[]>([]);
+
+  // 子現場エントリ更新ヘルパー
+  function updateChild(idx: number, updates: Partial<ChildFormEntry>) {
+    setChildEntries((prev) => prev.map((c, i) => (i === idx ? { ...c, ...updates } : c)));
+  }
+
+  // 子現場の明細合計を計算
+  function getChildTotal(child: ChildFormEntry): number {
+    return child.priceDetails.reduce((sum, d) => {
+      return sum + Math.ceil((Number(d.quantity) || 0) * (Number(d.priceUnit) || 0));
+    }, 0);
+  }
   const [serverError, setServerError] = useState("");
   const [deletedPriceDetailIds, setDeletedPriceDetailIds] = useState<string[]>([]);
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
@@ -265,7 +299,34 @@ export default function SiteForm({
         deletedPdfIds:
           deletedPdfIds.length > 0 ? deletedPdfIds : undefined,
         ...(isParentSite && childEntries.length > 0
-          ? { children: childEntries.filter((c) => c.name.trim()) }
+          ? {
+              children: await Promise.all(
+                childEntries
+                  .filter((c) => c.name.trim())
+                  .map(async (child) => {
+                    const [cDrawingUrls, cPhotoUrls, cPdfUrls] = await Promise.all([
+                      uploadFiles(child.drawingFiles),
+                      uploadFiles(child.photoFiles),
+                      uploadFiles(child.invoicePdfFiles),
+                    ]);
+                    const childTotal = getChildTotal(child);
+                    return {
+                      name: child.name,
+                      code: child.code || undefined,
+                      contentRequest: child.contentRequest || undefined,
+                      address: child.address || undefined,
+                      startDayRequest: child.startDayRequest || undefined,
+                      endDayRequest: child.endDayRequest || undefined,
+                      totalAmount: childTotal > 0 ? childTotal : undefined,
+                      occupations: child.occupations.length > 0 ? child.occupations : undefined,
+                      priceDetails: child.priceDetails.length > 0 ? child.priceDetails : undefined,
+                      imageDrawingUrls: cDrawingUrls.length > 0 ? cDrawingUrls : undefined,
+                      imagePhotoUrls: cPhotoUrls.length > 0 ? cPhotoUrls : undefined,
+                      pdfInvoiceUrls: cPdfUrls.length > 0 ? cPdfUrls : undefined,
+                    } as ChildSiteInput;
+                  })
+              ),
+            }
           : {}),
       } as Parameters<typeof onSubmit>[0]);
     } catch (err) {
@@ -380,7 +441,13 @@ export default function SiteForm({
             onClick={() =>
               setChildEntries([
                 ...childEntries,
-                { name: "", contentRequest: "", startDayRequest: "", endDayRequest: "", totalAmount: "" },
+                {
+                  name: "", code: "", contentRequest: "", address: "",
+                  startDayRequest: "", endDayRequest: "",
+                  occupations: [], priceDetails: [],
+                  drawingFiles: [], photoFiles: [], invoicePdfFiles: [],
+                  expanded: true,
+                },
               ])
             }
             className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 py-4 text-[14px] font-bold text-gray-500 transition-all active:scale-[0.98] active:border-gray-400"
@@ -391,105 +458,317 @@ export default function SiteForm({
             工事を追加
           </button>
 
-          {childEntries.map((child, idx) => (
-            <div key={idx} className={cardClass}>
-              <div className="mb-3 flex items-center justify-between">
-                <p className={sectionTitleClass + " mb-0"}>工事 #{idx + 1}</p>
-                <button
-                  type="button"
-                  onClick={() => setChildEntries(childEntries.filter((_, i) => i !== idx))}
-                  className="text-[12px] text-knock-red"
-                >
-                  削除
-                </button>
-              </div>
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label className={labelClass}>
-                    工事名 <span className="text-knock-red">*</span>
-                  </label>
-                  <input
-                    value={child.name}
-                    onChange={(e) => {
-                      const updated = [...childEntries];
-                      updated[idx] = { ...updated[idx], name: e.target.value };
-                      setChildEntries(updated);
-                    }}
-                    className={inputClass}
-                    placeholder="例: 電気工事"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>依頼内容</label>
-                  <textarea
-                    value={child.contentRequest ?? ""}
-                    onChange={(e) => {
-                      const updated = [...childEntries];
-                      updated[idx] = { ...updated[idx], contentRequest: e.target.value };
-                      setChildEntries(updated);
-                    }}
-                    rows={2}
-                    className={inputClass}
-                    placeholder="工事内容を入力"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={labelClass}>工期開始</label>
-                    <input
-                      type="date"
-                      value={child.startDayRequest ?? ""}
-                      onChange={(e) => {
-                        const updated = [...childEntries];
-                        updated[idx] = { ...updated[idx], startDayRequest: e.target.value };
-                        setChildEntries(updated);
-                      }}
-                      className={inputClass}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelClass}>工期終了</label>
-                    <input
-                      type="date"
-                      value={child.endDayRequest ?? ""}
-                      onChange={(e) => {
-                        const updated = [...childEntries];
-                        updated[idx] = { ...updated[idx], endDayRequest: e.target.value };
-                        setChildEntries(updated);
-                      }}
-                      className={inputClass}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className={labelClass}>金額</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={child.totalAmount ?? ""}
-                      onChange={(e) => {
-                        const updated = [...childEntries];
-                        updated[idx] = { ...updated[idx], totalAmount: e.target.value };
-                        setChildEntries(updated);
-                      }}
-                      className={`${inputClass} pr-8`}
-                      placeholder="0"
-                      min="0"
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">
-                      円
+          {childEntries.map((child, idx) => {
+            const childTotal = getChildTotal(child);
+            return (
+              <div key={idx} className={cardClass}>
+                {/* ヘッダー（展開/折りたたみ） */}
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => updateChild(idx, { expanded: !child.expanded })}
+                    className="flex items-center gap-2 flex-1 text-left"
+                  >
+                    <svg
+                      width="12" height="12" viewBox="0 0 12 12" fill="none"
+                      className={`transition-transform ${child.expanded ? "rotate-90" : ""}`}
+                    >
+                      <path d="M4 2L8 6L4 10" stroke="#6B6B6B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="text-[14px] font-bold text-knock-text">
+                      工事 #{idx + 1}{child.name ? ` - ${child.name}` : ""}
                     </span>
-                  </div>
+                  </button>
+                  {!child.expanded && childTotal > 0 && (
+                    <span className="text-[12px] font-bold text-knock-accent mr-3">
+                      {childTotal.toLocaleString("ja-JP")}円
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setChildEntries(childEntries.filter((_, i) => i !== idx))}
+                    className="text-[12px] text-knock-red"
+                  >
+                    削除
+                  </button>
                 </div>
-              </div>
-            </div>
-          ))}
 
+                {/* 展開時の詳細フォーム */}
+                {child.expanded && (
+                  <div className="mt-4 flex flex-col gap-4">
+                    {/* 基本情報 */}
+                    <div>
+                      <p className={sectionTitleClass}>基本情報</p>
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <label className={labelClass}>工事名 <span className="text-knock-red">*</span></label>
+                          <input
+                            value={child.name}
+                            onChange={(e) => updateChild(idx, { name: e.target.value })}
+                            className={inputClass}
+                            placeholder="例: 電気工事"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>現場コード</label>
+                          <input
+                            value={child.code}
+                            onChange={(e) => updateChild(idx, { code: e.target.value })}
+                            className={inputClass}
+                            placeholder="例: SJ-2026-001"
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>依頼内容</label>
+                          <textarea
+                            value={child.contentRequest}
+                            onChange={(e) => updateChild(idx, { contentRequest: e.target.value })}
+                            rows={2}
+                            className={inputClass}
+                            placeholder="工事内容を入力"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 場所情報 */}
+                    <div>
+                      <p className={sectionTitleClass}>場所情報</p>
+                      <div>
+                        <label className={labelClass}>住所</label>
+                        <input
+                          value={child.address}
+                          onChange={(e) => updateChild(idx, { address: e.target.value })}
+                          className={inputClass}
+                          placeholder="東京都新宿区..."
+                        />
+                      </div>
+                    </div>
+
+                    {/* 日程 */}
+                    <div>
+                      <p className={sectionTitleClass}>日程</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelClass}>工期開始</label>
+                          <input
+                            type="date"
+                            value={child.startDayRequest}
+                            onChange={(e) => updateChild(idx, { startDayRequest: e.target.value })}
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>工期終了</label>
+                          <input
+                            type="date"
+                            value={child.endDayRequest}
+                            onChange={(e) => updateChild(idx, { endDayRequest: e.target.value })}
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 工種 */}
+                    {occupationMasters.length > 0 && (
+                      <div>
+                        <p className={sectionTitleClass}>工種</p>
+                        <OccupationSelector
+                          masters={occupationMasters}
+                          value={child.occupations}
+                          onChange={(val) => updateChild(idx, { occupations: val })}
+                        />
+                      </div>
+                    )}
+
+                    {/* 明細 */}
+                    <div>
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className={sectionTitleClass + " mb-0"}>明細</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const details = [...child.priceDetails, { name: "", quantity: 1, priceUnit: 0 }];
+                            updateChild(idx, { priceDetails: details });
+                          }}
+                          className="rounded-lg bg-knock-accent/10 px-3 py-1.5 text-[12px] font-bold text-knock-accent transition-colors active:bg-knock-accent/20"
+                        >
+                          + 行を追加
+                        </button>
+                      </div>
+                      {child.priceDetails.length === 0 ? (
+                        <p className="py-4 text-center text-[13px] text-gray-400">明細行がありません</p>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          {child.priceDetails.map((detail, dIdx) => {
+                            const subtotal = Math.ceil((Number(detail.quantity) || 0) * (Number(detail.priceUnit) || 0));
+                            return (
+                              <div key={dIdx} className="rounded-xl border border-gray-200 bg-gray-50/50 p-3">
+                                <div className="mb-2 flex items-center justify-between">
+                                  <span className="text-[12px] font-bold text-gray-500">#{dIdx + 1}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const details = child.priceDetails.filter((_, i) => i !== dIdx);
+                                      updateChild(idx, { priceDetails: details });
+                                    }}
+                                    className="text-[12px] text-knock-red"
+                                  >
+                                    削除
+                                  </button>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                  <div>
+                                    <label className="mb-1 block text-[11px] font-medium text-gray-500">
+                                      項目名 <span className="text-knock-red">*</span>
+                                    </label>
+                                    <input
+                                      value={detail.name}
+                                      onChange={(e) => {
+                                        const details = [...child.priceDetails];
+                                        details[dIdx] = { ...details[dIdx], name: e.target.value };
+                                        updateChild(idx, { priceDetails: details });
+                                      }}
+                                      className={inputClass}
+                                      placeholder="例: 配線工事"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <label className="mb-1 block text-[11px] font-medium text-gray-500">数量</label>
+                                      <input
+                                        type="number"
+                                        step="0.1"
+                                        value={detail.quantity}
+                                        onChange={(e) => {
+                                          const details = [...child.priceDetails];
+                                          details[dIdx] = { ...details[dIdx], quantity: Number(e.target.value) || 0 };
+                                          updateChild(idx, { priceDetails: details });
+                                        }}
+                                        className={inputClass}
+                                        min="0.1"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="mb-1 block text-[11px] font-medium text-gray-500">単位</label>
+                                      <select
+                                        value={detail.unitId ?? ""}
+                                        onChange={(e) => {
+                                          const details = [...child.priceDetails];
+                                          details[dIdx] = { ...details[dIdx], unitId: e.target.value || undefined };
+                                          updateChild(idx, { priceDetails: details });
+                                        }}
+                                        className={inputClass}
+                                      >
+                                        <option value="">-</option>
+                                        {units.map((u) => (
+                                          <option key={u.id} value={u.id}>{u.name}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-[11px] font-medium text-gray-500">単価</label>
+                                    <div className="relative">
+                                      <input
+                                        type="number"
+                                        value={detail.priceUnit}
+                                        onChange={(e) => {
+                                          const details = [...child.priceDetails];
+                                          details[dIdx] = { ...details[dIdx], priceUnit: Number(e.target.value) || 0 };
+                                          updateChild(idx, { priceDetails: details });
+                                        }}
+                                        className={`${inputClass} pr-8`}
+                                        placeholder="0"
+                                        min="0"
+                                      />
+                                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">円</span>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-[11px] font-medium text-gray-500">仕様</label>
+                                    <input
+                                      value={detail.specifications ?? ""}
+                                      onChange={(e) => {
+                                        const details = [...child.priceDetails];
+                                        details[dIdx] = { ...details[dIdx], specifications: e.target.value || undefined };
+                                        updateChild(idx, { priceDetails: details });
+                                      }}
+                                      className={inputClass}
+                                      placeholder="仕様・備考"
+                                    />
+                                  </div>
+                                  <div className="mt-1 text-right text-[13px] font-bold text-knock-text">
+                                    小計: {formatNumber(subtotal)}円
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          <div className="rounded-xl bg-knock-accent/5 px-4 py-3 text-right">
+                            <span className="text-[13px] text-gray-600">合計: </span>
+                            <span className="text-[16px] font-bold text-knock-accent">
+                              {formatNumber(childTotal)}円
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 画像 */}
+                    <div>
+                      <p className={sectionTitleClass}>画像</p>
+                      <div className="flex flex-col gap-4">
+                        <div>
+                          <label className={labelClass}>図面</label>
+                          <FileUpload
+                            accept="image/*"
+                            multiple
+                            maxFiles={10}
+                            label="図面を追加"
+                            onChange={(files) => updateChild(idx, { drawingFiles: files })}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>写真</label>
+                          <FileUpload
+                            accept="image/*"
+                            multiple
+                            maxFiles={10}
+                            label="写真を追加"
+                            onChange={(files) => updateChild(idx, { photoFiles: files })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* PDF */}
+                    <div>
+                      <p className={sectionTitleClass}>PDF</p>
+                      <div>
+                        <label className={labelClass}>見積書</label>
+                        <FileUpload
+                          accept=".pdf"
+                          multiple
+                          maxFiles={5}
+                          label="見積書を追加"
+                          onChange={(files) => updateChild(idx, { invoicePdfFiles: files })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* サマリー */}
           {(() => {
             const existingCount = initialData?.children?.length ?? 0;
             const existingTotal = initialData?.children?.reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0) ?? 0;
             const newCount = childEntries.filter((c) => c.name.trim()).length;
-            const newTotal = childEntries.reduce((sum, c) => sum + (Number(c.totalAmount) || 0), 0);
+            const newTotal = childEntries.reduce((sum, c) => sum + getChildTotal(c), 0);
             const totalCount = existingCount + newCount;
             const totalAmount = existingTotal + newTotal;
             if (totalCount === 0) return null;
