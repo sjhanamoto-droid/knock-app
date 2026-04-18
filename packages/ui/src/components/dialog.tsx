@@ -79,7 +79,8 @@ export function AlertDialog({
       <p className="mb-5 text-[14px] text-gray-600">{message}</p>
       <button
         onClick={onClose}
-        className="w-full rounded-xl bg-[#2563EB] px-4 py-3.5 text-[15px] font-bold text-white shadow-sm transition-opacity active:opacity-80"
+        className="w-full rounded-xl px-4 py-3.5 text-[15px] font-bold text-white shadow-sm transition-opacity active:opacity-80"
+        style={{ backgroundColor: "#2563EB" }}
       >
         {buttonLabel}
       </button>
