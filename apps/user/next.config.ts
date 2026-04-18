@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, "../../"),
   transpilePackages: ["@knock/ui", "@knock/auth", "@knock/types", "@knock/utils"],
   outputFileTracingIncludes: {
-    "/**": ["./generated/prisma/*.wasm"],
+    "/**": ["./generated/prisma/*.wasm", "./lib/fonts/**"],
   },
 };
 
