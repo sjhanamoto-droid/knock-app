@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ToastProvider } from "@knock/ui";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -36,7 +37,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="bg-[#F4F3F0]">{children}</body>
+      <body className="bg-[#F4F3F0]">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

@@ -55,7 +55,9 @@ export default function OrderConfirmPage() {
       }, 1000);
     } catch (e) {
       setShowConfirmDialog(false);
-      toast(e instanceof Error ? e.message : "エラーが発生しました");
+      const msg = e instanceof Error ? e.message : "エラーが発生しました";
+      toast(msg);
+      alert(msg);
       setSubmitting(false);
     }
   }
@@ -71,7 +73,9 @@ export default function OrderConfirmPage() {
       }, 1000);
     } catch (e) {
       setShowCancelDialog(false);
-      toast(e instanceof Error ? e.message : "エラーが発生しました");
+      const msg = e instanceof Error ? e.message : "エラーが発生しました";
+      toast(msg);
+      alert(msg);
       setSubmitting(false);
     }
   }
