@@ -327,6 +327,245 @@ function RoomListView({
   );
 }
 
+// ─── Site Info: Parent List View ─────────────────────────
+
+type ParentGroup = {
+  parentId: string;
+  parentName: string;
+  rooms: ChatRoom[];
+  latestTime: Date | null;
+  totalUnread: number;
+};
+
+function SiteParentListView({
+  rooms,
+  myCompanyId,
+  onBack,
+  onSelectParent,
+}: {
+  rooms: ChatRoom[];
+  myCompanyId: string;
+  onBack: () => void;
+  onSelectParent: (parentId: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+
+  const groups = useMemo(() => {
+    const map = new Map<string, ParentGroup>();
+    for (const room of rooms) {
+      const parentId = room.factoryFloor?.parentId ?? room.factoryFloor?.id ?? "unknown";
+      const parentName = room.factoryFloor?.parent?.name ?? room.factoryFloor?.name ?? "現場";
+      if (!map.has(parentId)) {
+        map.set(parentId, { parentId, parentName, rooms: [], latestTime: null, totalUnread: 0 });
+      }
+      const group = map.get(parentId)!;
+      group.rooms.push(room);
+      group.totalUnread += room.unreadCount;
+      const msgTime = room.lastMessage?.createdAt ? new Date(room.lastMessage.createdAt) : null;
+      if (msgTime && (!group.latestTime || msgTime > group.latestTime)) {
+        group.latestTime = msgTime;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      if (!a.latestTime && !b.latestTime) return 0;
+      if (!a.latestTime) return 1;
+      if (!b.latestTime) return -1;
+      return b.latestTime.getTime() - a.latestTime.getTime();
+    });
+  }, [rooms]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return groups;
+    const q = query.toLowerCase();
+    return groups.filter((g) => {
+      if (g.parentName.toLowerCase().includes(q)) return true;
+      return g.rooms.some((r) => {
+        const partner = r.orderCompany.id === myCompanyId ? r.workerCompany : r.orderCompany;
+        return partner.name?.toLowerCase().includes(q) || r.factoryFloor?.name?.toLowerCase().includes(q);
+      });
+    });
+  }, [groups, query, myCompanyId]);
+
+  const totalUnread = rooms.reduce((s, r) => s + r.unreadCount, 0);
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col bg-gray-50">
+      <header className="sticky top-0 z-40" style={{ backgroundColor: "#FEF3C7" }}>
+        <div className="flex items-center gap-3 px-3 py-3">
+          <button
+            onClick={onBack}
+            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-black/5"
+          >
+            <BackIcon />
+          </button>
+          <div className="flex flex-1 flex-col">
+            <h1 className="text-[17px] font-bold text-knock-text">現場情報ルーム</h1>
+            <p className="text-[12px]" style={{ color: "#D97706" }}>
+              {groups.length} 現場
+              {totalUnread > 0 && ` · 未読 ${totalUnread}`}
+            </p>
+          </div>
+        </div>
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <SearchIcon />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="現場名・会社名で検索"
+              className="flex-1 bg-transparent text-[13px] text-gray-700 placeholder:text-gray-400 outline-none"
+            />
+            {query && (
+              <button onClick={() => setQuery("")} className="text-gray-400">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 3L11 11M11 3L3 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 px-4 pt-4 pb-6">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <p className="text-[14px] text-gray-400">
+              {query ? "検索結果がありません" : "現場情報ルームがありません"}
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filtered.map((group) => (
+              <button
+                key={group.parentId}
+                onClick={() => onSelectParent(group.parentId)}
+                className="flex items-center gap-3 rounded-2xl bg-white px-4 py-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98] w-full text-left"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#FEF3C7" }}>
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M3 7L10 3L17 7V15L10 19L3 15V7Z" stroke="#D97706" strokeWidth="1.5" strokeLinejoin="round" />
+                    <path d="M10 11V19M3 7L10 11L17 7" stroke="#D97706" strokeWidth="1.5" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-[14px] font-semibold text-knock-text">
+                    {group.parentName}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-knock-text-secondary">
+                      {group.rooms.length}件の工事
+                    </span>
+                    {group.latestTime && (
+                      <span className="text-[11px] text-knock-text-muted">
+                        {formatDateTime(group.latestTime)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {group.totalUnread > 0 && (
+                  <span className="flex h-[20px] min-w-[20px] shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white" style={{ backgroundColor: "#EF4444" }}>
+                    {group.totalUnread}
+                  </span>
+                )}
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0 text-gray-300">
+                  <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Site Info: Child Room List View ─────────────────────
+
+function SiteChildRoomListView({
+  parentName,
+  rooms,
+  myCompanyId,
+  onBack,
+}: {
+  parentName: string;
+  rooms: ChatRoom[];
+  myCompanyId: string;
+  onBack: () => void;
+}) {
+  const [query, setQuery] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return rooms;
+    const q = query.toLowerCase();
+    return rooms.filter((r) => {
+      const partner = r.orderCompany.id === myCompanyId ? r.workerCompany : r.orderCompany;
+      if (partner.name?.toLowerCase().includes(q)) return true;
+      if (r.factoryFloor?.name?.toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }, [rooms, query, myCompanyId]);
+
+  const totalUnread = rooms.reduce((s, r) => s + r.unreadCount, 0);
+
+  return (
+    <div className="flex min-h-[100dvh] flex-col bg-gray-50">
+      <header className="sticky top-0 z-40" style={{ backgroundColor: "#FEF3C7" }}>
+        <div className="flex items-center gap-3 px-3 py-3">
+          <button
+            onClick={onBack}
+            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-black/5"
+          >
+            <BackIcon />
+          </button>
+          <div className="flex flex-1 flex-col">
+            <h1 className="truncate text-[17px] font-bold text-knock-text">{parentName}</h1>
+            <p className="text-[12px]" style={{ color: "#D97706" }}>
+              {rooms.length} 件
+              {totalUnread > 0 && ` · 未読 ${totalUnread}`}
+            </p>
+          </div>
+        </div>
+        <div className="px-4 pb-3">
+          <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
+            <SearchIcon />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="会社名・工事名で検索"
+              className="flex-1 bg-transparent text-[13px] text-gray-700 placeholder:text-gray-400 outline-none"
+            />
+            {query && (
+              <button onClick={() => setQuery("")} className="text-gray-400">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 3L11 11M11 3L3 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 px-4 pt-4 pb-6">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+            <p className="text-[14px] text-gray-400">
+              {query ? "検索結果がありません" : "チャットルームがありません"}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
+            {filtered.map((room) => (
+              <RoomRow key={room.id} room={room} myCompanyId={myCompanyId} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Page ───────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -335,6 +574,7 @@ export default function ChatPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [myCompanyId, setMyCompanyId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const { accentColor } = useMode();
 
   useEffect(() => {
@@ -379,13 +619,31 @@ export default function ChatPage() {
   }
 
   if (viewMode === "SITE_INFO") {
+    if (selectedParentId) {
+      const childRooms = siteInfoRooms.filter((r) => {
+        const pid = r.factoryFloor?.parentId ?? r.factoryFloor?.id;
+        return pid === selectedParentId;
+      });
+      const parentName = (() => {
+        const first = childRooms[0];
+        if (!first?.factoryFloor) return "現場";
+        return first.factoryFloor.parent?.name ?? first.factoryFloor.name ?? "現場";
+      })();
+      return (
+        <SiteChildRoomListView
+          parentName={parentName}
+          rooms={childRooms}
+          myCompanyId={myCompanyId}
+          onBack={() => setSelectedParentId(null)}
+        />
+      );
+    }
     return (
-      <RoomListView
-        type="SITE_INFO"
+      <SiteParentListView
         rooms={siteInfoRooms}
         myCompanyId={myCompanyId}
         onBack={() => setViewMode("select")}
-        accentColor="#D97706"
+        onSelectParent={setSelectedParentId}
       />
     );
   }

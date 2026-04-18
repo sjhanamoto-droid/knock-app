@@ -26,7 +26,14 @@ export async function getChatRooms(type?: "NEGOTIATION" | "SITE_INFO") {
     include: {
       orderCompany: { select: { id: true, name: true, logo: true } },
       workerCompany: { select: { id: true, name: true, logo: true } },
-      factoryFloor: { select: { id: true, name: true } },
+      factoryFloor: {
+        select: {
+          id: true,
+          name: true,
+          parentId: true,
+          parent: { select: { id: true, name: true } },
+        },
+      },
       members: {
         where: { userId: user.id, deletedAt: null },
         select: { unreadCount: true },
