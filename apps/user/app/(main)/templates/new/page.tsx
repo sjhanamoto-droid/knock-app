@@ -22,7 +22,7 @@ export default function NewTemplatePage() {
         name: fd.get("name") as string,
         content: fd.get("content") as string,
       });
-      router.push("/templates");
+      router.replace("/templates");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");

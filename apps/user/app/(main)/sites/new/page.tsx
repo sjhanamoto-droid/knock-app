@@ -46,7 +46,7 @@ export default function NewSitePage() {
   async function handleCreate(data: Parameters<typeof createSite>[0]) {
     await createSite(data);
     toast(parentId ? "工事を追加しました" : "現場を作成しました");
-    router.push(parentId ? `/sites/${parentId}` : "/sites");
+    router.replace(parentId ? `/sites/${parentId}` : "/sites");
     router.refresh();
   }
 

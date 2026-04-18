@@ -43,7 +43,7 @@ export default function PostJobPage() {
         endDate: endDate || undefined,
         address: address || undefined,
       });
-      router.push("/search");
+      router.replace("/search");
     } catch (e) {
       alert(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {

@@ -72,7 +72,7 @@ export default function SitePostJobPage() {
           : undefined,
         address: site.address ?? undefined,
       });
-      router.push(`/sites/${siteId}`);
+      router.replace(`/sites/${siteId}`);
     } catch (e) {
       alert(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {

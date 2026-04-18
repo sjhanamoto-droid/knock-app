@@ -218,7 +218,7 @@ export default function EvaluatePage() {
       />
       <AlertDialog
         open={!!successMessage}
-        onClose={() => router.push("/")}
+        onClose={() => router.replace("/")}
         title="完了"
         message={successMessage}
       />

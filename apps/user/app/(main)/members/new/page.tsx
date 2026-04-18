@@ -28,7 +28,7 @@ export default function NewMemberPage() {
         telNumber: (fd.get("telNumber") as string) || undefined,
         role: (fd.get("role") as "REPRESENTATIVE" | "MANAGER" | "OTHER") || "OTHER",
       });
-      router.push("/members");
+      router.replace("/members");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");

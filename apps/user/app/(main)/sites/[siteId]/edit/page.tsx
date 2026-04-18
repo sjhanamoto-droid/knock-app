@@ -43,7 +43,7 @@ export default function EditSitePage() {
   async function handleUpdate(data: Parameters<typeof updateSite>[1]) {
     await updateSite(params.siteId as string, data);
     toast("現場を更新しました");
-    router.push(`/sites/${params.siteId}`);
+    router.replace(`/sites/${params.siteId}`);
     router.refresh();
   }
 

@@ -65,7 +65,7 @@ export default function AddTypePage() {
           </p>
           <button
             onClick={() => {
-              router.push("/");
+              router.replace("/");
               router.refresh();
             }}
             className="mt-4 w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-colors active:opacity-80"
@@ -74,7 +74,7 @@ export default function AddTypePage() {
             {addingType}モードでホームへ
           </button>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.replace("/")}
             className="w-full rounded-xl bg-gray-100 py-3.5 text-[15px] font-medium text-knock-text transition-colors active:bg-gray-200"
           >
             現在のモードのままホームへ

@@ -69,7 +69,7 @@ export default function MemberDetailPage() {
     if (!confirm("このメンバーを削除しますか？")) return;
     try {
       await deleteMember(params.memberId as string);
-      router.push("/members");
+      router.replace("/members");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");

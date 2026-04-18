@@ -95,7 +95,7 @@ export default function ContractorDetailPage() {
     try {
       const chatRoom = await approveInvitation(invitedId);
       toast("つながりが成立しました");
-      router.push(`/chat/${chatRoom.id}`);
+      router.replace(`/chat/${chatRoom.id}`);
     } catch (err) {
       toast(err instanceof Error ? err.message : "エラーが発生しました");
       setProcessing(false);

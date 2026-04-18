@@ -30,7 +30,7 @@ export default function JobDetailPage() {
     try {
       await applyToJob({ jobPostingId: jobId, message: message || undefined });
       alert("応募しました");
-      router.push("/jobs");
+      router.replace("/jobs");
     } catch (e) {
       alert(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {

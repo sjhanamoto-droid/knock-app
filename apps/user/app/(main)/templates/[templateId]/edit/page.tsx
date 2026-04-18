@@ -31,7 +31,7 @@ export default function EditTemplatePage() {
         name: formData.name,
         content: formData.content,
       });
-      router.push("/templates");
+      router.replace("/templates");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");

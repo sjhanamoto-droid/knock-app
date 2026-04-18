@@ -42,7 +42,7 @@ export default function OnboardingPage() {
     if (page < TOTAL_PAGES) {
       setPage(page + 1);
     } else {
-      router.push("/");
+      router.replace("/");
     }
   };
 
@@ -50,7 +50,7 @@ export default function OnboardingPage() {
     if (page === 2 && selections.length > 0) {
       await handleSaveOccupations();
     }
-    router.push("/");
+    router.replace("/");
   };
 
   return (

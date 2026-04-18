@@ -42,7 +42,7 @@ export default function InvitationDetailPage() {
     try {
       const chatRoom = await approveInvitation(invitedId);
       toast("つながりが成立しました");
-      router.push(`/chat/${chatRoom.id}`);
+      router.replace(`/chat/${chatRoom.id}`);
     } catch (err) {
       toast(err instanceof Error ? err.message : "エラーが発生しました");
       setProcessing(false);
@@ -55,7 +55,7 @@ export default function InvitationDetailPage() {
     try {
       await rejectInvitation(invitedId);
       toast("リクエストを拒否しました");
-      router.push("/notifications");
+      router.replace("/notifications");
     } catch (err) {
       toast(err instanceof Error ? err.message : "エラーが発生しました");
       setProcessing(false);

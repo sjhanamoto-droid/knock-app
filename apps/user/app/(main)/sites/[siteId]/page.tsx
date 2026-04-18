@@ -99,7 +99,7 @@ export default function SiteDetailPage() {
     try {
       await deleteSite(params.siteId as string);
       toast("現場を削除しました");
-      router.push("/sites");
+      router.replace("/sites");
       router.refresh();
     } catch {
       setDeleting(false);
