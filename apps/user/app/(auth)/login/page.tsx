@@ -4,7 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@knock/types";
 import { login } from "@/lib/actions/auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const CREDENTIALS_KEY = "knock_saved_credentials";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
@@ -12,13 +14,38 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
 
+  // ページ読み込み時に保存済みの認証情報を復元
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CREDENTIALS_KEY);
+      if (saved) {
+        const { email, password } = JSON.parse(saved);
+        setValue("email", email);
+        setValue("password", password);
+        setSaveCredentials(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, [setValue]);
+
   async function onSubmit(data: LoginInput) {
     setError(null);
+    // ログイン前に認証情報を保存/削除（ログイン成功時はリダイレクトされるため）
+    if (saveCredentials) {
+      localStorage.setItem(
+        CREDENTIALS_KEY,
+        JSON.stringify({ email: data.email, password: data.password })
+      );
+    } else {
+      localStorage.removeItem(CREDENTIALS_KEY);
+    }
     const result = await login(data);
     if (result?.error) {
       setError(result.error);
