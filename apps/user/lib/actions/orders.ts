@@ -1089,8 +1089,11 @@ export async function getOrderDetail(orderId: string) {
   });
 }
 
-// ============ 追加工事（現場情報ルームから追加注文書を作成） ============
+// ============ 追加工事（3ステップ承認フロー） ============
 
+/**
+ * Step 1: 発注者が追加工事を依頼（PENDING）
+ */
 export async function createAdditionalOrder(
   factoryFloorId: string,
   items: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[],
@@ -1111,12 +1114,12 @@ export async function createAdditionalOrder(
     }
     if (!floor.workCompanyId) return { success: false, error: "受注者が設定されていません" };
 
-    // 新しい FactoryFloorOrder を作成
+    // 新しい FactoryFloorOrder を PENDING で作成
     const newOrder = await prisma.factoryFloorOrder.create({
       data: {
         factoryFloorId,
         workCompanyId: floor.workCompanyId,
-        status: "CONFIRMED",
+        status: "PENDING",
         inspectionData: {
           type: "ADDITIONAL_ORDER",
           priceDetails: items,
@@ -1124,10 +1127,7 @@ export async function createAdditionalOrder(
       },
     });
 
-    // 注文書を生成（トランザクション外）
-    const documentId = await generateOrderSheet(newOrder.id);
-
-    // SITE_INFO ルームにメッセージ + 通知
+    // SITE_INFO ルームにメッセージ + 受注者に通知
     await prisma.$transaction(async (tx) => {
       const siteRoom = await tx.chatRoom.findFirst({
         where: { factoryFloorId, type: "SITE_INFO", deletedAt: null },
@@ -1138,11 +1138,10 @@ export async function createAdditionalOrder(
         data: {
           roomId: siteRoom.id,
           userId: user.id,
-          message: "追加注文書が発行されました",
+          message: "追加工事の依頼がありました",
           type: "ACTION",
-          actionType: "ORDER_CONFIRM",
+          actionType: "ORDER_REQUEST",
           factoryFloorOrderId: newOrder.id,
-          keyCollection: documentId,
         },
       });
       await tx.chatRoom.update({
@@ -1159,18 +1158,18 @@ export async function createAdditionalOrder(
         await tx.notification.createMany({
           data: contractorUsers.map((u) => ({
             userId: u.id,
-            title: "追加工事",
-            content: `${floor.name}の追加注文書が発行されました`,
-            type: 24,
+            title: "追加工事依頼",
+            content: `${floor.name}の追加工事依頼が届きました`,
+            type: 21,
             factoryFloorId,
-            targetId: siteRoom.id,
+            targetId: newOrder.id,
           })),
         });
         void sendPushToUsers({
           userIds: contractorUsers.map((u) => u.id),
-          title: "追加工事",
-          body: `${floor.name}の追加注文書が発行されました`,
-          url: `/chat/${siteRoom.id}`,
+          title: "追加工事依頼",
+          body: `${floor.name}の追加工事依頼が届きました`,
+          url: `/orders/${newOrder.id}/additional-review`,
         });
       }
     });
@@ -1179,4 +1178,297 @@ export async function createAdditionalOrder(
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+/**
+ * Step 2: 受注者が追加工事を承諾（APPROVED）
+ */
+export async function acceptAdditionalOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await requireSession();
+
+    const order = await prisma.factoryFloorOrder.findFirst({
+      where: { id: orderId, deletedAt: null, workCompanyId: user.companyId },
+      include: {
+        factoryFloor: { select: { id: true, name: true, companyId: true } },
+      },
+    });
+    if (!order) return { success: false, error: "発注が見つかりません" };
+    if (order.status !== "PENDING") return { success: false, error: "この発注は既に処理済みです" };
+
+    await prisma.$transaction(async (tx) => {
+      await tx.notification.updateMany({
+        where: { userId: user.id, targetId: orderId, seenFlag: false },
+        data: { seenFlag: true },
+      });
+
+      await tx.factoryFloorOrder.update({
+        where: { id: orderId },
+        data: { status: "APPROVED" },
+      });
+
+      // SITE_INFO ルームにメッセージ
+      const siteRoom = await tx.chatRoom.findFirst({
+        where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
+      });
+      if (siteRoom) {
+        await tx.message.create({
+          data: {
+            roomId: siteRoom.id,
+            userId: user.id,
+            message: "追加工事を承諾しました",
+            type: "ACTION",
+            actionType: "ORDER_CONFIRM",
+            factoryFloorOrderId: orderId,
+          },
+        });
+        await tx.chatRoom.update({
+          where: { id: siteRoom.id },
+          data: { lastMessageTime: new Date() },
+        });
+      }
+
+      // 発注者に通知
+      const ordererUsers = await tx.user.findMany({
+        where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (ordererUsers.length > 0) {
+        await tx.notification.createMany({
+          data: ordererUsers.map((u) => ({
+            userId: u.id,
+            title: "追加工事承諾",
+            content: `${order.factoryFloor.name}の追加工事が承諾されました。注文書を発行してください。`,
+            type: 20,
+            factoryFloorId: order.factoryFloor.id,
+            targetId: orderId,
+          })),
+        });
+        void sendPushToUsers({
+          userIds: ordererUsers.map((u) => u.id),
+          title: "追加工事承諾",
+          body: `${order.factoryFloor.name}の追加工事が承諾されました。注文書を発行してください。`,
+          url: `/orders/${orderId}/additional-review`,
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * 受注者が追加工事を辞退（REJECTED）
+ */
+export async function rejectAdditionalOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await requireSession();
+
+    const order = await prisma.factoryFloorOrder.findFirst({
+      where: { id: orderId, deletedAt: null, workCompanyId: user.companyId },
+      include: {
+        factoryFloor: { select: { id: true, name: true, companyId: true } },
+      },
+    });
+    if (!order) return { success: false, error: "発注が見つかりません" };
+    if (order.status !== "PENDING") return { success: false, error: "この発注は既に処理済みです" };
+
+    await prisma.$transaction(async (tx) => {
+      await tx.factoryFloorOrder.update({
+        where: { id: orderId },
+        data: { status: "REJECTED" },
+      });
+
+      const siteRoom = await tx.chatRoom.findFirst({
+        where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
+      });
+      if (siteRoom) {
+        await tx.message.create({
+          data: {
+            roomId: siteRoom.id,
+            userId: user.id,
+            message: "追加工事を辞退しました",
+            type: "ACTION",
+            actionType: "ORDER_REQUEST",
+            factoryFloorOrderId: orderId,
+          },
+        });
+        await tx.chatRoom.update({
+          where: { id: siteRoom.id },
+          data: { lastMessageTime: new Date() },
+        });
+      }
+
+      // 発注者に通知
+      const ordererUsers = await tx.user.findMany({
+        where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (ordererUsers.length > 0) {
+        await tx.notification.createMany({
+          data: ordererUsers.map((u) => ({
+            userId: u.id,
+            title: "追加工事辞退",
+            content: `${order.factoryFloor.name}の追加工事が辞退されました`,
+            type: 20,
+            factoryFloorId: order.factoryFloor.id,
+            targetId: orderId,
+          })),
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Step 3: 発注者が追加工事を確定 → 注文書発行（CONFIRMED）
+ */
+export async function confirmAdditionalOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const user = await requireSession();
+
+    const order = await prisma.factoryFloorOrder.findFirst({
+      where: {
+        id: orderId,
+        deletedAt: null,
+        factoryFloor: { companyId: user.companyId, deletedAt: null },
+      },
+      include: {
+        factoryFloor: { select: { id: true, name: true, workCompanyId: true } },
+      },
+    });
+    if (!order) return { success: false, error: "発注が見つかりません" };
+    if (order.status !== "APPROVED") return { success: false, error: "受注者が承諾していない追加工事は確定できません" };
+
+    // 注文書を生成（トランザクション外）
+    const documentId = await generateOrderSheet(orderId);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.notification.updateMany({
+        where: { userId: user.id, targetId: orderId, seenFlag: false },
+        data: { seenFlag: true },
+      });
+
+      await tx.factoryFloorOrder.update({
+        where: { id: orderId },
+        data: { status: "CONFIRMED" },
+      });
+
+      // SITE_INFO ルームにメッセージ
+      const siteRoom = await tx.chatRoom.findFirst({
+        where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
+      });
+      if (siteRoom) {
+        await tx.message.create({
+          data: {
+            roomId: siteRoom.id,
+            userId: user.id,
+            message: "追加注文書が発行されました",
+            type: "ACTION",
+            actionType: "ORDER_CONFIRM",
+            factoryFloorOrderId: orderId,
+            keyCollection: documentId,
+          },
+        });
+        await tx.chatRoom.update({
+          where: { id: siteRoom.id },
+          data: { lastMessageTime: new Date() },
+        });
+      }
+
+      // 受注者に通知
+      if (order.factoryFloor.workCompanyId) {
+        const contractorUsers = await tx.user.findMany({
+          where: { companyId: order.factoryFloor.workCompanyId, isActive: true, deletedAt: null },
+          select: { id: true },
+        });
+        if (contractorUsers.length > 0) {
+          await tx.notification.createMany({
+            data: contractorUsers.map((u) => ({
+              userId: u.id,
+              title: "追加工事確定",
+              content: `${order.factoryFloor.name}の追加注文書が発行されました`,
+              type: 24,
+              factoryFloorId: order.factoryFloor.id,
+              targetId: siteRoom?.id ?? orderId,
+            })),
+          });
+          void sendPushToUsers({
+            userIds: contractorUsers.map((u) => u.id),
+            title: "追加工事確定",
+            body: `${order.factoryFloor.name}の追加注文書が発行されました`,
+            url: siteRoom ? `/chat/${siteRoom.id}` : `/orders/${orderId}`,
+          });
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * 追加工事の詳細取得
+ */
+export async function getAdditionalOrderDetail(orderId: string) {
+  const user = await requireSession();
+
+  const order = await prisma.factoryFloorOrder.findFirst({
+    where: {
+      id: orderId,
+      deletedAt: null,
+      OR: [
+        { factoryFloor: { companyId: user.companyId, deletedAt: null } },
+        { workCompanyId: user.companyId, factoryFloor: { deletedAt: null } },
+      ],
+    },
+    include: {
+      factoryFloor: {
+        select: {
+          id: true,
+          name: true,
+          companyId: true,
+          workCompanyId: true,
+          company: { select: { id: true, name: true } },
+          workCompany: { select: { id: true, name: true } },
+        },
+      },
+    },
+  });
+
+  if (!order) return null;
+
+  // inspectionData から追加工事明細を取得
+  type AdditionalOrderData = {
+    type?: string;
+    priceDetails?: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[];
+  };
+  const additionalData = order.inspectionData as AdditionalOrderData | null;
+  const items = additionalData?.priceDetails ?? [];
+
+  // unitId → unit 名を解決
+  const unitIds = items.map((p) => p.unitId).filter(Boolean) as string[];
+  const units = unitIds.length > 0
+    ? await prisma.unit.findMany({ where: { id: { in: unitIds } } })
+    : [];
+  const unitMap = new Map(units.map((u) => [u.id, u.name]));
+
+  const resolvedItems = items.map((p) => ({
+    ...p,
+    unitName: p.unitId ? (unitMap.get(p.unitId) ?? "") : "",
+  }));
+
+  return {
+    ...order,
+    additionalItems: resolvedItems,
+    isOrderer: order.factoryFloor.companyId === user.companyId,
+  };
 }

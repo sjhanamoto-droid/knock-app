@@ -99,7 +99,7 @@ export default function AdditionalOrderPage() {
         return;
       }
       setShowConfirm(false);
-      toast("追加注文書を作成しました");
+      toast("追加工事を依頼しました");
       setTimeout(() => {
         router.replace(`/chat/${roomId}`);
       }, 1000);
@@ -286,7 +286,7 @@ export default function AdditionalOrderPage() {
           className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
           style={{ backgroundColor: "#EA580C" }}
         >
-          注文書を作成する
+          追加工事を依頼する
         </button>
       </div>
 
@@ -295,9 +295,9 @@ export default function AdditionalOrderPage() {
         open={showConfirm}
         onClose={() => setShowConfirm(false)}
         onConfirm={handleSubmit}
-        title="追加注文書の作成確認"
-        message={`合計 ${formatCurrency(total)} の追加注文書を作成しますか？作成後、受注者にも通知されます。`}
-        confirmLabel={submitting ? "処理中..." : "作成する"}
+        title="追加工事の依頼確認"
+        message={`合計 ${formatCurrency(total)} の追加工事を依頼しますか？受注者の承諾後、注文書が作成されます。`}
+        confirmLabel={submitting ? "処理中..." : "依頼する"}
         cancelLabel="キャンセル"
         variant="primary"
       />
