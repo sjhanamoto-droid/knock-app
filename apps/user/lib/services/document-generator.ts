@@ -41,11 +41,18 @@ export function savePdfToFile(pdfDataUri: string, _documentNumber: string): stri
 
 /**
  * 印鑑画像URLからbase64文字列を読み込む
+ * data URI形式（data:image/png;base64,...）の場合はそのまま返す
  */
 function loadStampImageBase64(stampImageUrl: string | null | undefined): string | undefined {
   if (!stampImageUrl) return undefined;
+
+  // data URI の場合はそのまま返す（jsPDFがdata URIを直接処理可能）
+  if (stampImageUrl.startsWith("data:")) {
+    return stampImageUrl;
+  }
+
+  // ファイルパスの場合は従来通り読み込み
   try {
-    // /uploads/xxx.png → public/uploads/xxx.png
     const relativePath = stampImageUrl.replace(/^\//, "");
     let filePath = path.join(process.cwd(), "public", relativePath);
     if (!fs.existsSync(filePath)) {
