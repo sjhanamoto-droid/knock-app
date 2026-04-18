@@ -333,6 +333,16 @@ export async function createSite(data: CreateFactoryFloorInput & {
               },
             });
           }
+          // 明細から totalAmount を再計算して保存
+          const computedTotal = child.priceDetails.reduce((sum, d) => {
+            return sum + Math.ceil((Number(d.quantity) || 0) * (Number(d.priceUnit) || 0));
+          }, 0);
+          if (computedTotal > 0) {
+            await tx.factoryFloor.update({
+              where: { id: childSite.id },
+              data: { totalAmount: BigInt(computedTotal) },
+            });
+          }
         }
         // 画像
         const childImages = [
@@ -529,6 +539,16 @@ export async function updateSite(
                 priceUnit: BigInt(d.priceUnit),
                 specifications: d.specifications || null,
               },
+            });
+          }
+          // 明細から totalAmount を再計算して保存
+          const computedTotal = child.priceDetails.reduce((sum, d) => {
+            return sum + Math.ceil((Number(d.quantity) || 0) * (Number(d.priceUnit) || 0));
+          }, 0);
+          if (computedTotal > 0) {
+            await tx.factoryFloor.update({
+              where: { id: childSite.id },
+              data: { totalAmount: BigInt(computedTotal) },
             });
           }
         }

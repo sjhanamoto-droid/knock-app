@@ -102,6 +102,7 @@ interface SiteFormProps {
       deletedPriceDetailIds?: string[];
       deletedImageIds?: string[];
       deletedPdfIds?: string[];
+      children?: ChildSiteInput[];
     }
   ) => Promise<void>;
   occupationMasters: MajorItem[];
