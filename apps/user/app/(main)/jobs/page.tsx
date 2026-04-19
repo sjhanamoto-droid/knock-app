@@ -1,14 +1,27 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
 import { searchJobs, getOccupationOptions } from "@/lib/actions/job-search";
+import { searchJobsWithLocation } from "@/lib/actions/map-search";
 import { formatCurrency } from "@knock/utils";
 import { SideMenu } from "@/components/side-menu";
 
+const SearchMap = dynamic(() => import("@/components/search-map"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full items-center justify-center">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
+    </div>
+  ),
+});
+
 type JobSearchResult = Awaited<ReturnType<typeof searchJobs>>;
 type OccupationOption = Awaited<ReturnType<typeof getOccupationOptions>>[number];
+type JobPin = Awaited<ReturnType<typeof searchJobsWithLocation>>[number];
+type ViewMode = "list" | "map";
 
 const PREFECTURES = [
   "北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県",
@@ -132,12 +145,15 @@ function EmptySearchIcon() {
 export default function JobsPage() {
   const { accentColor } = useMode();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [result, setResult] = useState<JobSearchResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState("");
   const [occupationId, setOccupationId] = useState("");
   const [prefecture, setPrefecture] = useState("");
   const [occupations, setOccupations] = useState<OccupationOption[]>([]);
+  const [jobPins, setJobPins] = useState<JobPin[]>([]);
+  const [mapLoading, setMapLoading] = useState(false);
 
   useEffect(() => {
     getOccupationOptions().then(setOccupations).catch(() => {});
@@ -158,6 +174,24 @@ export default function JobsPage() {
   useEffect(() => {
     loadJobs();
   }, [loadJobs]);
+
+  const loadMapPins = useCallback(() => {
+    setMapLoading(true);
+    searchJobsWithLocation({
+      keyword: keyword || undefined,
+      prefecture: prefecture || undefined,
+    })
+      .then(setJobPins)
+      .catch(() => {})
+      .finally(() => setMapLoading(false));
+  }, [keyword, prefecture]);
+
+  function handleViewModeChange(mode: ViewMode) {
+    setViewMode(mode);
+    if (mode === "map") {
+      loadMapPins();
+    }
+  }
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -226,20 +260,46 @@ export default function JobsPage() {
           </button>
         </form>
 
+        {/* リスト / マップ 切り替え */}
+        <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-1 gap-1">
+          <button
+            onClick={() => handleViewModeChange("list")}
+            className={`flex-1 rounded-lg py-2 text-[13px] font-medium transition-colors ${
+              viewMode === "list"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            リスト
+          </button>
+          <button
+            onClick={() => handleViewModeChange("map")}
+            className={`flex-1 rounded-lg py-2 text-[13px] font-medium transition-colors ${
+              viewMode === "map"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            マップ
+          </button>
+        </div>
+
         {/* Filters */}
         <div className="flex gap-2">
-          <select
-            value={occupationId}
-            onChange={(e) => setOccupationId(e.target.value)}
-            className="flex-1 rounded-xl border-none bg-[#F0F0F0] px-3 py-2.5 text-[13px] text-knock-text outline-none"
-          >
-            <option value="">職種を選択</option>
-            {occupations.map((occ) => (
-              <option key={occ.id} value={occ.id}>
-                {occ.majorName} / {occ.name}
-              </option>
-            ))}
-          </select>
+          {viewMode === "list" && (
+            <select
+              value={occupationId}
+              onChange={(e) => setOccupationId(e.target.value)}
+              className="flex-1 rounded-xl border-none bg-[#F0F0F0] px-3 py-2.5 text-[13px] text-knock-text outline-none"
+            >
+              <option value="">職種を選択</option>
+              {occupations.map((occ) => (
+                <option key={occ.id} value={occ.id}>
+                  {occ.majorName} / {occ.name}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={prefecture}
             onChange={(e) => setPrefecture(e.target.value)}
@@ -252,76 +312,97 @@ export default function JobsPage() {
           </select>
         </div>
 
-        {/* Results */}
-        {loading ? (
-          <div className="flex items-center justify-center py-10">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
+        {/* マップビュー */}
+        {viewMode === "map" && (
+          <div className="relative h-[60vh] min-h-[400px] rounded-2xl overflow-hidden">
+            {mapLoading && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
+              </div>
+            )}
+            <SearchMap
+              jobs={jobPins}
+              onSelectJob={(id) => {
+                window.location.href = `/jobs/${id}`;
+              }}
+            />
           </div>
-        ) : result && result.jobs.length > 0 ? (
+        )}
+
+        {/* リストビュー */}
+        {viewMode === "list" && (
           <>
-            <p className="text-[13px] text-knock-text-secondary">
-              {result.total}件の案件が見つかりました
-            </p>
-            <div className="flex flex-col gap-2.5">
-              {result.jobs.map((job) => (
-                <Link
-                  key={job.id}
-                  href={`/jobs/${job.id}`}
-                  className="flex items-center rounded-2xl border-l-4 bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
-                  style={{ borderLeftColor: accentColor }}
-                >
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[14px] font-semibold text-knock-text">{job.title}</h3>
-                    <div className="mt-2 flex flex-col gap-1 text-[12px] text-knock-text-secondary">
-                      {job.address && (
-                        <span className="flex items-center gap-1.5">
-                          <LocationIcon />
-                          {job.address}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1.5">
-                        <CalendarIcon />
-                        {formatDateRange(job.startDate, job.endDate)}
-                      </span>
-                      {job.compensationAmount && (
-                        <span className="flex items-center gap-1.5">
-                          <YenIcon />
-                          {formatCurrency(job.compensationAmount)}
-                        </span>
-                      )}
-                      <div className="mt-1 flex items-center gap-3">
-                        <span className="flex items-center gap-1.5">
-                          <BuildingIcon />
-                          {job.companyName}
-                        </span>
-                        {job.trustScore != null ? (
-                          <span className="flex items-center gap-1 text-amber-600">
-                            <StarIcon />
-                            {job.trustScore.toFixed(1)} ({job.totalTransactions}件)
+            {loading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
+              </div>
+            ) : result && result.jobs.length > 0 ? (
+              <>
+                <p className="text-[13px] text-knock-text-secondary">
+                  {result.total}件の案件が見つかりました
+                </p>
+                <div className="flex flex-col gap-2.5">
+                  {result.jobs.map((job) => (
+                    <Link
+                      key={job.id}
+                      href={`/jobs/${job.id}`}
+                      className="flex items-center rounded-2xl border-l-4 bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
+                      style={{ borderLeftColor: accentColor }}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-[14px] font-semibold text-knock-text">{job.title}</h3>
+                        <div className="mt-2 flex flex-col gap-1 text-[12px] text-knock-text-secondary">
+                          {job.address && (
+                            <span className="flex items-center gap-1.5">
+                              <LocationIcon />
+                              {job.address}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1.5">
+                            <CalendarIcon />
+                            {formatDateRange(job.startDate, job.endDate)}
                           </span>
-                        ) : (
-                          <span className="text-knock-text-muted">新規</span>
-                        )}
+                          {job.compensationAmount && (
+                            <span className="flex items-center gap-1.5">
+                              <YenIcon />
+                              {formatCurrency(job.compensationAmount)}
+                            </span>
+                          )}
+                          <div className="mt-1 flex items-center gap-3">
+                            <span className="flex items-center gap-1.5">
+                              <BuildingIcon />
+                              {job.companyName}
+                            </span>
+                            {job.trustScore != null ? (
+                              <span className="flex items-center gap-1 text-amber-600">
+                                <StarIcon />
+                                {job.trustScore.toFixed(1)} ({job.totalTransactions}件)
+                              </span>
+                            ) : (
+                              <span className="text-knock-text-muted">新規</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                  <div
-                    className="ml-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white"
-                    style={{ backgroundColor: accentColor }}
-                  >
-                    <ChevronRightIcon />
-                  </div>
-                </Link>
-              ))}
-            </div>
+                      <div
+                        className="ml-3 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white"
+                        style={{ backgroundColor: accentColor }}
+                      >
+                        <ChevronRightIcon />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-10">
+                <EmptySearchIcon />
+                <span className="text-[13px] text-knock-text-muted">
+                  条件に合う案件がありません
+                </span>
+              </div>
+            )}
           </>
-        ) : (
-          <div className="flex flex-col items-center gap-3 py-10">
-            <EmptySearchIcon />
-            <span className="text-[13px] text-knock-text-muted">
-              条件に合う案件がありません
-            </span>
-          </div>
         )}
       </div>
     </div>

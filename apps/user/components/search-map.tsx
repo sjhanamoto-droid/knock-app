@@ -46,8 +46,9 @@ export default function SearchMap({ jobs, onSelectJob }: Props) {
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/streets-v12",
-      center: [138.2, 36.2],
-      zoom: 5,
+      center: [139.7, 35.7],
+      zoom: 10,
+      language: "ja",
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
