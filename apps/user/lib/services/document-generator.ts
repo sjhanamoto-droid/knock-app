@@ -276,20 +276,88 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
   };
   const inspectionData = (order.inspectionData as InspectionData | null) ?? {};
 
-  // 追加工事の単位名を解決（inspectionData経由の旧方式もフォールバック対応）
-  let pdfAdditionalItems: DeliveryNotePdfData["additionalItems"];
-  const additionalTotal = inspectionData.additionalItems?.reduce(
-    (sum, item) => sum + Math.ceil(item.quantity * item.priceUnit), 0
-  ) ?? 0;
+  const expenses = inspectionData.expenses ?? 0;
+  const adjustmentAmount = inspectionData.adjustmentAmount ?? 0;
+  const advancePayment = inspectionData.advancePayment ?? 0;
 
-  if (inspectionData.additionalItems?.length) {
-    const unitIds = inspectionData.additionalItems.map((i) => i.unitId).filter(Boolean);
+  // 全注文書（ORDER_SHEET）を取得して元注文と追加注文を分離
+  const allOrderSheets = await prisma.document.findMany({
+    where: {
+      type: "ORDER_SHEET",
+      factoryFloorOrder: { factoryFloorId: floor.id, deletedAt: null },
+      deletedAt: null,
+      status: { not: "VOID" },
+    },
+    select: { subtotal: true, factoryFloorOrderId: true },
+  });
+
+  // 元の工事金額（税抜）
+  const originalFromSheets = allOrderSheets
+    .filter(d => d.factoryFloorOrderId === orderId)
+    .reduce((sum, d) => sum + Number(d.subtotal ?? 0), 0);
+  const originalFromDetails = floor.priceDetails.reduce(
+    (sum, p) => sum + Math.ceil((p.quantity ?? 0) * Number(p.priceUnit ?? 0)), 0
+  );
+  const originalSubtotal = originalFromSheets > 0
+    ? originalFromSheets
+    : originalFromDetails > 0
+      ? originalFromDetails
+      : Number(floor.totalAmount ?? 0);
+
+  // 追加工事金額（税抜）: 追加注文書の小計を合算
+  const additionalSubtotal = allOrderSheets
+    .filter(d => d.factoryFloorOrderId !== orderId)
+    .reduce((sum, d) => sum + Number(d.subtotal ?? 0), 0);
+
+  // 追加工事の明細表示用: ORDER_SHEET がある追加注文の inspectionData を取得
+  type AdditionalOrderData = {
+    type?: string;
+    priceDetails?: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[];
+  };
+
+  const additionalItemsRaw: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[] = [];
+  const uniqueAdditionalOrderIds = [...new Set(
+    allOrderSheets
+      .filter(d => d.factoryFloorOrderId !== orderId && d.factoryFloorOrderId)
+      .map(d => d.factoryFloorOrderId!)
+  )];
+
+  if (uniqueAdditionalOrderIds.length > 0) {
+    const additionalOrders = await prisma.factoryFloorOrder.findMany({
+      where: { id: { in: uniqueAdditionalOrderIds } },
+      select: { inspectionData: true },
+    });
+    for (const ao of additionalOrders) {
+      const aoData = ao.inspectionData as AdditionalOrderData | null;
+      if (aoData?.type === "ADDITIONAL_ORDER" && aoData.priceDetails?.length) {
+        additionalItemsRaw.push(...aoData.priceDetails);
+      }
+    }
+  }
+
+  // inspectionData の旧方式 additionalItems をフォールバック
+  if (additionalItemsRaw.length === 0 && inspectionData.additionalItems?.length) {
+    for (const item of inspectionData.additionalItems) {
+      additionalItemsRaw.push({
+        name: item.name,
+        quantity: item.quantity,
+        unitId: item.unitId,
+        priceUnit: item.priceUnit,
+        specifications: item.specifications ?? "",
+      });
+    }
+  }
+
+  // 追加工事の単位名を解決
+  let pdfAdditionalItems: DeliveryNotePdfData["additionalItems"];
+  if (additionalItemsRaw.length > 0) {
+    const unitIds = additionalItemsRaw.map(i => i.unitId).filter(Boolean) as string[];
     const units = unitIds.length > 0
       ? await prisma.unit.findMany({ where: { id: { in: unitIds } } })
       : [];
-    const unitMap = new Map(units.map((u) => [u.id, u.name]));
+    const unitMap = new Map(units.map(u => [u.id, u.name]));
 
-    pdfAdditionalItems = inspectionData.additionalItems.map((item) => ({
+    pdfAdditionalItems = additionalItemsRaw.map(item => ({
       name: item.name,
       quantity: item.quantity,
       unit: item.unitId ? (unitMap.get(item.unitId) ?? "") : "",
@@ -298,42 +366,17 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
     }));
   }
 
-  const expenses = inspectionData.expenses ?? 0;
-  const adjustmentAmount = inspectionData.adjustmentAmount ?? 0;
-  const advancePayment = inspectionData.advancePayment ?? 0;
-
-  // 金額計算: 全注文書（ORDER_SHEET）の小計を合算
-  const allOrderSheets = await prisma.document.findMany({
-    where: {
-      type: "ORDER_SHEET",
-      factoryFloorOrder: { factoryFloorId: floor.id, deletedAt: null },
-      deletedAt: null,
-      status: { not: "VOID" },
-    },
-    select: { subtotal: true },
-  });
-
-  let baseSubtotal: number;
-  if (allOrderSheets.length > 0) {
-    // 注文書が存在する場合は全注文書の小計を合算
-    baseSubtotal = allOrderSheets.reduce(
-      (sum, doc) => sum + Number(doc.subtotal ?? 0), 0
-    );
-  } else {
-    // フォールバック: 注文書がない場合は明細から計算
-    const priceDetailsTotal = floor.priceDetails.reduce(
-      (sum, p) => sum + Math.ceil((p.quantity ?? 0) * Number(p.priceUnit ?? 0)),
-      0
-    );
-    baseSubtotal = priceDetailsTotal > 0 ? priceDetailsTotal : Number(floor.totalAmount ?? 0);
-  }
-
+  // 金額計算
   const taxRate = 0.10;
-  // 消費税は工事金額合算 + inspectionData追加工事に対して計算
-  const allItemsSubtotal = baseSubtotal + additionalTotal;
-  const taxAmount = Math.ceil(allItemsSubtotal * taxRate);
-  // 合計 = 小計 + 追加工事 + 消費税 + 諸経費 + 調整金額
-  const totalAmount = allItemsSubtotal + taxAmount + expenses + adjustmentAmount;
+  const originalAmountWithTax = originalSubtotal + Math.ceil(originalSubtotal * taxRate);
+  const additionalAmountWithTax = additionalSubtotal > 0
+    ? additionalSubtotal + Math.ceil(additionalSubtotal * taxRate)
+    : 0;
+
+  const allSubtotal = originalSubtotal + additionalSubtotal;
+  const allTax = Math.ceil(allSubtotal * taxRate);
+  // 合計 = 工事金額（税込）+ 追加工事金額（税込）+ 諸経費 + 調整金額
+  const totalAmount = originalAmountWithTax + additionalAmountWithTax + expenses + adjustmentAmount;
   // お支払金額 = 合計 - 前払金
   const paymentAmount = totalAmount - advancePayment;
 
@@ -359,9 +402,11 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
       unit: p.unit?.name ?? "",
       priceUnit: Number(p.priceUnit ?? 0),
     })),
-    subtotal: baseSubtotal,
-    taxAmount10: taxAmount,
+    subtotal: originalSubtotal,
+    taxAmount10: allTax,
     totalAmount,
+    originalAmountWithTax,
+    additionalAmountWithTax: additionalAmountWithTax || undefined,
     stampImageBase64: loadStampImageBase64(floor.workCompany?.stampImage),
     additionalItems: pdfAdditionalItems,
     expenses: expenses || undefined,
@@ -382,8 +427,8 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
       factoryFloorOrderId: orderId,
       orderCompanyId: floor.companyId,
       workerCompanyId: floor.workCompanyId!,
-      subtotal: BigInt(baseSubtotal),
-      taxAmount: BigInt(taxAmount),
+      subtotal: BigInt(allSubtotal),
+      taxAmount: BigInt(allTax),
       totalAmount: BigInt(paymentAmount),
       invoiceNumber: floor.workCompany?.invoiceNumber,
       pdfUrl: pdfFilePath,

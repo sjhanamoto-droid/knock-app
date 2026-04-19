@@ -30,6 +30,10 @@ export interface DeliveryNotePdfData {
   subtotal: number;
   taxAmount10: number;
   totalAmount: number;
+  /** 工事金額（税込） */
+  originalAmountWithTax?: number;
+  /** 追加工事金額（税込） */
+  additionalAmountWithTax?: number;
   stampImageBase64?: string;
   /** 追加工事明細 */
   additionalItems?: {
@@ -309,16 +313,24 @@ function drawSummaryRows(doc: jsPDF, data: DeliveryNotePdfData, y: number): numb
 
   y += 2;
 
-  const rows: { label: string; amount: string; bold: boolean }[] = [
-    { label: "小計", amount: yenFmt(data.subtotal), bold: false },
-  ];
+  const rows: { label: string; amount: string; bold: boolean }[] = [];
 
-  // 追加工事小計
-  if (data.additionalItems?.length) {
-    const additionalTotal = data.additionalItems.reduce(
-      (sum, item) => sum + Math.ceil(item.quantity * item.priceUnit), 0
-    );
-    rows.push({ label: "追加工事小計", amount: yenFmt(additionalTotal), bold: false });
+  if (data.originalAmountWithTax != null) {
+    // 税込表示
+    rows.push({ label: "工事金額（税込）", amount: yenFmt(data.originalAmountWithTax), bold: false });
+    if (data.additionalAmountWithTax) {
+      rows.push({ label: "追加工事金額（税込）", amount: yenFmt(data.additionalAmountWithTax), bold: false });
+    }
+  } else {
+    // フォールバック: 税抜 + 消費税
+    rows.push({ label: "小計", amount: yenFmt(data.subtotal), bold: false });
+    if (data.additionalItems?.length) {
+      const additionalTotal = data.additionalItems.reduce(
+        (sum, item) => sum + Math.ceil(item.quantity * item.priceUnit), 0
+      );
+      rows.push({ label: "追加工事小計", amount: yenFmt(additionalTotal), bold: false });
+    }
+    rows.push({ label: "消費税（10%）", amount: yenFmt(data.taxAmount10), bold: false });
   }
 
   // 諸経費
@@ -331,7 +343,6 @@ function drawSummaryRows(doc: jsPDF, data: DeliveryNotePdfData, y: number): numb
     rows.push({ label: "調整金額（税込）", amount: yenFmt(data.adjustmentAmount), bold: false });
   }
 
-  rows.push({ label: "消費税（10%）", amount: yenFmt(data.taxAmount10), bold: false });
   rows.push({ label: "合計", amount: yenFmt(data.totalAmount), bold: true });
 
   // 前払金・お支払金額
