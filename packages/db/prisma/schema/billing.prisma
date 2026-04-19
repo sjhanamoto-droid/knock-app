@@ -1,0 +1,87 @@
+// ============ Billing ============
+
+model BillingRequest {
+  id                        String             @id @default(cuid())
+  subNo                     Int?
+  totalAmount               BigInt?
+  tax                       BigInt?
+  advancePaymentAmount      Int?
+  constructionPaymentAmount Int?
+  totalAdditionalAmount     BigInt?
+  adjustmentAmount          BigInt?
+  expense                   BigInt?            @default(0)
+  status                    BillingStatus      @default(DRAFT)
+  factoryFloorOrderId       String?
+  factoryFloorOrder         FactoryFloorOrder? @relation(fields: [factoryFloorOrderId], references: [id])
+  userId                    String
+  user                      User               @relation(fields: [userId], references: [id])
+  roomId                    String
+  room                      ChatRoom           @relation(fields: [roomId], references: [id])
+  remark                    String?
+  dayConfirm                DateTime?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  deletedAt                 DateTime?
+
+  details                   BillingRequestDetail[]
+  additionalOrders          AdditionalOrder[]
+
+  @@map("billing_requests")
+}
+
+model BillingRequestDetail {
+  id                  String            @id @default(cuid())
+  billingRequestId    String
+  billingRequest      BillingRequest    @relation(fields: [billingRequestId], references: [id])
+  name                String?
+  quantity            Int?
+  unitId              String?
+  unit                Unit?             @relation(fields: [unitId], references: [id])
+  priceUnit           BigInt?
+  specifications      String?
+  priceOrderDetailId  String?
+  priceOrderDetail    PriceOrderDetail? @relation(fields: [priceOrderDetailId], references: [id])
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  @@map("billing_request_details")
+}
+
+model AdditionalOrder {
+  id                  String             @id @default(cuid())
+  billingRequestId    String
+  billingRequest      BillingRequest     @relation(fields: [billingRequestId], references: [id])
+  factoryFloorOrderId String?
+  factoryFloorOrder   FactoryFloorOrder? @relation(fields: [factoryFloorOrderId], references: [id])
+  name                String?
+  quantity            Int?
+  unitId              String?
+  unit                Unit?              @relation(fields: [unitId], references: [id])
+  priceUnit           BigInt?
+  specifications      String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@map("additional_orders")
+}
+
+model Invoice {
+  id                 String   @id @default(cuid())
+  orderCompanyId     String
+  orderCompany       Company  @relation("OrderCompanyInvoice", fields: [orderCompanyId], references: [id])
+  workerCompanyId    String
+  workerCompany      Company  @relation("WorkerCompanyInvoice", fields: [workerCompanyId], references: [id])
+  url                String
+  invoiceYearMonth   String   @db.Char(6) // YYYYMM
+  status             Int?     // 1: complete, 2: error
+  totalInvoiceAmount BigInt
+  billUnit           Int
+  totalAmount        BigInt
+  advancePayment     BigInt
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  @@map("invoices")
+}

@@ -1,0 +1,64 @@
+// ============ V2: 案件掲載・応募（双方向マッチング） ============
+
+model JobPosting {
+  id                    String           @id @default(cuid())
+  companyId             String
+  company               Company          @relation(fields: [companyId], references: [id])
+  factoryFloorId        String?
+  factoryFloor          FactoryFloor?    @relation(fields: [factoryFloorId], references: [id])
+  occupationSubItemId   String?
+  occupationSubItem     OccupationSubItem? @relation(fields: [occupationSubItemId], references: [id])
+  title                 String
+  description           String?
+  requirements          String?          // 求める条件（テキスト）
+  requireInvoice        Boolean          @default(false)
+  requireExperienceYears Int?            // 最低経験年数
+  compensationType      CompensationType @default(NEGOTIABLE)
+  compensationAmount    BigInt?          // 報酬金額
+  startDate             DateTime?
+  endDate               DateTime?
+  address               String?
+  latitude              Decimal?         @db.Decimal(20, 14)
+  longitude             Decimal?         @db.Decimal(20, 14)
+  images                Json?            // 現場写真URL配列
+  status                JobPostingStatus @default(DRAFT)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  deletedAt             DateTime?
+
+  applications          JobApplication[]
+
+  @@map("job_postings")
+}
+
+model JobApplication {
+  id            String            @id @default(cuid())
+  jobPostingId  String
+  jobPosting    JobPosting        @relation(fields: [jobPostingId], references: [id])
+  companyId     String
+  company       Company           @relation(fields: [companyId], references: [id])
+  message       String?           // 応募メッセージ
+  status        ApplicationStatus @default(PENDING)
+  respondedAt   DateTime?         // 発注者の回答日時
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([jobPostingId, companyId])
+  @@map("job_applications")
+}
+
+// ============ V2: 空き日カレンダー ============
+
+model AvailabilitySlot {
+  id        String             @id @default(cuid())
+  companyId String
+  company   Company            @relation(fields: [companyId], references: [id])
+  date      DateTime           @db.Date
+  status    AvailabilityStatus @default(AVAILABLE)
+  isPublic  Boolean            @default(true)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@unique([companyId, date])
+  @@map("availability_slots")
+}

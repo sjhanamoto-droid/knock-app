@@ -1,0 +1,94 @@
+// ============ Chat ============
+
+model ChatRoom {
+  id              String         @id @default(cuid())
+  orderCompanyId  String
+  orderCompany    Company        @relation("OrderCompanyChat", fields: [orderCompanyId], references: [id])
+  workerCompanyId String
+  workerCompany   Company        @relation("WorkerCompanyChat", fields: [workerCompanyId], references: [id])
+  factoryFloorId  String?
+  factoryFloor    FactoryFloor?  @relation(fields: [factoryFloorId], references: [id])
+  type            ChatRoomType?
+  status          ChatRoomStatus @default(OPEN)
+  lastMessageTime DateTime?
+  countSubNo      Int?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  members         ChatRoomMember[]
+  messages        Message[]
+  billingRequests BillingRequest[]
+  tmpReports      TmpReport[]
+
+  @@map("chat_rooms")
+}
+
+model ChatRoomMember {
+  id           String   @id @default(cuid())
+  roomId       String
+  room         ChatRoom @relation(fields: [roomId], references: [id])
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  roleUser     Int?     // 1: admin, 2: member
+  roomChatKey  String?
+  unreadCount  Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  @@map("chat_room_members")
+}
+
+model Message {
+  id                  String             @id @default(cuid())
+  roomId              String
+  room                ChatRoom           @relation(fields: [roomId], references: [id])
+  userId              String
+  user                User               @relation(fields: [userId], references: [id])
+  factoryFloorOrderId String?
+  factoryFloorOrder   FactoryFloorOrder? @relation(fields: [factoryFloorOrderId], references: [id])
+  message             String?
+  file                String?
+  type                MessageType?
+  tabType             Int?               // 1: site chat, 2: order amount chat
+  actionType          MessageActionType?
+  buttonClick         Boolean?
+  keyCollection       String?
+  jsonImage           Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+
+  @@map("messages")
+}
+
+// ============ Templates & Reports ============
+
+model TemplateMessage {
+  id        String   @id @default(cuid())
+  name      String?
+  content   String?
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@map("template_messages")
+}
+
+model TmpReport {
+  id        String   @id @default(cuid())
+  content   String
+  images    Json?
+  expense   BigInt   @default(0)
+  status    Int
+  roomId    String
+  room      ChatRoom @relation(fields: [roomId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@map("tmp_reports")
+}

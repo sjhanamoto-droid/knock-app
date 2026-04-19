@@ -1,0 +1,68 @@
+// ============ V2: 帳票自動生成 ============
+
+model Document {
+  id                  String             @id @default(cuid())
+  type                DocumentType
+  status              DocumentStatus     @default(DRAFT)
+  documentNumber      String             @unique  // 帳票番号（自動採番）
+  factoryFloorOrderId String
+  factoryFloorOrder   FactoryFloorOrder  @relation(fields: [factoryFloorOrderId], references: [id])
+  orderCompanyId      String
+  orderCompany        Company            @relation("OrderCompanyDocument", fields: [orderCompanyId], references: [id])
+  workerCompanyId     String
+  workerCompany       Company            @relation("WorkerCompanyDocument", fields: [workerCompanyId], references: [id])
+  subtotal            BigInt?            // 小計
+  taxAmount           BigInt?            // 消費税額
+  totalAmount         BigInt?            // 合計金額
+  invoiceNumber       String?            // インボイス番号（請求書用）
+  pdfUrl              String?            // 生成PDF URL
+  issuedAt            DateTime?          // 発行日
+  confirmedAt         DateTime?          // 確認日
+  yearMonth           String?            @db.Char(6)  // YYYYMM（請求書の対象月）
+  metadata            Json?              // 帳票固有の追加データ
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+
+  @@map("documents")
+}
+
+// ============ V2: 評価・信用スコア ============
+
+model Evaluation {
+  id                  String            @id @default(cuid())
+  factoryFloorOrderId String
+  factoryFloorOrder   FactoryFloorOrder @relation(fields: [factoryFloorOrderId], references: [id])
+  evaluatorCompanyId  String
+  evaluatorCompany    Company           @relation("EvaluatorCompany", fields: [evaluatorCompanyId], references: [id])
+  evaluateeCompanyId  String
+  evaluateeCompany    Company           @relation("EvaluateeCompany", fields: [evaluateeCompanyId], references: [id])
+  technicalSkill      Int               // 技術力（1〜5）
+  communication       Int               // コミュニケーション（1〜5）
+  reliability         Int               // 信頼性（1〜5）
+  comment             String?           // コメント（任意）
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([factoryFloorOrderId, evaluatorCompanyId])
+  @@map("evaluations")
+}
+
+model TrustScore {
+  id                String   @id @default(cuid())
+  companyId         String   @unique
+  company           Company  @relation(fields: [companyId], references: [id])
+  overallScore      Decimal  @default(0) @db.Decimal(3, 2)  // 総合スコア（0.00〜5.00）
+  technicalAvg      Decimal  @default(0) @db.Decimal(3, 2)
+  communicationAvg  Decimal  @default(0) @db.Decimal(3, 2)
+  reliabilityAvg    Decimal  @default(0) @db.Decimal(3, 2)
+  totalTransactions Int      @default(0)  // 完了取引数
+  totalAmount       BigInt   @default(0)  // 取引総額
+  onTimeRate        Decimal  @default(0) @db.Decimal(5, 2)  // 納期遵守率（%）
+  repeatRate        Decimal  @default(0) @db.Decimal(5, 2)  // リピート率（%）
+  lastCalculatedAt  DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("trust_scores")
+}

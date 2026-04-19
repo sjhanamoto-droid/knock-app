@@ -1,0 +1,169 @@
+// ============ Generators & Datasource ============
+
+generator client {
+  provider        = "prisma-client-js"
+  engineType      = "client"
+  output          = "../../../../apps/user/generated/prisma"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+generator adminClient {
+  provider        = "prisma-client-js"
+  engineType      = "client"
+  output          = "../../../../apps/admin/generated/prisma"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ Enums ============
+
+enum CompanyType {
+  ORDERER
+  CONTRACTOR
+  BOTH
+}
+
+enum CompanyForm {
+  CORPORATION
+  INDIVIDUAL
+}
+
+enum UserRole {
+  REPRESENTATIVE
+  MANAGER
+  OTHER
+}
+
+enum FactoryFloorStatus {
+  DRAFT
+  NOT_ORDERED
+  ORDERED
+  ORDER_REQUESTED
+  CONFIRMED
+  IN_PROGRESS
+  INSPECTION
+  COMPLETED
+  DELIVERY_APPROVED
+  INVOICED
+  DEAL_COMPLETED
+}
+
+enum OrderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  CONFIRMED
+}
+
+enum ChatRoomType {
+  NEGOTIATION
+  SITE_INFO
+}
+
+enum ChatRoomStatus {
+  BLOCKED
+  OPEN
+  COMPLETED
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  ACTION
+  CONFIRM
+}
+
+enum MessageActionType {
+  ORDER_REQUEST
+  ORDER_CONFIRM
+  BILLING
+}
+
+enum BillingStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ContractStatus {
+  UNSENT
+  SENT
+  CONCLUDED
+  DRAFT
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum BankAccountType {
+  ORDINARY
+  CURRENT
+}
+
+enum SubscriptionStatus {
+  TRIAL       // 無料トライアル中（現在のテスト期間）
+  ACTIVE      // 有料プランで課金中
+  PAST_DUE    // 支払い遅延
+  CANCELED    // 解約済み
+  PAUSED      // 一時停止中
+}
+
+enum PlanType {
+  CONTRACTOR  // 受注者プラン
+  ORDERER     // 発注者プラン
+}
+
+// ============ V2 Enums ============
+
+enum VerificationLevel {
+  LEVEL_1  // メール + SMS認証
+  LEVEL_2  // 本人確認書類
+  LEVEL_3  // インボイス登録確認
+}
+
+enum AvailabilityStatus {
+  AVAILABLE   // 空き
+  BUSY        // 予定あり
+  NEGOTIABLE  // 応相談
+}
+
+enum DocumentType {
+  ORDER_SHEET    // 注文書
+  DELIVERY_NOTE  // 納品書
+  INVOICE        // 請求書
+}
+
+enum DocumentStatus {
+  DRAFT      // 下書き
+  ISSUED     // 発行済
+  CONFIRMED  // 確認済
+  VOID       // 無効
+}
+
+enum JobPostingStatus {
+  DRAFT      // 下書き
+  PUBLISHED  // 公開中
+  CLOSED     // 締切
+  FILLED     // 採用済
+}
+
+enum ApplicationStatus {
+  PENDING    // 審査中
+  ACCEPTED   // 採用
+  REJECTED   // 不採用
+  WITHDRAWN  // 取下げ
+}
+
+enum CompensationType {
+  DAILY       // 日額
+  LUMP_SUM    // 一式
+  NEGOTIABLE  // 応相談
+}

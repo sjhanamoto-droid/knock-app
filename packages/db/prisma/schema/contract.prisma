@@ -1,0 +1,91 @@
+// ============ Contracts ============
+
+model ContractMaster {
+  id               String   @id @default(cuid())
+  name             String
+  type             Int      // 1: basic, 2: additional
+  form             String   // contract form
+  numberOfAccount  Int
+  price            Int
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  @@map("contract_masters")
+}
+
+model CompanyContract {
+  id                    String        @id @default(cuid())
+  companyId             String
+  company               Company       @relation(fields: [companyId], references: [id])
+  contractBasicId       String
+  contractAdditionalId1 String?
+  contractAdditionalId2 String?
+  contractStatus        ContractStatus @default(UNSENT)
+  paymentStatus         PaymentStatus  @default(UNPAID)
+  initialPayFlag        Boolean        @default(false)
+  initialFee            Int?
+  usedAccountNumber     Int            @default(0)
+  name                  String?
+  type                  Int?
+  form                  Int?
+  numberOfAccount       Int?
+  price                 Int?
+  preTotalAmount        Int?
+  editAmount            Int?
+  totalAmount           Int?
+  paymentMethod         String?       // 1: bank transfer
+  planPayDate           DateTime?
+  actualPayDate         DateTime?
+  contractStartDate     DateTime?
+  contractEndDate       DateTime?
+  remarks               String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
+
+  @@map("company_contracts")
+}
+
+model CompanyContractPdf {
+  id              String  @id @default(cuid())
+  path            String
+  orderCompanyId  String
+  orderCompany    Company @relation("OrderCompanyPdf", fields: [orderCompanyId], references: [id])
+  workerCompanyId String
+  workerCompany   Company @relation("WorkerCompanyPdf", fields: [workerCompanyId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@map("company_contract_pdfs")
+}
+
+// ============ Matching ============
+
+model Matching {
+  id               String   @id @default(cuid())
+  inviteCompanyId  String
+  inviteCompany    Company  @relation("InviteCompany", fields: [inviteCompanyId], references: [id])
+  beInviteCompanyId String
+  beInviteCompany  Company  @relation("InvitedCompany", fields: [beInviteCompanyId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  @@map("matchings")
+}
+
+model Invited {
+  id               String   @id @default(cuid())
+  inviteCompanyId  String
+  inviteCompany    Company  @relation("InviteCompanyInvited", fields: [inviteCompanyId], references: [id])
+  invitedCompanyId String
+  invitedCompany   Company  @relation("InvitedCompanyInvited", fields: [invitedCompanyId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  deletedAt        DateTime?
+
+  @@map("invited")
+}

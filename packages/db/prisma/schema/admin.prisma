@@ -1,0 +1,63 @@
+// ============ Admin ============
+
+model AdminCompany {
+  id                       String      @id @default(cuid())
+
+  // 基本情報
+  name                     String      @unique
+  email                    String
+  nameKana                 String?
+
+  // 住所
+  postalCode               String?
+  city                     String?
+  streetAddress            String?
+  building                 String?
+
+  // 連絡先
+  telNumber                String?
+  hpUrl                    String?
+  autoDeliveryEmail        String?
+  autoDeliveryEmailSignature String?
+
+  // 事業情報
+  invoiceNumber            String?
+
+  // 銀行口座
+  bankName                 String?
+  bankBranchName           String?
+  bankAccountType          BankAccountType?
+  bankAccountNumber        String?
+  bankAccountName          String?
+
+  isActive                 Boolean     @default(true)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+  deletedAt                DateTime?
+
+  adminUsers               AdminUser[]
+  companies                Company[]
+
+  @@map("admin_companies")
+}
+
+model AdminUser {
+  id              String       @id @default(cuid())
+  adminCompanyId  String
+  adminCompany    AdminCompany @relation(fields: [adminCompanyId], references: [id])
+  lastName        String
+  firstName       String
+  lastNameKana    String?
+  firstNameKana   String?
+  email           String       @unique
+  password        String
+  telNumber       String?
+  roleId          Int          @default(1) // 1: admin, 99: super admin
+  isActive        Boolean      @default(false)
+  resetToken      String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  deletedAt       DateTime?
+
+  @@map("admin_users")
+}

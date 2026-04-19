@@ -1,0 +1,222 @@
+// ============ Users & Companies ============
+
+model User {
+  id            String    @id @default(cuid())
+  lastName      String
+  firstName     String
+  lastNameKana  String?
+  firstNameKana String?
+  email         String    @unique
+  password      String
+  dateOfBirth   String?
+  role          UserRole  @default(OTHER)
+  telNumber     String?
+  avatar        String?
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  policyStatus  Boolean   @default(false)
+  isActive      Boolean   @default(false)
+  kycType       Int?
+  resetToken    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  createdFactoryFloors FactoryFloor[]
+  factoryFloorMembers  FactoryFloorMember[]
+  chatRoomMembers      ChatRoomMember[]
+  messages             Message[]
+  notifications        Notification[]
+  billingRequests      BillingRequest[]
+  deviceTokens         DeviceToken[]
+
+  // V2: 段階的認証
+  verifications        UserVerification[]
+
+  @@map("users")
+}
+
+model Company {
+  id                    String        @id @default(cuid())
+  adminCompanyId        String
+  adminCompany          AdminCompany  @relation(fields: [adminCompanyId], references: [id])
+
+  // 基本情報
+  name                  String?
+  email                 String?
+  nameKana              String?
+  companyForm           CompanyForm?
+  type                  CompanyType
+
+  // 住所
+  postalCode            String?
+  prefecture            String?
+  city                  String?
+  streetAddress         String?
+  building              String?
+  showAddress           Boolean       @default(false)
+
+  // 連絡先
+  telNumber             String?
+  hpUrl                 String?
+
+  // 事業情報
+  invoiceNumber         String?
+  kycDocument           String?       // 本人確認書類（画像URL、任意）
+  note                  String?
+  logo                  String?
+  backgroundImage       String?
+  stampImage            String?       // 印鑑画像（PNG/JPEG URL）
+
+  // 銀行口座
+  bankName              String?
+  bankBranchName        String?
+  bankAccountType       BankAccountType?
+  bankAccountNumber     String?
+  bankAccountName       String?
+
+  // Stripe
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+
+  // 保険
+  fireInsurance         Boolean?
+  socialInsurance       Boolean?
+  otherInsurance        Boolean?
+
+  // 受入可否
+  isAcceptingWork       Boolean       @default(true)
+
+  // V2: プロフィール拡張
+  selfIntro             String?       // 自己PR文
+  yearsOfExperience     Int?          // 業界経験年数
+  isAvailabilityPublic  Boolean       @default(false) // 空き日カレンダー公開
+
+  // ステータス
+  registrationStep      Int?          // 現在の登録ステップ (null = 登録完了)
+  isActive              Boolean       @default(false)
+  contractApprovedDate  DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
+
+  users                 User[]
+  orderedFloors         FactoryFloor[]  @relation("OrderCompany")
+  workedFloors          FactoryFloor[]  @relation("WorkCompany")
+  areas                 CompanyArea[]
+  occupations           CompanyOccupation[]
+  contracts             CompanyContract[]
+  paymentInfo           PaymentInfo?
+  sentMatchings         Matching[]      @relation("InviteCompany")
+  receivedMatchings     Matching[]      @relation("InvitedCompany")
+  sentInvitations       Invited[]       @relation("InviteCompanyInvited")
+  receivedInvitations   Invited[]       @relation("InvitedCompanyInvited")
+  templateMessages      TemplateMessage[]
+  orderChatRooms        ChatRoom[]      @relation("OrderCompanyChat")
+  workerChatRooms       ChatRoom[]      @relation("WorkerCompanyChat")
+  orderInvoices         Invoice[]       @relation("OrderCompanyInvoice")
+  workerInvoices        Invoice[]       @relation("WorkerCompanyInvoice")
+  contractPdfs          CompanyContractPdf[] @relation("OrderCompanyPdf")
+  workerContractPdfs    CompanyContractPdf[] @relation("WorkerCompanyPdf")
+  subscriptions         Subscription[]
+
+  // V2: 新規リレーション
+  availabilitySlots     AvailabilitySlot[]
+  jobPostings           JobPosting[]
+  jobApplications       JobApplication[]
+  ordererDocuments      Document[]      @relation("OrderCompanyDocument")
+  workerDocuments       Document[]      @relation("WorkerCompanyDocument")
+  givenEvaluations      Evaluation[]    @relation("EvaluatorCompany")
+  receivedEvaluations   Evaluation[]    @relation("EvaluateeCompany")
+  trustScore            TrustScore?
+
+  @@map("companies")
+}
+
+// ============ Subscriptions ============
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  companyId             String
+  company               Company            @relation(fields: [companyId], references: [id])
+  planType              PlanType           // CONTRACTOR or ORDERER
+  status                SubscriptionStatus @default(TRIAL)
+  priceMonthly          Int                @default(0)    // 月額（円）。トライアル中は0
+  stripeSubscriptionId  String?            // Stripe Subscription ID（課金開始後にセット）
+  trialEndsAt           DateTime?          // トライアル終了日
+  currentPeriodStart    DateTime?          // 現在の課金期間の開始日
+  currentPeriodEnd      DateTime?          // 現在の課金期間の終了日
+  canceledAt            DateTime?          // 解約日
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@unique([companyId, planType])
+  @@map("subscriptions")
+}
+
+// ============ V2: 段階的認証 ============
+
+model UserVerification {
+  id             String            @id @default(cuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id])
+  level          VerificationLevel
+  verifiedAt     DateTime?         // 認証完了日時（null = 申請中）
+  document       String?           // 本人確認書類URL（Level 2用）
+  invoiceNumber  String?           // インボイス番号（Level 3用）
+  rejectedReason String?           // 却下理由
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([userId, level])
+  @@map("user_verifications")
+}
+
+model PaymentInfo {
+  id              String   @id @default(cuid())
+  companyId       String   @unique
+  company         Company  @relation(fields: [companyId], references: [id])
+  cardLastFour    String?
+  cardExpiryMonth String?
+  cardExpiryYear  String?
+  stripePaymentMethodId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@map("payment_infos")
+}
+
+// ============ Notifications & Tokens ============
+
+model Notification {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  title          String
+  content        String
+  type           Int
+  seenFlag       Boolean   @default(false)
+  urlRedirect    String?
+  factoryFloorId String?
+  roomId         String?
+  targetId       String?
+  messageId      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  @@map("notifications")
+}
+
+model DeviceToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("device_tokens")
+}

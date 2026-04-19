@@ -1,0 +1,132 @@
+// ============ Master Data ============
+
+model Area {
+  id           String        @id @default(cuid())
+  serialNumber Int
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+
+  companyAreas CompanyArea[]
+
+  @@map("areas")
+}
+
+model CompanyArea {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  areaId    String
+  area      Area     @relation(fields: [areaId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("company_areas")
+}
+
+model Prefecture {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  cities    City[]
+
+  @@map("prefectures")
+}
+
+model City {
+  id           String     @id @default(cuid())
+  name         String
+  nameKana     String
+  prefectureId String
+  prefecture   Prefecture @relation(fields: [prefectureId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  deletedAt    DateTime?
+
+  towns        Town[]
+
+  @@map("cities")
+}
+
+model Town {
+  id         String   @id @default(cuid())
+  name       String
+  nameKana   String
+  postalCode String
+  cityId     String
+  city       City     @relation(fields: [cityId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deletedAt  DateTime?
+
+  @@map("towns")
+}
+
+model OccupationMajorItem {
+  id        String              @id @default(cuid())
+  name      String
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  deletedAt DateTime?
+
+  subItems  OccupationSubItem[]
+
+  @@map("occupation_major_items")
+}
+
+model OccupationSubItem {
+  id                    String              @id @default(cuid())
+  occupationMajorItemId String
+  occupationMajorItem   OccupationMajorItem @relation(fields: [occupationMajorItemId], references: [id])
+  name                  String
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  deletedAt             DateTime?
+
+  companyOccupations    CompanyOccupation[]
+  factoryFloorOccupations FactoryFloorOccupation[]
+  jobPostings           JobPosting[]
+
+  @@map("occupation_sub_items")
+}
+
+model CompanyOccupation {
+  id                  String            @id @default(cuid())
+  companyId           String
+  company             Company           @relation(fields: [companyId], references: [id])
+  occupationSubItemId String
+  occupationSubItem   OccupationSubItem @relation(fields: [occupationSubItemId], references: [id])
+  note                String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("company_occupations")
+}
+
+model Unit {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  priceOrderDetails     PriceOrderDetail[]
+  billingRequestDetails BillingRequestDetail[]
+  additionalOrders      AdditionalOrder[]
+
+  @@map("units")
+}
+
+model TaxMaster {
+  id         String   @id @default(cuid())
+  name       String?
+  percentage Decimal? @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("tax_masters")
+}

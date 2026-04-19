@@ -1,0 +1,172 @@
+// ============ Factory Floors ============
+
+model FactoryFloor {
+  id               String              @id @default(cuid())
+  createdUserId    String
+  createdUser      User                @relation(fields: [createdUserId], references: [id])
+  companyId        String
+  company          Company             @relation("OrderCompany", fields: [companyId], references: [id])
+  workCompanyId    String?
+  workCompany      Company?            @relation("WorkCompany", fields: [workCompanyId], references: [id])
+  status           FactoryFloorStatus  @default(NOT_ORDERED)
+  code             String?
+  name             String?
+  contentRequest   String?
+  startDayRequest  DateTime?
+  endDayRequest    DateTime?
+  finishDay        DateTime?
+  address          String?
+  deliveryDest     String?
+  latitude         Decimal?            @db.Decimal(20, 14)
+  longitude        Decimal?            @db.Decimal(20, 14)
+  totalAmount      BigInt?
+  totalAdvancePayment Int?
+  paymentType      Int?
+  paymentLatterMonth Int?
+  paymentLatterDay   Int?
+  remarks          String?
+  expenses         BigInt?
+  orderNumber      Int?
+  orderCompleteNumber Int?
+
+  // ── 親子関係 ──
+  parentId         String?
+  parent           FactoryFloor?       @relation("SiteHierarchy", fields: [parentId], references: [id])
+  children         FactoryFloor[]      @relation("SiteHierarchy")
+
+  // ── プロジェクト予算管理（親現場で使用） ──
+  budget           BigInt?
+
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  deletedAt        DateTime?
+
+  members          FactoryFloorMember[]
+  orders           FactoryFloorOrder[]
+  images           FactoryFloorImage[]
+  pdfs             FactoryFloorPdf[]
+  priceDetails     PriceOrderDetail[]
+  occupations      FactoryFloorOccupation[]
+  chatRooms        ChatRoom[]
+
+  // V2: 案件掲載
+  jobPostings      JobPosting[]
+
+  @@map("factory_floors")
+}
+
+model FactoryFloorMember {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  factoryFloorId String
+  factoryFloor   FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  type           Int          @default(1) // 1: manager
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@map("factory_floor_members")
+}
+
+model FactoryFloorOrder {
+  id                 String       @id @default(cuid())
+  factoryFloorId     String
+  factoryFloor       FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  workCompanyId      String
+  status             OrderStatus?
+  actualAmount       BigInt?
+  inspectionData     Json?
+  answersTimeExpired DateTime?
+  message            String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  deletedAt          DateTime?
+
+  billingRequests    BillingRequest[]
+  additionalOrders   AdditionalOrder[]
+  messages           Message[]
+
+  // V2: 帳票・評価・完了報告
+  documents          Document[]
+  evaluations        Evaluation[]
+  completionReport   CompletionReport?
+
+  @@map("factory_floor_orders")
+}
+
+model FactoryFloorImage {
+  id             String       @id @default(cuid())
+  factoryFloorId String
+  factoryFloor   FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  url            String
+  type           Int          // 1: drawings, 2: photos
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  @@map("factory_floor_images")
+}
+
+model FactoryFloorPdf {
+  id                  String             @id @default(cuid())
+  factoryFloorId      String
+  factoryFloor        FactoryFloor       @relation(fields: [factoryFloorId], references: [id])
+  url                 String
+  type                Int                // 1: invoice, 2: purchase order
+  factoryFloorOrderId String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  deletedAt           DateTime?
+
+  @@map("factory_floor_pdfs")
+}
+
+model FactoryFloorOccupation {
+  id                   String           @id @default(cuid())
+  factoryFloorId       String
+  factoryFloor         FactoryFloor     @relation(fields: [factoryFloorId], references: [id])
+  occupationSubItemId  String
+  occupationSubItem    OccupationSubItem @relation(fields: [occupationSubItemId], references: [id])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@map("factory_floor_occupations")
+}
+
+model PriceOrderDetail {
+  id             String       @id @default(cuid())
+  factoryFloorId String
+  factoryFloor   FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  name           String
+  quantity       Int
+  unitId         String?
+  unit           Unit?        @relation(fields: [unitId], references: [id])
+  priceUnit      BigInt
+  specifications String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  billingRequestDetails BillingRequestDetail[]
+
+  @@map("price_order_details")
+}
+
+// ============ V2: 完了報告 ============
+
+model CompletionReport {
+  id                      String            @id @default(cuid())
+  factoryFloorOrderId     String            @unique
+  factoryFloorOrder       FactoryFloorOrder @relation(fields: [factoryFloorOrderId], references: [id])
+  completionDate          DateTime
+  comment                 String?           // 完了報告コメント
+  photos                  Json              // 施工写真URL配列（必須）
+  hasAdditionalWork       Boolean           @default(false)
+  additionalWorkDescription String?         // 追加工事内容
+  additionalWorkAmount    BigInt?           // 追加工事金額
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+
+  @@map("completion_reports")
+}

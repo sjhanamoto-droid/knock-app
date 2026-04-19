@@ -245,6 +245,441 @@ exports.Prisma.SubscriptionScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.UserVerificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  level: 'level',
+  verifiedAt: 'verifiedAt',
+  document: 'document',
+  invoiceNumber: 'invoiceNumber',
+  rejectedReason: 'rejectedReason',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PaymentInfoScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  cardLastFour: 'cardLastFour',
+  cardExpiryMonth: 'cardExpiryMonth',
+  cardExpiryYear: 'cardExpiryYear',
+  stripePaymentMethodId: 'stripePaymentMethodId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  title: 'title',
+  content: 'content',
+  type: 'type',
+  seenFlag: 'seenFlag',
+  urlRedirect: 'urlRedirect',
+  factoryFloorId: 'factoryFloorId',
+  roomId: 'roomId',
+  targetId: 'targetId',
+  messageId: 'messageId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.DeviceTokenScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  token: 'token',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BillingRequestScalarFieldEnum = {
+  id: 'id',
+  subNo: 'subNo',
+  totalAmount: 'totalAmount',
+  tax: 'tax',
+  advancePaymentAmount: 'advancePaymentAmount',
+  constructionPaymentAmount: 'constructionPaymentAmount',
+  totalAdditionalAmount: 'totalAdditionalAmount',
+  adjustmentAmount: 'adjustmentAmount',
+  expense: 'expense',
+  status: 'status',
+  factoryFloorOrderId: 'factoryFloorOrderId',
+  userId: 'userId',
+  roomId: 'roomId',
+  remark: 'remark',
+  dayConfirm: 'dayConfirm',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.BillingRequestDetailScalarFieldEnum = {
+  id: 'id',
+  billingRequestId: 'billingRequestId',
+  name: 'name',
+  quantity: 'quantity',
+  unitId: 'unitId',
+  priceUnit: 'priceUnit',
+  specifications: 'specifications',
+  priceOrderDetailId: 'priceOrderDetailId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.AdditionalOrderScalarFieldEnum = {
+  id: 'id',
+  billingRequestId: 'billingRequestId',
+  factoryFloorOrderId: 'factoryFloorOrderId',
+  name: 'name',
+  quantity: 'quantity',
+  unitId: 'unitId',
+  priceUnit: 'priceUnit',
+  specifications: 'specifications',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InvoiceScalarFieldEnum = {
+  id: 'id',
+  orderCompanyId: 'orderCompanyId',
+  workerCompanyId: 'workerCompanyId',
+  url: 'url',
+  invoiceYearMonth: 'invoiceYearMonth',
+  status: 'status',
+  totalInvoiceAmount: 'totalInvoiceAmount',
+  billUnit: 'billUnit',
+  totalAmount: 'totalAmount',
+  advancePayment: 'advancePayment',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.ChatRoomScalarFieldEnum = {
+  id: 'id',
+  orderCompanyId: 'orderCompanyId',
+  workerCompanyId: 'workerCompanyId',
+  factoryFloorId: 'factoryFloorId',
+  type: 'type',
+  status: 'status',
+  lastMessageTime: 'lastMessageTime',
+  countSubNo: 'countSubNo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.ChatRoomMemberScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  userId: 'userId',
+  roleUser: 'roleUser',
+  roomChatKey: 'roomChatKey',
+  unreadCount: 'unreadCount',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.MessageScalarFieldEnum = {
+  id: 'id',
+  roomId: 'roomId',
+  userId: 'userId',
+  factoryFloorOrderId: 'factoryFloorOrderId',
+  message: 'message',
+  file: 'file',
+  type: 'type',
+  tabType: 'tabType',
+  actionType: 'actionType',
+  buttonClick: 'buttonClick',
+  keyCollection: 'keyCollection',
+  jsonImage: 'jsonImage',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.TemplateMessageScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  content: 'content',
+  companyId: 'companyId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.TmpReportScalarFieldEnum = {
+  id: 'id',
+  content: 'content',
+  images: 'images',
+  expense: 'expense',
+  status: 'status',
+  roomId: 'roomId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.ContractMasterScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  type: 'type',
+  form: 'form',
+  numberOfAccount: 'numberOfAccount',
+  price: 'price',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.CompanyContractScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  contractBasicId: 'contractBasicId',
+  contractAdditionalId1: 'contractAdditionalId1',
+  contractAdditionalId2: 'contractAdditionalId2',
+  contractStatus: 'contractStatus',
+  paymentStatus: 'paymentStatus',
+  initialPayFlag: 'initialPayFlag',
+  initialFee: 'initialFee',
+  usedAccountNumber: 'usedAccountNumber',
+  name: 'name',
+  type: 'type',
+  form: 'form',
+  numberOfAccount: 'numberOfAccount',
+  price: 'price',
+  preTotalAmount: 'preTotalAmount',
+  editAmount: 'editAmount',
+  totalAmount: 'totalAmount',
+  paymentMethod: 'paymentMethod',
+  planPayDate: 'planPayDate',
+  actualPayDate: 'actualPayDate',
+  contractStartDate: 'contractStartDate',
+  contractEndDate: 'contractEndDate',
+  remarks: 'remarks',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.CompanyContractPdfScalarFieldEnum = {
+  id: 'id',
+  path: 'path',
+  orderCompanyId: 'orderCompanyId',
+  workerCompanyId: 'workerCompanyId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.MatchingScalarFieldEnum = {
+  id: 'id',
+  inviteCompanyId: 'inviteCompanyId',
+  beInviteCompanyId: 'beInviteCompanyId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.InvitedScalarFieldEnum = {
+  id: 'id',
+  inviteCompanyId: 'inviteCompanyId',
+  invitedCompanyId: 'invitedCompanyId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.DocumentScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  status: 'status',
+  documentNumber: 'documentNumber',
+  factoryFloorOrderId: 'factoryFloorOrderId',
+  orderCompanyId: 'orderCompanyId',
+  workerCompanyId: 'workerCompanyId',
+  subtotal: 'subtotal',
+  taxAmount: 'taxAmount',
+  totalAmount: 'totalAmount',
+  invoiceNumber: 'invoiceNumber',
+  pdfUrl: 'pdfUrl',
+  issuedAt: 'issuedAt',
+  confirmedAt: 'confirmedAt',
+  yearMonth: 'yearMonth',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.EvaluationScalarFieldEnum = {
+  id: 'id',
+  factoryFloorOrderId: 'factoryFloorOrderId',
+  evaluatorCompanyId: 'evaluatorCompanyId',
+  evaluateeCompanyId: 'evaluateeCompanyId',
+  technicalSkill: 'technicalSkill',
+  communication: 'communication',
+  reliability: 'reliability',
+  comment: 'comment',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TrustScoreScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  overallScore: 'overallScore',
+  technicalAvg: 'technicalAvg',
+  communicationAvg: 'communicationAvg',
+  reliabilityAvg: 'reliabilityAvg',
+  totalTransactions: 'totalTransactions',
+  totalAmount: 'totalAmount',
+  onTimeRate: 'onTimeRate',
+  repeatRate: 'repeatRate',
+  lastCalculatedAt: 'lastCalculatedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.JobPostingScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  factoryFloorId: 'factoryFloorId',
+  occupationSubItemId: 'occupationSubItemId',
+  title: 'title',
+  description: 'description',
+  requirements: 'requirements',
+  requireInvoice: 'requireInvoice',
+  requireExperienceYears: 'requireExperienceYears',
+  compensationType: 'compensationType',
+  compensationAmount: 'compensationAmount',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  address: 'address',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  images: 'images',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.JobApplicationScalarFieldEnum = {
+  id: 'id',
+  jobPostingId: 'jobPostingId',
+  companyId: 'companyId',
+  message: 'message',
+  status: 'status',
+  respondedAt: 'respondedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AvailabilitySlotScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  date: 'date',
+  status: 'status',
+  isPublic: 'isPublic',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AreaScalarFieldEnum = {
+  id: 'id',
+  serialNumber: 'serialNumber',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.CompanyAreaScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  areaId: 'areaId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PrefectureScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.CityScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  nameKana: 'nameKana',
+  prefectureId: 'prefectureId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.TownScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  nameKana: 'nameKana',
+  postalCode: 'postalCode',
+  cityId: 'cityId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.OccupationMajorItemScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.OccupationSubItemScalarFieldEnum = {
+  id: 'id',
+  occupationMajorItemId: 'occupationMajorItemId',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.CompanyOccupationScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  occupationSubItemId: 'occupationSubItemId',
+  note: 'note',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.UnitScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
+};
+
+exports.Prisma.TaxMasterScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  percentage: 'percentage',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.FactoryFloorScalarFieldEnum = {
   id: 'id',
   createdUserId: 'createdUserId',
@@ -343,412 +778,6 @@ exports.Prisma.PriceOrderDetailScalarFieldEnum = {
   deletedAt: 'deletedAt'
 };
 
-exports.Prisma.ChatRoomScalarFieldEnum = {
-  id: 'id',
-  orderCompanyId: 'orderCompanyId',
-  workerCompanyId: 'workerCompanyId',
-  factoryFloorId: 'factoryFloorId',
-  type: 'type',
-  status: 'status',
-  lastMessageTime: 'lastMessageTime',
-  countSubNo: 'countSubNo',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.ChatRoomMemberScalarFieldEnum = {
-  id: 'id',
-  roomId: 'roomId',
-  userId: 'userId',
-  roleUser: 'roleUser',
-  roomChatKey: 'roomChatKey',
-  unreadCount: 'unreadCount',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.MessageScalarFieldEnum = {
-  id: 'id',
-  roomId: 'roomId',
-  userId: 'userId',
-  factoryFloorOrderId: 'factoryFloorOrderId',
-  message: 'message',
-  file: 'file',
-  type: 'type',
-  tabType: 'tabType',
-  actionType: 'actionType',
-  buttonClick: 'buttonClick',
-  keyCollection: 'keyCollection',
-  jsonImage: 'jsonImage',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.BillingRequestScalarFieldEnum = {
-  id: 'id',
-  subNo: 'subNo',
-  totalAmount: 'totalAmount',
-  tax: 'tax',
-  advancePaymentAmount: 'advancePaymentAmount',
-  constructionPaymentAmount: 'constructionPaymentAmount',
-  totalAdditionalAmount: 'totalAdditionalAmount',
-  adjustmentAmount: 'adjustmentAmount',
-  expense: 'expense',
-  status: 'status',
-  factoryFloorOrderId: 'factoryFloorOrderId',
-  userId: 'userId',
-  roomId: 'roomId',
-  remark: 'remark',
-  dayConfirm: 'dayConfirm',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.BillingRequestDetailScalarFieldEnum = {
-  id: 'id',
-  billingRequestId: 'billingRequestId',
-  name: 'name',
-  quantity: 'quantity',
-  unitId: 'unitId',
-  priceUnit: 'priceUnit',
-  specifications: 'specifications',
-  priceOrderDetailId: 'priceOrderDetailId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.AdditionalOrderScalarFieldEnum = {
-  id: 'id',
-  billingRequestId: 'billingRequestId',
-  factoryFloorOrderId: 'factoryFloorOrderId',
-  name: 'name',
-  quantity: 'quantity',
-  unitId: 'unitId',
-  priceUnit: 'priceUnit',
-  specifications: 'specifications',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.InvoiceScalarFieldEnum = {
-  id: 'id',
-  orderCompanyId: 'orderCompanyId',
-  workerCompanyId: 'workerCompanyId',
-  url: 'url',
-  invoiceYearMonth: 'invoiceYearMonth',
-  status: 'status',
-  totalInvoiceAmount: 'totalInvoiceAmount',
-  billUnit: 'billUnit',
-  totalAmount: 'totalAmount',
-  advancePayment: 'advancePayment',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.ContractMasterScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  type: 'type',
-  form: 'form',
-  numberOfAccount: 'numberOfAccount',
-  price: 'price',
-  note: 'note',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.CompanyContractScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  contractBasicId: 'contractBasicId',
-  contractAdditionalId1: 'contractAdditionalId1',
-  contractAdditionalId2: 'contractAdditionalId2',
-  contractStatus: 'contractStatus',
-  paymentStatus: 'paymentStatus',
-  initialPayFlag: 'initialPayFlag',
-  initialFee: 'initialFee',
-  usedAccountNumber: 'usedAccountNumber',
-  name: 'name',
-  type: 'type',
-  form: 'form',
-  numberOfAccount: 'numberOfAccount',
-  price: 'price',
-  preTotalAmount: 'preTotalAmount',
-  editAmount: 'editAmount',
-  totalAmount: 'totalAmount',
-  paymentMethod: 'paymentMethod',
-  planPayDate: 'planPayDate',
-  actualPayDate: 'actualPayDate',
-  contractStartDate: 'contractStartDate',
-  contractEndDate: 'contractEndDate',
-  remarks: 'remarks',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.CompanyContractPdfScalarFieldEnum = {
-  id: 'id',
-  path: 'path',
-  orderCompanyId: 'orderCompanyId',
-  workerCompanyId: 'workerCompanyId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.PaymentInfoScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  cardLastFour: 'cardLastFour',
-  cardExpiryMonth: 'cardExpiryMonth',
-  cardExpiryYear: 'cardExpiryYear',
-  stripePaymentMethodId: 'stripePaymentMethodId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.MatchingScalarFieldEnum = {
-  id: 'id',
-  inviteCompanyId: 'inviteCompanyId',
-  beInviteCompanyId: 'beInviteCompanyId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.InvitedScalarFieldEnum = {
-  id: 'id',
-  inviteCompanyId: 'inviteCompanyId',
-  invitedCompanyId: 'invitedCompanyId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.AreaScalarFieldEnum = {
-  id: 'id',
-  serialNumber: 'serialNumber',
-  name: 'name',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.CompanyAreaScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  areaId: 'areaId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.PrefectureScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.CityScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  nameKana: 'nameKana',
-  prefectureId: 'prefectureId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.TownScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  nameKana: 'nameKana',
-  postalCode: 'postalCode',
-  cityId: 'cityId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.OccupationMajorItemScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.OccupationSubItemScalarFieldEnum = {
-  id: 'id',
-  occupationMajorItemId: 'occupationMajorItemId',
-  name: 'name',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.CompanyOccupationScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  occupationSubItemId: 'occupationSubItemId',
-  note: 'note',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.UnitScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.TaxMasterScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  percentage: 'percentage',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.NotificationScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  title: 'title',
-  content: 'content',
-  type: 'type',
-  seenFlag: 'seenFlag',
-  urlRedirect: 'urlRedirect',
-  factoryFloorId: 'factoryFloorId',
-  roomId: 'roomId',
-  targetId: 'targetId',
-  messageId: 'messageId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.DeviceTokenScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  token: 'token',
-  userAgent: 'userAgent',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.TemplateMessageScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  content: 'content',
-  companyId: 'companyId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.TmpReportScalarFieldEnum = {
-  id: 'id',
-  content: 'content',
-  images: 'images',
-  expense: 'expense',
-  status: 'status',
-  roomId: 'roomId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.UserVerificationScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  level: 'level',
-  verifiedAt: 'verifiedAt',
-  document: 'document',
-  invoiceNumber: 'invoiceNumber',
-  rejectedReason: 'rejectedReason',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.AvailabilitySlotScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  date: 'date',
-  status: 'status',
-  isPublic: 'isPublic',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.JobPostingScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  factoryFloorId: 'factoryFloorId',
-  occupationSubItemId: 'occupationSubItemId',
-  title: 'title',
-  description: 'description',
-  requirements: 'requirements',
-  requireInvoice: 'requireInvoice',
-  requireExperienceYears: 'requireExperienceYears',
-  compensationType: 'compensationType',
-  compensationAmount: 'compensationAmount',
-  startDate: 'startDate',
-  endDate: 'endDate',
-  address: 'address',
-  latitude: 'latitude',
-  longitude: 'longitude',
-  images: 'images',
-  status: 'status',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
-exports.Prisma.JobApplicationScalarFieldEnum = {
-  id: 'id',
-  jobPostingId: 'jobPostingId',
-  companyId: 'companyId',
-  message: 'message',
-  status: 'status',
-  respondedAt: 'respondedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.DocumentScalarFieldEnum = {
-  id: 'id',
-  type: 'type',
-  status: 'status',
-  documentNumber: 'documentNumber',
-  factoryFloorOrderId: 'factoryFloorOrderId',
-  orderCompanyId: 'orderCompanyId',
-  workerCompanyId: 'workerCompanyId',
-  subtotal: 'subtotal',
-  taxAmount: 'taxAmount',
-  totalAmount: 'totalAmount',
-  invoiceNumber: 'invoiceNumber',
-  pdfUrl: 'pdfUrl',
-  issuedAt: 'issuedAt',
-  confirmedAt: 'confirmedAt',
-  yearMonth: 'yearMonth',
-  metadata: 'metadata',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  deletedAt: 'deletedAt'
-};
-
 exports.Prisma.CompletionReportScalarFieldEnum = {
   id: 'id',
   factoryFloorOrderId: 'factoryFloorOrderId',
@@ -758,35 +787,6 @@ exports.Prisma.CompletionReportScalarFieldEnum = {
   hasAdditionalWork: 'hasAdditionalWork',
   additionalWorkDescription: 'additionalWorkDescription',
   additionalWorkAmount: 'additionalWorkAmount',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.EvaluationScalarFieldEnum = {
-  id: 'id',
-  factoryFloorOrderId: 'factoryFloorOrderId',
-  evaluatorCompanyId: 'evaluatorCompanyId',
-  evaluateeCompanyId: 'evaluateeCompanyId',
-  technicalSkill: 'technicalSkill',
-  communication: 'communication',
-  reliability: 'reliability',
-  comment: 'comment',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-};
-
-exports.Prisma.TrustScoreScalarFieldEnum = {
-  id: 'id',
-  companyId: 'companyId',
-  overallScore: 'overallScore',
-  technicalAvg: 'technicalAvg',
-  communicationAvg: 'communicationAvg',
-  reliabilityAvg: 'reliabilityAvg',
-  totalTransactions: 'totalTransactions',
-  totalAmount: 'totalAmount',
-  onTimeRate: 'onTimeRate',
-  repeatRate: 'repeatRate',
-  lastCalculatedAt: 'lastCalculatedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -855,26 +855,17 @@ exports.SubscriptionStatus = exports.$Enums.SubscriptionStatus = {
   PAUSED: 'PAUSED'
 };
 
-exports.FactoryFloorStatus = exports.$Enums.FactoryFloorStatus = {
-  DRAFT: 'DRAFT',
-  NOT_ORDERED: 'NOT_ORDERED',
-  ORDERED: 'ORDERED',
-  ORDER_REQUESTED: 'ORDER_REQUESTED',
-  CONFIRMED: 'CONFIRMED',
-  IN_PROGRESS: 'IN_PROGRESS',
-  INSPECTION: 'INSPECTION',
-  COMPLETED: 'COMPLETED',
-  DELIVERY_APPROVED: 'DELIVERY_APPROVED',
-  INVOICED: 'INVOICED',
-  DEAL_COMPLETED: 'DEAL_COMPLETED'
+exports.VerificationLevel = exports.$Enums.VerificationLevel = {
+  LEVEL_1: 'LEVEL_1',
+  LEVEL_2: 'LEVEL_2',
+  LEVEL_3: 'LEVEL_3'
 };
 
-exports.OrderStatus = exports.$Enums.OrderStatus = {
+exports.BillingStatus = exports.$Enums.BillingStatus = {
+  DRAFT: 'DRAFT',
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-  CANCELLED: 'CANCELLED',
-  CONFIRMED: 'CONFIRMED'
+  REJECTED: 'REJECTED'
 };
 
 exports.ChatRoomType = exports.$Enums.ChatRoomType = {
@@ -901,13 +892,6 @@ exports.MessageActionType = exports.$Enums.MessageActionType = {
   BILLING: 'BILLING'
 };
 
-exports.BillingStatus = exports.$Enums.BillingStatus = {
-  DRAFT: 'DRAFT',
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED'
-};
-
 exports.ContractStatus = exports.$Enums.ContractStatus = {
   UNSENT: 'UNSENT',
   SENT: 'SENT',
@@ -920,16 +904,17 @@ exports.PaymentStatus = exports.$Enums.PaymentStatus = {
   PAID: 'PAID'
 };
 
-exports.VerificationLevel = exports.$Enums.VerificationLevel = {
-  LEVEL_1: 'LEVEL_1',
-  LEVEL_2: 'LEVEL_2',
-  LEVEL_3: 'LEVEL_3'
+exports.DocumentType = exports.$Enums.DocumentType = {
+  ORDER_SHEET: 'ORDER_SHEET',
+  DELIVERY_NOTE: 'DELIVERY_NOTE',
+  INVOICE: 'INVOICE'
 };
 
-exports.AvailabilityStatus = exports.$Enums.AvailabilityStatus = {
-  AVAILABLE: 'AVAILABLE',
-  BUSY: 'BUSY',
-  NEGOTIABLE: 'NEGOTIABLE'
+exports.DocumentStatus = exports.$Enums.DocumentStatus = {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  CONFIRMED: 'CONFIRMED',
+  VOID: 'VOID'
 };
 
 exports.CompensationType = exports.$Enums.CompensationType = {
@@ -952,17 +937,32 @@ exports.ApplicationStatus = exports.$Enums.ApplicationStatus = {
   WITHDRAWN: 'WITHDRAWN'
 };
 
-exports.DocumentType = exports.$Enums.DocumentType = {
-  ORDER_SHEET: 'ORDER_SHEET',
-  DELIVERY_NOTE: 'DELIVERY_NOTE',
-  INVOICE: 'INVOICE'
+exports.AvailabilityStatus = exports.$Enums.AvailabilityStatus = {
+  AVAILABLE: 'AVAILABLE',
+  BUSY: 'BUSY',
+  NEGOTIABLE: 'NEGOTIABLE'
 };
 
-exports.DocumentStatus = exports.$Enums.DocumentStatus = {
+exports.FactoryFloorStatus = exports.$Enums.FactoryFloorStatus = {
   DRAFT: 'DRAFT',
-  ISSUED: 'ISSUED',
+  NOT_ORDERED: 'NOT_ORDERED',
+  ORDERED: 'ORDERED',
+  ORDER_REQUESTED: 'ORDER_REQUESTED',
   CONFIRMED: 'CONFIRMED',
-  VOID: 'VOID'
+  IN_PROGRESS: 'IN_PROGRESS',
+  INSPECTION: 'INSPECTION',
+  COMPLETED: 'COMPLETED',
+  DELIVERY_APPROVED: 'DELIVERY_APPROVED',
+  INVOICED: 'INVOICED',
+  DEAL_COMPLETED: 'DEAL_COMPLETED'
+};
+
+exports.OrderStatus = exports.$Enums.OrderStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+  CONFIRMED: 'CONFIRMED'
 };
 
 exports.Prisma.ModelName = {
@@ -971,26 +971,30 @@ exports.Prisma.ModelName = {
   User: 'User',
   Company: 'Company',
   Subscription: 'Subscription',
-  FactoryFloor: 'FactoryFloor',
-  FactoryFloorMember: 'FactoryFloorMember',
-  FactoryFloorOrder: 'FactoryFloorOrder',
-  FactoryFloorImage: 'FactoryFloorImage',
-  FactoryFloorPdf: 'FactoryFloorPdf',
-  FactoryFloorOccupation: 'FactoryFloorOccupation',
-  PriceOrderDetail: 'PriceOrderDetail',
-  ChatRoom: 'ChatRoom',
-  ChatRoomMember: 'ChatRoomMember',
-  Message: 'Message',
+  UserVerification: 'UserVerification',
+  PaymentInfo: 'PaymentInfo',
+  Notification: 'Notification',
+  DeviceToken: 'DeviceToken',
   BillingRequest: 'BillingRequest',
   BillingRequestDetail: 'BillingRequestDetail',
   AdditionalOrder: 'AdditionalOrder',
   Invoice: 'Invoice',
+  ChatRoom: 'ChatRoom',
+  ChatRoomMember: 'ChatRoomMember',
+  Message: 'Message',
+  TemplateMessage: 'TemplateMessage',
+  TmpReport: 'TmpReport',
   ContractMaster: 'ContractMaster',
   CompanyContract: 'CompanyContract',
   CompanyContractPdf: 'CompanyContractPdf',
-  PaymentInfo: 'PaymentInfo',
   Matching: 'Matching',
   Invited: 'Invited',
+  Document: 'Document',
+  Evaluation: 'Evaluation',
+  TrustScore: 'TrustScore',
+  JobPosting: 'JobPosting',
+  JobApplication: 'JobApplication',
+  AvailabilitySlot: 'AvailabilitySlot',
   Area: 'Area',
   CompanyArea: 'CompanyArea',
   Prefecture: 'Prefecture',
@@ -1001,18 +1005,14 @@ exports.Prisma.ModelName = {
   CompanyOccupation: 'CompanyOccupation',
   Unit: 'Unit',
   TaxMaster: 'TaxMaster',
-  Notification: 'Notification',
-  DeviceToken: 'DeviceToken',
-  TemplateMessage: 'TemplateMessage',
-  TmpReport: 'TmpReport',
-  UserVerification: 'UserVerification',
-  AvailabilitySlot: 'AvailabilitySlot',
-  JobPosting: 'JobPosting',
-  JobApplication: 'JobApplication',
-  Document: 'Document',
-  CompletionReport: 'CompletionReport',
-  Evaluation: 'Evaluation',
-  TrustScore: 'TrustScore'
+  FactoryFloor: 'FactoryFloor',
+  FactoryFloorMember: 'FactoryFloorMember',
+  FactoryFloorOrder: 'FactoryFloorOrder',
+  FactoryFloorImage: 'FactoryFloorImage',
+  FactoryFloorPdf: 'FactoryFloorPdf',
+  FactoryFloorOccupation: 'FactoryFloorOccupation',
+  PriceOrderDetail: 'PriceOrderDetail',
+  CompletionReport: 'CompletionReport'
 };
 
 /**
