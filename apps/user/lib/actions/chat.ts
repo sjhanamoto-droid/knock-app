@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { sendPushToUsers } from "@/lib/push";
 import { requireSession } from "@/lib/session";
 
 export async function getChatRooms(type?: "NEGOTIATION" | "SITE_INFO") {
@@ -158,6 +159,21 @@ export async function sendMessage(roomId: string, message: string) {
     return msg;
   });
 
+  // 他メンバーにPush通知を送信
+  const otherMembers = await prisma.chatRoomMember.findMany({
+    where: { roomId, userId: { not: user.id }, deletedAt: null },
+    select: { userId: true },
+  });
+  if (otherMembers.length > 0) {
+    const senderName = user.name || "Knock";
+    void sendPushToUsers({
+      userIds: otherMembers.map((m) => m.userId),
+      title: senderName,
+      body: trimmed.length > 50 ? trimmed.slice(0, 50) + "…" : trimmed,
+      url: `/chat/${roomId}`,
+    });
+  }
+
   return newMessage;
 }
 
@@ -234,6 +250,21 @@ export async function sendFileMessage(roomId: string, fileUrl: string, fileName:
 
     return msg;
   });
+
+  // 他メンバーにPush通知を送信
+  const otherMembers = await prisma.chatRoomMember.findMany({
+    where: { roomId, userId: { not: user.id }, deletedAt: null },
+    select: { userId: true },
+  });
+  if (otherMembers.length > 0) {
+    const senderName = user.name || "Knock";
+    void sendPushToUsers({
+      userIds: otherMembers.map((m) => m.userId),
+      title: senderName,
+      body: `📎 ${fileName}`,
+      url: `/chat/${roomId}`,
+    });
+  }
 
   return newMessage;
 }
