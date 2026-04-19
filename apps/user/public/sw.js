@@ -27,22 +27,42 @@ self.addEventListener("push", (event) => {
     data: { url: data.url ?? "/" },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options).then(() => {
+      // ホーム画面アイコンのバッジカウントを更新
+      if (navigator.setAppBadge) {
+        return self.registration
+          .getNotifications()
+          .then((notifications) => navigator.setAppBadge(notifications.length));
+      }
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = event.notification.data?.url ?? "/";
   event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        for (const client of clientList) {
-          if (client.url.includes(url) && "focus" in client) {
-            return client.focus();
+    Promise.all([
+      // バッジをクリア
+      navigator.clearAppBadge && navigator.clearAppBadge(),
+      clients
+        .matchAll({ type: "window", includeUncontrolled: true })
+        .then((clientList) => {
+          for (const client of clientList) {
+            if (client.url.includes(url) && "focus" in client) {
+              return client.focus();
+            }
           }
-        }
-        return clients.openWindow(url);
-      })
+          return clients.openWindow(url);
+        }),
+    ])
   );
+});
+
+// アプリがフォーカスされたらバッジをクリア
+self.addEventListener("message", (event) => {
+  if (event.data === "clear-badge" && navigator.clearAppBadge) {
+    navigator.clearAppBadge();
+  }
 });

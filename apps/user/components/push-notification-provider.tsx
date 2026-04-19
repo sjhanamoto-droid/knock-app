@@ -45,21 +45,20 @@ export function PushNotificationProvider() {
   }, []);
 
   useEffect(() => {
-    console.log("[Push] Init check start");
-    if (typeof window === "undefined") { console.log("[Push] Skip: no window"); return; }
-    if (!("serviceWorker" in navigator)) { console.log("[Push] Skip: no serviceWorker"); return; }
-    if (!VAPID_PUBLIC_KEY) { console.log("[Push] Skip: no VAPID_PUBLIC_KEY"); return; }
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator)) return;
+    if (!VAPID_PUBLIC_KEY) return;
+    if (!("Notification" in window) || !("PushManager" in window)) return;
 
-    const hasNotification = "Notification" in window;
-    const hasPushManager = "PushManager" in window;
-    console.log("[Push] Notification:", hasNotification, "PushManager:", hasPushManager);
-
-    // iOS Safari（非PWA）ではNotification APIが存在しない
-    if (!hasNotification || !hasPushManager) { console.log("[Push] Skip: API not available"); return; }
+    // アプリ起動時にバッジをクリア
+    if ("clearAppBadge" in navigator) {
+      (navigator as unknown as { clearAppBadge: () => Promise<void> }).clearAppBadge();
+    }
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.active?.postMessage("clear-badge");
+    });
 
     const perm = Notification.permission;
-    console.log("[Push] Permission:", perm);
-
     if (perm === "granted") {
       registerSubscription();
     } else if (perm === "denied") {
