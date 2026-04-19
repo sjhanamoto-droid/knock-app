@@ -11,3 +11,4 @@ apps/user/public/uploads/
 packages/db/generated/
 apps/user/generated/
 .vercel
+docs/credentials.md

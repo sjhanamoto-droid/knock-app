@@ -236,34 +236,52 @@ export default function MyPage() {
           <CameraIcon size={16} />
         </button>
 
-        {/* Avatar overlapping cover photo bottom-left */}
-        <div className="absolute -bottom-10 left-4">
-          <div className="relative">
-            <div
-              className="h-20 w-20 overflow-hidden rounded-full border-3 border-white shadow-md"
-              style={{ borderWidth: 3 }}
-            >
-              {profile.avatar ? (
-                <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div
-                  className="flex h-full w-full items-center justify-center text-[24px] font-bold"
-                  style={{ backgroundColor: `var(--mode-accent-bg)`, color: accentColor }}
-                >
-                  {profile.lastName?.charAt(0)}
-                </div>
-              )}
-            </div>
-            {/* Camera icon on avatar */}
-            <button className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white">
-              <CameraIcon size={12} />
-            </button>
-          </div>
-        </div>
       </div>
 
-      {/* spacer for avatar overlap */}
-      <div className="h-12" />
+      {/* ─── Profile Summary (Avatar + Name + Score) ─── */}
+      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
+        {/* Avatar */}
+        <div className="relative shrink-0">
+          <div
+            className="h-16 w-16 overflow-hidden rounded-full border-2 border-white shadow-md"
+          >
+            {profile.avatar ? (
+              <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div
+                className="flex h-full w-full items-center justify-center text-[20px] font-bold"
+                style={{ backgroundColor: `var(--mode-accent-bg)`, color: accentColor }}
+              >
+                {profile.lastName?.charAt(0)}
+              </div>
+            )}
+          </div>
+          <button className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white">
+            <CameraIcon size={10} />
+          </button>
+        </div>
+
+        {/* Name + Company */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[16px] font-bold text-knock-text truncate">{fullName}</p>
+          <p className="text-[12px] text-knock-text-secondary truncate">
+            {profile.tradeName || profile.company?.name || ""}
+          </p>
+        </div>
+
+        {/* Trust Score */}
+        <Link href="/mypage/trust-score" className="shrink-0 flex flex-col items-center">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-full border-2"
+            style={{ borderColor: accentColor }}
+          >
+            <span className="text-[13px] font-bold" style={{ color: accentColor }}>
+              {scoreValue > 0 ? scoreValue.toFixed(1) : "-.-"}
+            </span>
+          </div>
+          <span className="mt-0.5 text-[10px] text-knock-text-secondary">信用スコア</span>
+        </Link>
+      </div>
 
       {/* ─── Tab Bar ─── */}
       <div className="flex gap-2 px-4 py-3 bg-gray-50">
@@ -327,14 +345,6 @@ export default function MyPage() {
               <FieldRow label="メールアドレス" value={profile.email} />
               <FieldRow label="電話番号" value={profile.telNumber || null} />
               <FieldRow
-                label="居住地"
-                value={
-                  profile.company?.prefecture || profile.company?.city
-                    ? [profile.company.prefecture, profile.company.city].filter(Boolean).join("")
-                    : null
-                }
-              />
-              <FieldRow
                 label="就労資格"
                 value={profile.workEligibility ? workEligibilityLabels[profile.workEligibility] : null}
               />
@@ -357,31 +367,6 @@ export default function MyPage() {
                     : null
                 }
               />
-
-              {/* Trust Score */}
-              <div className="border-t border-gray-100 mt-2">
-                <Link href="/mypage/trust-score" className="flex items-center gap-3 py-3.5">
-                  <div
-                    className="flex h-11 w-11 items-center justify-center rounded-full border-2"
-                    style={{ borderColor: accentColor }}
-                  >
-                    <span className="text-[14px] font-bold" style={{ color: accentColor }}>
-                      {scoreValue > 0 ? scoreValue.toFixed(1) : "-.-"}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[13px] font-bold text-knock-text">信用スコア</p>
-                    <p className="text-[11px] text-knock-text-secondary">
-                      {trustScore && trustScore.totalTransactions > 0
-                        ? `${trustScore.totalTransactions}件の取引実績`
-                        : "取引実績なし"}
-                    </p>
-                  </div>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 3L11 8L6 13" stroke="#C0C0C0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </Link>
-              </div>
             </SectionCard>
 
             {/* ─── 受発注情報 ─── */}
