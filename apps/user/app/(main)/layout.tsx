@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Providers } from "@/components/providers";
 import { PushNotificationProvider } from "@/components/push-notification-provider";
+import { getHomeBadgeCounts } from "@/lib/actions/home";
 import { useMode } from "@/lib/hooks/use-mode";
 
 /* ──────────── Icon Components ──────────── */
@@ -221,6 +222,7 @@ const ordererNav: NavItem[] = [
 function MainLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { mode, accentColor, isOrderer } = useMode();
+  const [chatBadge, setChatBadge] = useState(false);
 
   const navItems = isOrderer ? ordererNav : contractorNav;
 
@@ -231,6 +233,13 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
       document.documentElement.removeAttribute("data-mode");
     };
   }, [mode]);
+
+  // チャット未読バッジ取得
+  useEffect(() => {
+    getHomeBadgeCounts()
+      .then((b) => setChatBadge(b.chats > 0))
+      .catch(() => {});
+  }, [pathname]);
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-[430px] flex-col bg-knock-bg">
@@ -254,7 +263,7 @@ function MainLayoutInner({ children }: { children: React.ReactNode }) {
               >
                 <div className="relative">
                   <Icon active={isActive} color={accentColor} />
-                  {item.badge && (
+                  {(item.badge || (item.href === "/chat" && chatBadge)) && (
                     <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-knock-red ring-2 ring-white" />
                   )}
                 </div>

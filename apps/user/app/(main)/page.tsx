@@ -153,7 +153,7 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const totalBadge = badgeCounts.notifications + badgeCounts.chats;
+  const totalBadge = badgeCounts.notifications;
 
   // Filter transactions for selected date
   const selectedDateStr = `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;
