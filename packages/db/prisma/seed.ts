@@ -155,6 +155,80 @@ async function main() {
   }
   console.log(`✓ ${majorCount} major occupations, ${subCount} sub occupations seeded`);
 
+  // ============ Qualification Masters (資格マスタ) ============
+  const qualifications: { name: string; category: string }[] = [
+    // 建築士
+    { name: "1級建築士", category: "建築士" },
+    { name: "2級建築士", category: "建築士" },
+    { name: "木造建築士", category: "建築士" },
+    // 建築施工管理技士
+    { name: "1級建築施工管理技士", category: "施工管理技士" },
+    { name: "2級建築施工管理技士", category: "施工管理技士" },
+    // 土木施工管理技士
+    { name: "1級土木施工管理技士", category: "施工管理技士" },
+    { name: "2級土木施工管理技士", category: "施工管理技士" },
+    // 電気工事施工管理技士
+    { name: "1級電気工事施工管理技士", category: "施工管理技士" },
+    { name: "2級電気工事施工管理技士", category: "施工管理技士" },
+    // 管工事施工管理技士
+    { name: "1級管工事施工管理技士", category: "施工管理技士" },
+    { name: "2級管工事施工管理技士", category: "施工管理技士" },
+    // 建設機械施工技士
+    { name: "1級建設機械施工技士", category: "施工管理技士" },
+    { name: "2級建設機械施工技士", category: "施工管理技士" },
+    // 造園施工管理技士
+    { name: "1級造園施工管理技士", category: "施工管理技士" },
+    { name: "2級造園施工管理技士", category: "施工管理技士" },
+    // 電気通信工事施工管理技士
+    { name: "1級電気通信工事施工管理技士", category: "施工管理技士" },
+    { name: "2級電気通信工事施工管理技士", category: "施工管理技士" },
+    // その他施工系
+    { name: "解体工事施工技士", category: "施工管理技士" },
+    // 技能士
+    { name: "1級技能士 建築大工", category: "技能士" },
+    { name: "2級技能士 建築大工", category: "技能士" },
+    { name: "1級技能士 左官", category: "技能士" },
+    { name: "2級技能士 左官", category: "技能士" },
+    { name: "1級技能士 とび", category: "技能士" },
+    { name: "2級技能士 とび", category: "技能士" },
+    { name: "1級技能士 配管", category: "技能士" },
+    { name: "2級技能士 配管", category: "技能士" },
+    { name: "1級技能士 塗装", category: "技能士" },
+    { name: "2級技能士 塗装", category: "技能士" },
+    { name: "1級技能士 防水施工", category: "技能士" },
+    { name: "2級技能士 防水施工", category: "技能士" },
+    { name: "特級技能士 建設機械整備", category: "技能士" },
+    { name: "1級技能士 建設機械整備", category: "技能士" },
+    // 電気系
+    { name: "第一種電気工事士", category: "電気" },
+    { name: "第二種電気工事士", category: "電気" },
+    { name: "1級電気工事施工管理技士補", category: "電気" },
+    // 下水道
+    { name: "下水道技術者(2種)", category: "下水道" },
+    { name: "下水道技術者(3種)", category: "下水道" },
+    // その他
+    { name: "測量士", category: "その他" },
+    { name: "測量士補", category: "その他" },
+    { name: "宅地建物取引士", category: "その他" },
+    { name: "消防設備士", category: "その他" },
+    { name: "玉掛け技能講習修了", category: "その他" },
+    { name: "足場の組立て等作業主任者", category: "その他" },
+    { name: "酸素欠乏危険作業主任者", category: "その他" },
+    { name: "有機溶剤作業主任者", category: "その他" },
+  ];
+
+  let qualCount = 0;
+  for (let i = 0; i < qualifications.length; i++) {
+    const q = qualifications[i];
+    await prisma.qualificationMaster.upsert({
+      where: { name: q.name },
+      update: { category: q.category, sortOrder: i },
+      create: { name: q.name, category: q.category, sortOrder: i },
+    });
+    qualCount++;
+  }
+  console.log(`✓ ${qualCount} qualifications seeded`);
+
   console.log("Seeding completed.");
 
   // Development: seed test data (users, companies, sample data)

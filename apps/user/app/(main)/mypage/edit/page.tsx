@@ -7,8 +7,11 @@ import {
   updateProfile,
   changePassword,
   updateAvatar,
+  getQualificationMasters,
+  saveUserQualifications,
 } from "@/lib/actions/profile";
 import { useMode } from "@/lib/hooks/use-mode";
+import QualificationSelector from "@/components/qualification-selector";
 
 /* ──────────── Wavy Underline SVG ──────────── */
 
@@ -59,11 +62,21 @@ export default function EditProfilePage() {
     email: "",
     telNumber: "",
     dateOfBirth: "",
+    gender: "" as string,
+    workEligibility: "" as string,
+    tradeName: "",
+    workersCompInsurance: "" as string,
   });
 
+  // Qualification state
+  const [qualMasters, setQualMasters] = useState<
+    { id: string; name: string; category: string | null }[]
+  >([]);
+  const [selectedQualIds, setSelectedQualIds] = useState<string[]>([]);
+
   useEffect(() => {
-    getProfile()
-      .then((profile) => {
+    Promise.all([getProfile(), getQualificationMasters()])
+      .then(([profile, masters]) => {
         if (profile) {
           setFormData({
             lastName: profile.lastName ?? "",
@@ -73,9 +86,22 @@ export default function EditProfilePage() {
             email: profile.email ?? "",
             telNumber: profile.telNumber ?? "",
             dateOfBirth: profile.dateOfBirth ?? "",
+            gender: profile.gender ?? "",
+            workEligibility: profile.workEligibility ?? "",
+            tradeName: profile.tradeName ?? "",
+            workersCompInsurance:
+              profile.workersCompInsurance === true
+                ? "true"
+                : profile.workersCompInsurance === false
+                ? "false"
+                : "",
           });
           setAvatarPreview(profile.avatar ?? null);
+          setSelectedQualIds(
+            profile.qualifications?.map((q) => q.qualification.id) ?? []
+          );
         }
+        setQualMasters(masters);
         setLoading(false);
       })
       .catch((err) => {
@@ -96,15 +122,33 @@ export default function EditProfilePage() {
     setSuccess("");
 
     try {
-      await updateProfile({
-        lastName: formData.lastName,
-        firstName: formData.firstName,
-        lastNameKana: formData.lastNameKana || undefined,
-        firstNameKana: formData.firstNameKana || undefined,
-        email: formData.email || undefined,
-        telNumber: formData.telNumber || undefined,
-        dateOfBirth: formData.dateOfBirth || undefined,
-      });
+      await Promise.all([
+        updateProfile({
+          lastName: formData.lastName,
+          firstName: formData.firstName,
+          lastNameKana: formData.lastNameKana || undefined,
+          firstNameKana: formData.firstNameKana || undefined,
+          email: formData.email || undefined,
+          telNumber: formData.telNumber || undefined,
+          dateOfBirth: formData.dateOfBirth || undefined,
+          gender: (formData.gender as "MALE" | "FEMALE" | "OTHER" | "UNSPECIFIED") || null,
+          workEligibility:
+            (formData.workEligibility as
+              | "JAPANESE_NATIONAL"
+              | "PERMANENT_RESIDENT"
+              | "SPECIFIED_SKILLED"
+              | "WORK_VISA"
+              | "OTHER") || null,
+          tradeName: formData.tradeName || null,
+          workersCompInsurance:
+            formData.workersCompInsurance === "true"
+              ? true
+              : formData.workersCompInsurance === "false"
+              ? false
+              : null,
+        }),
+        saveUserQualifications(selectedQualIds),
+      ]);
       setSuccess("保存しました");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -400,6 +444,74 @@ export default function EditProfilePage() {
                   type="date"
                   className={inputCls}
                 />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
+                  性別
+                </label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => set("gender", e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">未選択</option>
+                  <option value="MALE">男性</option>
+                  <option value="FEMALE">女性</option>
+                  <option value="OTHER">その他</option>
+                  <option value="UNSPECIFIED">未回答</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
+                  就労資格
+                </label>
+                <select
+                  value={formData.workEligibility}
+                  onChange={(e) => set("workEligibility", e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">未選択</option>
+                  <option value="JAPANESE_NATIONAL">日本国籍</option>
+                  <option value="PERMANENT_RESIDENT">外国籍（永住者・定住者等）</option>
+                  <option value="SPECIFIED_SKILLED">外国籍（特定技能・建設分野）</option>
+                  <option value="WORK_VISA">外国籍（技人国ビザ・高度専門職）</option>
+                  <option value="OTHER">上記に該当しない</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
+                  屋号
+                </label>
+                <input
+                  value={formData.tradeName}
+                  onChange={(e) => set("tradeName", e.target.value)}
+                  placeholder="例: ○○建設"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
+                  保有資格
+                </label>
+                <QualificationSelector
+                  masters={qualMasters}
+                  value={selectedQualIds}
+                  onChange={setSelectedQualIds}
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
+                  労災保険
+                </label>
+                <select
+                  value={formData.workersCompInsurance}
+                  onChange={(e) => set("workersCompInsurance", e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">未選択</option>
+                  <option value="true">加入している</option>
+                  <option value="false">加入していない</option>
+                </select>
               </div>
             </div>
           </div>

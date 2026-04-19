@@ -130,3 +130,26 @@ model TaxMaster {
 
   @@map("tax_masters")
 }
+
+// ============ プロフィール強化: 保有資格 ============
+
+model QualificationMaster {
+  id        String              @id @default(cuid())
+  name      String              @unique
+  category  String?
+  sortOrder Int                 @default(0)
+  users     UserQualification[]
+
+  @@map("qualification_masters")
+}
+
+model UserQualification {
+  id              String              @id @default(cuid())
+  userId          String
+  qualificationId String
+  user            User                @relation(fields: [userId], references: [id])
+  qualification   QualificationMaster @relation(fields: [qualificationId], references: [id])
+
+  @@unique([userId, qualificationId])
+  @@map("user_qualifications")
+}

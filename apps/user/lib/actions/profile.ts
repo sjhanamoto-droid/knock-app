@@ -23,6 +23,16 @@ export async function getProfile() {
       companyId: true,
       policyStatus: true,
       isActive: true,
+      // プロフィール強化
+      gender: true,
+      workEligibility: true,
+      tradeName: true,
+      workersCompInsurance: true,
+      qualifications: {
+        select: {
+          qualification: { select: { id: true, name: true, category: true } },
+        },
+      },
       createdAt: true,
       updatedAt: true,
       deletedAt: true,
@@ -32,6 +42,7 @@ export async function getProfile() {
           name: true,
           nameKana: true,
           type: true,
+          companyForm: true,
           email: true,
           telNumber: true,
           postalCode: true,
@@ -48,6 +59,22 @@ export async function getProfile() {
           bankAccountType: true,
           bankAccountNumber: true,
           bankAccountName: true,
+          // プロフィール強化
+          workforceCapacity: true,
+          constructionPermit: true,
+          invoiceRegistration: true,
+          socialInsurance: true,
+          insurances: { select: { type: true } },
+          areas: {
+            select: { area: { select: { id: true, name: true } } },
+          },
+          occupations: {
+            select: {
+              occupationSubItem: {
+                select: { name: true },
+              },
+            },
+          },
         },
       },
     },
@@ -70,6 +97,10 @@ export async function updateProfile(data: {
   telNumber?: string;
   dateOfBirth?: string;
   email?: string;
+  gender?: "MALE" | "FEMALE" | "OTHER" | "UNSPECIFIED" | null;
+  workEligibility?: "JAPANESE_NATIONAL" | "PERMANENT_RESIDENT" | "SPECIFIED_SKILLED" | "WORK_VISA" | "OTHER" | null;
+  tradeName?: string | null;
+  workersCompInsurance?: boolean | null;
 }) {
   const user = await requireSession();
 
@@ -207,6 +238,11 @@ export async function updateCompany(data: {
   bankAccountType?: "ORDINARY" | "CURRENT";
   bankAccountNumber?: string;
   bankAccountName?: string;
+  companyForm?: "CORPORATION" | "INDIVIDUAL" | null;
+  workforceCapacity?: "ONE" | "TWO_TO_TEN" | "ELEVEN_TO_THIRTY" | "THIRTY_ONE_TO_FIFTY" | "FIFTY_PLUS" | null;
+  constructionPermit?: "NONE" | "MLIT_GENERAL" | "MLIT_SPECIAL" | "GOVERNOR_GENERAL" | "GOVERNOR_SPECIAL" | null;
+  invoiceRegistration?: "NOT_ENTERED" | "NOT_REGISTERED" | "REGISTERED" | null;
+  socialInsurance?: boolean | null;
 }) {
   const user = await requireSession();
 
@@ -227,4 +263,69 @@ export async function updateCompany(data: {
     updatedAt: updated.updatedAt.toISOString(),
     deletedAt: updated.deletedAt?.toISOString() ?? null,
   };
+}
+
+// ============ プロフィール強化: 資格・保険 ============
+
+export async function getQualificationMasters() {
+  const masters = await prisma.qualificationMaster.findMany({
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, name: true, category: true },
+  });
+  return masters;
+}
+
+export async function saveUserQualifications(qualificationIds: string[]) {
+  const user = await requireSession();
+
+  // 全置換: 既存を削除して新規作成
+  await prisma.$transaction([
+    prisma.userQualification.deleteMany({ where: { userId: user.id } }),
+    ...qualificationIds.map((qId) =>
+      prisma.userQualification.create({
+        data: { userId: user.id, qualificationId: qId },
+      })
+    ),
+  ]);
+
+  return { success: true };
+}
+
+export async function saveCompanyAreas(areaIds: string[]) {
+  const user = await requireSession();
+
+  if (user.role !== "REPRESENTATIVE" && user.role !== "MANAGER") {
+    throw new Error("権限がありません");
+  }
+
+  await prisma.$transaction([
+    prisma.companyArea.deleteMany({ where: { companyId: user.companyId } }),
+    ...areaIds.map((areaId) =>
+      prisma.companyArea.create({
+        data: { companyId: user.companyId, areaId },
+      })
+    ),
+  ]);
+
+  return { success: true };
+}
+
+export async function saveCompanyInsurances(types: string[]) {
+  const user = await requireSession();
+
+  if (user.role !== "REPRESENTATIVE" && user.role !== "MANAGER") {
+    throw new Error("権限がありません");
+  }
+
+  // 全置換: 既存を削除して新規作成
+  await prisma.$transaction([
+    prisma.companyInsurance.deleteMany({ where: { companyId: user.companyId } }),
+    ...types.map((type) =>
+      prisma.companyInsurance.create({
+        data: { companyId: user.companyId, type },
+      })
+    ),
+  ]);
+
+  return { success: true };
 }

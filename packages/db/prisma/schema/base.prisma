@@ -1,5 +1,10 @@
 // ============ Generators & Datasource ============
 
+generator defaultClient {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
 generator client {
   provider        = "prisma-client-js"
   engineType      = "client"
@@ -166,4 +171,43 @@ enum CompensationType {
   DAILY       // 日額
   LUMP_SUM    // 一式
   NEGOTIABLE  // 応相談
+}
+
+// ============ プロフィール強化 Enums ============
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNSPECIFIED
+}
+
+enum WorkEligibility {
+  JAPANESE_NATIONAL    // 日本国籍
+  PERMANENT_RESIDENT   // 外国籍 永住者・定住者等
+  SPECIFIED_SKILLED    // 外国籍 特定技能（建設分野）
+  WORK_VISA            // 外国籍 技人国ビザ・高度専門職
+  OTHER                // 上記に該当しない
+}
+
+enum ConstructionPermit {
+  NONE              // 取得していない
+  MLIT_GENERAL      // 国土交通大臣許可 一般
+  MLIT_SPECIAL      // 国土交通大臣許可 特定
+  GOVERNOR_GENERAL  // 都道府県知事許可 一般
+  GOVERNOR_SPECIAL  // 都道府県知事許可 特定
+}
+
+enum InvoiceRegistrationStatus {
+  NOT_ENTERED     // 未入力
+  NOT_REGISTERED  // 未登録
+  REGISTERED      // 登録済み
+}
+
+enum WorkforceCapacity {
+  ONE                  // 1人
+  TWO_TO_TEN           // 2〜10人
+  ELEVEN_TO_THIRTY     // 11〜30人
+  THIRTY_ONE_TO_FIFTY  // 31〜50人
+  FIFTY_PLUS           // 51人〜
 }

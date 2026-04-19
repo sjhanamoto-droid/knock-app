@@ -9,6 +9,50 @@ import { getTrustScore } from "@/lib/actions/trust-score-page";
 import { userRoleLabels, companyTypeLabels } from "@knock/utils";
 import { SideMenu } from "@/components/side-menu";
 
+/* ──────────── Label Maps ──────────── */
+
+const genderLabels: Record<string, string> = {
+  MALE: "男性",
+  FEMALE: "女性",
+  OTHER: "その他",
+  UNSPECIFIED: "未回答",
+};
+
+const workEligibilityLabels: Record<string, string> = {
+  JAPANESE_NATIONAL: "日本国籍",
+  PERMANENT_RESIDENT: "外国籍（永住者・定住者等）",
+  SPECIFIED_SKILLED: "外国籍（特定技能・建設分野）",
+  WORK_VISA: "外国籍（技人国ビザ・高度専門職）",
+  OTHER: "上記に該当しない",
+};
+
+const companyFormLabels: Record<string, string> = {
+  CORPORATION: "法人",
+  INDIVIDUAL: "個人事業主",
+};
+
+const workforceCapacityLabels: Record<string, string> = {
+  ONE: "1人",
+  TWO_TO_TEN: "2〜10人",
+  ELEVEN_TO_THIRTY: "11〜30人",
+  THIRTY_ONE_TO_FIFTY: "31〜50人",
+  FIFTY_PLUS: "51人〜",
+};
+
+const constructionPermitLabels: Record<string, string> = {
+  NONE: "取得していない",
+  MLIT_GENERAL: "国土交通大臣許可 一般",
+  MLIT_SPECIAL: "国土交通大臣許可 特定",
+  GOVERNOR_GENERAL: "都道府県知事許可 一般",
+  GOVERNOR_SPECIAL: "都道府県知事許可 特定",
+};
+
+const invoiceRegistrationLabels: Record<string, string> = {
+  NOT_ENTERED: "未入力",
+  NOT_REGISTERED: "未登録",
+  REGISTERED: "登録済み",
+};
+
 type Profile = Awaited<ReturnType<typeof getProfile>>;
 type TrustScoreData = Awaited<ReturnType<typeof getTrustScore>>;
 
@@ -56,7 +100,42 @@ function FieldRow({ label, value }: { label: string; value?: string | null }) {
   return (
     <div className="flex flex-col gap-0.5 py-3.5 border-b border-gray-100 last:border-b-0">
       <span className="text-[12px] font-bold text-knock-text">{label}</span>
-      <span className="text-[14px] text-knock-text-secondary">{value || "-"}</span>
+      <span className={`text-[14px] ${value ? "text-knock-text-secondary" : "text-gray-400"}`}>
+        {value || "─"}
+      </span>
+    </div>
+  );
+}
+
+/* ──────────── Section Card ──────────── */
+
+function SectionCard({
+  title,
+  editHref,
+  onEdit,
+  children,
+}: {
+  title: string;
+  editHref?: string;
+  onEdit?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+      <div className="flex items-center justify-between px-5 pt-4 pb-1">
+        <h3 className="text-[15px] font-bold text-knock-text">{title}</h3>
+        {editHref && (
+          <Link href={editHref} className="text-[13px] font-medium text-knock-orange">
+            編集する
+          </Link>
+        )}
+        {onEdit && (
+          <button onClick={onEdit} className="text-[13px] font-medium text-knock-orange">
+            編集する
+          </button>
+        )}
+      </div>
+      <div className="px-5 pb-4">{children}</div>
     </div>
   );
 }
@@ -213,17 +292,15 @@ export default function MyPage() {
       {/* ─── Tab Content ─── */}
       <div className="flex flex-col gap-3 px-4 pb-8">
         {activeTab === "personal" && (
-          <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-            {/* Edit button top-right */}
-            <div className="flex items-center justify-end px-4 pt-4">
-              <Link href="/mypage/edit">
-                <EditIcon />
-              </Link>
-            </div>
-
-            <div className="px-4 pb-4">
+          <>
+            {/* ─── 基本情報 ─── */}
+            <SectionCard title="基本情報" editHref="/mypage/edit">
               <FieldRow label="氏名" value={fullName || null} />
               <FieldRow label="ふりがな" value={furigana || null} />
+              <FieldRow
+                label="性別"
+                value={profile.gender ? genderLabels[profile.gender] : null}
+              />
               <FieldRow
                 label="生年月日"
                 value={
@@ -240,48 +317,158 @@ export default function MyPage() {
                 label="年齢"
                 value={
                   profile.dateOfBirth
-                    ? `${
-                        Math.floor(
-                          (Date.now() - new Date(profile.dateOfBirth).getTime()) /
-                            (1000 * 60 * 60 * 24 * 365.25)
-                        )
-                      }歳`
+                    ? `${Math.floor(
+                        (Date.now() - new Date(profile.dateOfBirth).getTime()) /
+                          (1000 * 60 * 60 * 24 * 365.25)
+                      )}歳`
                     : null
                 }
               />
               <FieldRow label="メールアドレス" value={profile.email} />
               <FieldRow label="電話番号" value={profile.telNumber || null} />
               <FieldRow
-                label="役割"
-                value={userRoleLabels[profile.role] ?? profile.role}
+                label="居住地"
+                value={
+                  profile.company?.prefecture || profile.company?.city
+                    ? [profile.company.prefecture, profile.company.city].filter(Boolean).join("")
+                    : null
+                }
               />
-            </div>
+              <FieldRow
+                label="就労資格"
+                value={profile.workEligibility ? workEligibilityLabels[profile.workEligibility] : null}
+              />
+              <FieldRow label="屋号" value={profile.tradeName || null} />
+              <FieldRow
+                label="保有資格"
+                value={
+                  profile.qualifications && profile.qualifications.length > 0
+                    ? profile.qualifications.map((q) => q.qualification.name).join(", ")
+                    : null
+                }
+              />
+              <FieldRow
+                label="労災"
+                value={
+                  profile.workersCompInsurance === true
+                    ? "加入している"
+                    : profile.workersCompInsurance === false
+                    ? "加入していない"
+                    : null
+                }
+              />
 
-            {/* Trust Score */}
-            <div className="border-t border-gray-100 mx-4">
-              <Link href="/mypage/trust-score" className="flex items-center gap-3 py-3.5">
-                <div
-                  className="flex h-11 w-11 items-center justify-center rounded-full border-2"
-                  style={{ borderColor: accentColor }}
-                >
-                  <span className="text-[14px] font-bold" style={{ color: accentColor }}>
-                    {scoreValue > 0 ? scoreValue.toFixed(1) : "-.-"}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-[13px] font-bold text-knock-text">信用スコア</p>
-                  <p className="text-[11px] text-knock-text-secondary">
-                    {trustScore && trustScore.totalTransactions > 0
-                      ? `${trustScore.totalTransactions}件の取引実績`
-                      : "取引実績なし"}
-                  </p>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 3L11 8L6 13" stroke="#C0C0C0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </Link>
-            </div>
-          </div>
+              {/* Trust Score */}
+              <div className="border-t border-gray-100 mt-2">
+                <Link href="/mypage/trust-score" className="flex items-center gap-3 py-3.5">
+                  <div
+                    className="flex h-11 w-11 items-center justify-center rounded-full border-2"
+                    style={{ borderColor: accentColor }}
+                  >
+                    <span className="text-[14px] font-bold" style={{ color: accentColor }}>
+                      {scoreValue > 0 ? scoreValue.toFixed(1) : "-.-"}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[13px] font-bold text-knock-text">信用スコア</p>
+                    <p className="text-[11px] text-knock-text-secondary">
+                      {trustScore && trustScore.totalTransactions > 0
+                        ? `${trustScore.totalTransactions}件の取引実績`
+                        : "取引実績なし"}
+                    </p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 3L11 8L6 13" stroke="#C0C0C0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </Link>
+              </div>
+            </SectionCard>
+
+            {/* ─── 受発注情報 ─── */}
+            <SectionCard
+              title="受発注情報"
+              editHref={
+                profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
+                  ? "/mypage/company"
+                  : undefined
+              }
+            >
+              <FieldRow
+                label="事業形態"
+                value={profile.company?.companyForm ? companyFormLabels[profile.company.companyForm] : null}
+              />
+              <FieldRow
+                label="対応エリア"
+                value={
+                  profile.company?.areas && profile.company.areas.length > 0
+                    ? profile.company.areas.map((a) => a.area.name).join(", ")
+                    : null
+                }
+              />
+              <FieldRow
+                label="稼働可能人数"
+                value={
+                  profile.company?.workforceCapacity
+                    ? workforceCapacityLabels[profile.company.workforceCapacity]
+                    : null
+                }
+              />
+              <FieldRow
+                label="対応職種"
+                value={
+                  profile.company?.occupations && profile.company.occupations.length > 0
+                    ? profile.company.occupations.map((o) => o.occupationSubItem.name).join(", ")
+                    : null
+                }
+              />
+            </SectionCard>
+
+            {/* ─── 許可証・保険・その他 ─── */}
+            <SectionCard
+              title="許可証・保険・その他"
+              editHref={
+                profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
+                  ? "/mypage/company"
+                  : undefined
+              }
+            >
+              <FieldRow
+                label="インボイス登録"
+                value={
+                  profile.company?.invoiceRegistration
+                    ? invoiceRegistrationLabels[profile.company.invoiceRegistration]
+                    : null
+                }
+              />
+              <FieldRow
+                label="建設業許可証"
+                value={
+                  profile.company?.constructionPermit
+                    ? constructionPermitLabels[profile.company.constructionPermit]
+                    : null
+                }
+              />
+              <FieldRow
+                label="社会保険"
+                value={
+                  profile.company?.socialInsurance === true
+                    ? "加入している"
+                    : profile.company?.socialInsurance === false
+                    ? "加入していない"
+                    : null
+                }
+              />
+              <FieldRow
+                label="その他保険"
+                value={
+                  profile.company?.insurances && profile.company.insurances.length > 0
+                    ? profile.company.insurances.map((i) => i.type).join(", ")
+                    : null
+                }
+              />
+              <FieldRow label="ホームページ" value={profile.company?.hpUrl || null} />
+            </SectionCard>
+          </>
         )}
 
         {activeTab === "company" && profile.company && (

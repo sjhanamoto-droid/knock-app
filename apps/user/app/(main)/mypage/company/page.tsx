@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getProfile, updateCompany } from "@/lib/actions/profile";
+import {
+  getProfile,
+  updateCompany,
+  saveCompanyAreas,
+  saveCompanyInsurances,
+} from "@/lib/actions/profile";
+import { getAreas } from "@/lib/actions/contractors";
 import { useMode } from "@/lib/hooks/use-mode";
 import {
   getOccupationMasters,
@@ -15,6 +21,18 @@ import { getAddressFromPostalCode } from "@knock/utils";
 type Profile = Awaited<ReturnType<typeof getProfile>>;
 type MajorItem = Awaited<ReturnType<typeof getOccupationMasters>>[number];
 type Selection = { occupationSubItemId: string; note?: string };
+type AreaMaster = { id: string; name: string };
+
+const INSURANCE_TYPES = [
+  "労働災害総合保険",
+  "使用者賠償責任保険（EL保険）",
+  "請負業者賠償責任保険",
+  "第三者賠償責任保険",
+  "生産物賠償責任保険（PL保険）",
+  "建設工事保険",
+  "土木工事保険",
+  "組立保険",
+] as const;
 
 const inputCls =
   "w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-knock-orange/30";
@@ -85,6 +103,22 @@ export default function CompanyEditPage() {
   const [savingOcc, setSavingOcc] = useState(false);
   const [occSaved, setOccSaved] = useState(false);
 
+  // 受発注情報 state
+  const [areaMasters, setAreaMasters] = useState<AreaMaster[]>([]);
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
+  const [companyForm, setCompanyForm] = useState("");
+  const [workforceCapacity, setWorkforceCapacity] = useState("");
+  const [savingBiz, setSavingBiz] = useState(false);
+  const [bizSaved, setBizSaved] = useState(false);
+
+  // 許可証・保険・その他 state
+  const [invoiceRegistration, setInvoiceRegistration] = useState("");
+  const [constructionPermit, setConstructionPermit] = useState("");
+  const [socialInsurance, setSocialInsurance] = useState("");
+  const [selectedInsurances, setSelectedInsurances] = useState<string[]>([]);
+  const [savingLicense, setSavingLicense] = useState(false);
+  const [licenseSaved, setLicenseSaved] = useState(false);
+
   useEffect(() => {
     getProfile()
       .then((p) => {
@@ -112,6 +146,17 @@ export default function CompanyEditPage() {
           hpUrl: c.hpUrl ?? "",
           invoiceNumber: c.invoiceNumber ?? "",
         });
+        // 受発注情報
+        setCompanyForm(c.companyForm ?? "");
+        setWorkforceCapacity(c.workforceCapacity ?? "");
+        setSelectedAreaIds(c.areas?.map((a) => a.area.id) ?? []);
+        // 許可証・保険・その他
+        setInvoiceRegistration(c.invoiceRegistration ?? "");
+        setConstructionPermit(c.constructionPermit ?? "");
+        setSocialInsurance(
+          c.socialInsurance === true ? "true" : c.socialInsurance === false ? "false" : ""
+        );
+        setSelectedInsurances(c.insurances?.map((i) => i.type) ?? []);
         setLoading(false);
       })
       .catch((err) => {
@@ -120,6 +165,7 @@ export default function CompanyEditPage() {
       });
 
     getOccupationMasters().then(setMasters);
+    getAreas().then(setAreaMasters);
     getCompanyOccupations().then((occs) => {
       setSelections(
         occs.map((o) => ({
@@ -321,40 +367,221 @@ export default function CompanyEditPage() {
           </button>
         </form>
 
-        {/* 対応職種 */}
+        {/* 受発注情報 */}
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[13px] font-bold uppercase tracking-wider text-gray-500">対応職種</h3>
-            {selections.length > 0 && (
-              <span className="text-[12px] text-knock-text-secondary">
-                {selections.length}件選択中
-              </span>
-            )}
+          <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
+            受発注情報
+          </h3>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">事業形態</label>
+              <select
+                value={companyForm}
+                onChange={(e) => setCompanyForm(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">未選択</option>
+                <option value="CORPORATION">法人</option>
+                <option value="INDIVIDUAL">個人事業主</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">対応エリア</label>
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-gray-200 bg-white p-3">
+                {areaMasters.map((area) => (
+                  <label key={area.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedAreaIds.includes(area.id)}
+                      onChange={() => {
+                        setSelectedAreaIds((prev) =>
+                          prev.includes(area.id)
+                            ? prev.filter((id) => id !== area.id)
+                            : [...prev, area.id]
+                        );
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-knock-orange accent-knock-orange"
+                    />
+                    <span className="text-[13px] text-knock-text">{area.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">稼働可能人数</label>
+              <select
+                value={workforceCapacity}
+                onChange={(e) => setWorkforceCapacity(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">未選択</option>
+                <option value="ONE">1人</option>
+                <option value="TWO_TO_TEN">2〜10人</option>
+                <option value="ELEVEN_TO_THIRTY">11〜30人</option>
+                <option value="THIRTY_ONE_TO_FIFTY">31〜50人</option>
+                <option value="FIFTY_PLUS">51人〜</option>
+              </select>
+            </div>
+
+            {/* 対応職種 (inline) */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-[13px] font-medium text-gray-700">対応職種</label>
+                {selections.length > 0 && (
+                  <span className="text-[12px] text-knock-text-secondary">
+                    {selections.length}件選択中
+                  </span>
+                )}
+              </div>
+              <OccupationSelector
+                masters={masters}
+                value={selections}
+                onChange={setSelections}
+              />
+            </div>
           </div>
-          <OccupationSelector
-            masters={masters}
-            value={selections}
-            onChange={setSelections}
-          />
           <button
             type="button"
             onClick={async () => {
-              setSavingOcc(true);
-              setOccSaved(false);
+              setSavingBiz(true);
+              setBizSaved(false);
               try {
-                await saveCompanyOccupations(selections);
-                setOccSaved(true);
-                setTimeout(() => setOccSaved(false), 3000);
+                await Promise.all([
+                  updateCompany({
+                    companyForm: (companyForm as "CORPORATION" | "INDIVIDUAL") || null,
+                    workforceCapacity:
+                      (workforceCapacity as
+                        | "ONE"
+                        | "TWO_TO_TEN"
+                        | "ELEVEN_TO_THIRTY"
+                        | "THIRTY_ONE_TO_FIFTY"
+                        | "FIFTY_PLUS") || null,
+                  }),
+                  saveCompanyAreas(selectedAreaIds),
+                  saveCompanyOccupations(selections),
+                ]);
+                setBizSaved(true);
+                setTimeout(() => setBizSaved(false), 3000);
               } catch (err) {
-                setError(err instanceof Error ? err.message : "職種の保存に失敗しました");
+                setError(err instanceof Error ? err.message : "受発注情報の保存に失敗しました");
               } finally {
-                setSavingOcc(false);
+                setSavingBiz(false);
               }
             }}
-            disabled={savingOcc}
-            className="mt-3 w-full rounded-lg border border-knock-orange px-4 py-2.5 text-[13px] font-bold text-knock-orange transition-colors active:bg-knock-orange/5 disabled:opacity-50"
+            disabled={savingBiz}
+            className="mt-4 w-full rounded-xl bg-knock-orange py-3.5 text-[15px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {savingOcc ? "保存中..." : occSaved ? "保存しました" : "職種を保存"}
+            {savingBiz ? "保存中..." : bizSaved ? "保存しました" : "受発注情報を保存"}
+          </button>
+        </div>
+
+        {/* 許可証・保険・その他 */}
+        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+          <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
+            許可証・保険・その他
+          </h3>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">インボイス登録</label>
+              <select
+                value={invoiceRegistration}
+                onChange={(e) => setInvoiceRegistration(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">未選択</option>
+                <option value="NOT_ENTERED">未入力</option>
+                <option value="NOT_REGISTERED">未登録</option>
+                <option value="REGISTERED">登録済み</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">建設業許可証</label>
+              <select
+                value={constructionPermit}
+                onChange={(e) => setConstructionPermit(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">未選択</option>
+                <option value="NONE">取得していない</option>
+                <option value="MLIT_GENERAL">国土交通大臣許可 一般</option>
+                <option value="MLIT_SPECIAL">国土交通大臣許可 特定</option>
+                <option value="GOVERNOR_GENERAL">都道府県知事許可 一般</option>
+                <option value="GOVERNOR_SPECIAL">都道府県知事許可 特定</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">社会保険</label>
+              <select
+                value={socialInsurance}
+                onChange={(e) => setSocialInsurance(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">未選択</option>
+                <option value="true">加入している</option>
+                <option value="false">加入していない</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">その他保険</label>
+              <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-3">
+                {INSURANCE_TYPES.map((type) => (
+                  <label key={type} className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedInsurances.includes(type)}
+                      onChange={() => {
+                        setSelectedInsurances((prev) =>
+                          prev.includes(type)
+                            ? prev.filter((t) => t !== type)
+                            : [...prev, type]
+                        );
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-knock-orange accent-knock-orange"
+                    />
+                    <span className="text-[13px] text-knock-text">{type}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              setSavingLicense(true);
+              setLicenseSaved(false);
+              try {
+                await Promise.all([
+                  updateCompany({
+                    invoiceRegistration:
+                      (invoiceRegistration as "NOT_ENTERED" | "NOT_REGISTERED" | "REGISTERED") || null,
+                    constructionPermit:
+                      (constructionPermit as
+                        | "NONE"
+                        | "MLIT_GENERAL"
+                        | "MLIT_SPECIAL"
+                        | "GOVERNOR_GENERAL"
+                        | "GOVERNOR_SPECIAL") || null,
+                    socialInsurance:
+                      socialInsurance === "true"
+                        ? true
+                        : socialInsurance === "false"
+                        ? false
+                        : null,
+                  }),
+                  saveCompanyInsurances(selectedInsurances),
+                ]);
+                setLicenseSaved(true);
+                setTimeout(() => setLicenseSaved(false), 3000);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "許可証・保険情報の保存に失敗しました");
+              } finally {
+                setSavingLicense(false);
+              }
+            }}
+            disabled={savingLicense}
+            className="mt-4 w-full rounded-xl bg-knock-orange py-3.5 text-[15px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            {savingLicense ? "保存中..." : licenseSaved ? "保存しました" : "許可証・保険を保存"}
           </button>
         </div>
 

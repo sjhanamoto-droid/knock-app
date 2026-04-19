@@ -65,26 +65,33 @@ model AdminUser {
 // ============ Users & Companies ============
 
 model User {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   lastName      String
   firstName     String
   lastNameKana  String?
   firstNameKana String?
-  email         String    @unique
+  email         String   @unique
   password      String
   dateOfBirth   String?
-  role          UserRole  @default(OTHER)
+  role          UserRole @default(OTHER)
   telNumber     String?
   avatar        String?
   companyId     String
-  company       Company   @relation(fields: [companyId], references: [id])
-  policyStatus  Boolean   @default(false)
-  isActive      Boolean   @default(false)
+  company       Company  @relation(fields: [companyId], references: [id])
+  policyStatus  Boolean  @default(false)
+  isActive      Boolean  @default(false)
   kycType       Int?
   resetToken    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime?
+
+  // プロフィール強化
+  gender               Gender?
+  workEligibility      WorkEligibility?
+  tradeName            String? // 屋号
+  workersCompInsurance Boolean? // 労災加入
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   createdFactoryFloors FactoryFloor[]
   factoryFloorMembers  FactoryFloorMember[]
@@ -96,6 +103,9 @@ model User {
 
   // V2: 段階的認証
   verifications UserVerification[]
+
+  // プロフィール強化: 保有資格
+  qualifications UserQualification[]
 
   @@map("users")
 }
@@ -148,6 +158,11 @@ model Company {
   socialInsurance Boolean?
   otherInsurance  Boolean?
 
+  // プロフィール強化
+  workforceCapacity   WorkforceCapacity? // 稼働可能人数
+  constructionPermit  ConstructionPermit? // 建設業許可証
+  invoiceRegistration InvoiceRegistrationStatus? // インボイス登録状態
+
   // 受入可否
   isAcceptingWork Boolean @default(true)
 
@@ -193,6 +208,9 @@ model Company {
   givenEvaluations    Evaluation[]       @relation("EvaluatorCompany")
   receivedEvaluations Evaluation[]       @relation("EvaluateeCompany")
   trustScore          TrustScore?
+
+  // プロフィール強化: その他保険詳細
+  insurances CompanyInsurance[]
 
   @@map("companies")
 }
@@ -285,7 +303,24 @@ model DeviceToken {
   @@map("device_tokens")
 }
 
+// ============ プロフィール強化: その他保険 ============
+
+model CompanyInsurance {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  type      String // 保険種別名
+
+  @@unique([companyId, type])
+  @@map("company_insurances")
+}
+
 // ============ Generators & Datasource ============
+
+generator defaultClient {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
 
 generator client {
   provider        = "prisma-client-js"
@@ -453,6 +488,45 @@ enum CompensationType {
   DAILY // 日額
   LUMP_SUM // 一式
   NEGOTIABLE // 応相談
+}
+
+// ============ プロフィール強化 Enums ============
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNSPECIFIED
+}
+
+enum WorkEligibility {
+  JAPANESE_NATIONAL // 日本国籍
+  PERMANENT_RESIDENT // 外国籍 永住者・定住者等
+  SPECIFIED_SKILLED // 外国籍 特定技能（建設分野）
+  WORK_VISA // 外国籍 技人国ビザ・高度専門職
+  OTHER // 上記に該当しない
+}
+
+enum ConstructionPermit {
+  NONE // 取得していない
+  MLIT_GENERAL // 国土交通大臣許可 一般
+  MLIT_SPECIAL // 国土交通大臣許可 特定
+  GOVERNOR_GENERAL // 都道府県知事許可 一般
+  GOVERNOR_SPECIAL // 都道府県知事許可 特定
+}
+
+enum InvoiceRegistrationStatus {
+  NOT_ENTERED // 未入力
+  NOT_REGISTERED // 未登録
+  REGISTERED // 登録済み
+}
+
+enum WorkforceCapacity {
+  ONE // 1人
+  TWO_TO_TEN // 2〜10人
+  ELEVEN_TO_THIRTY // 11〜30人
+  THIRTY_ONE_TO_FIFTY // 31〜50人
+  FIFTY_PLUS // 51人〜
 }
 
 // ============ Billing ============
@@ -995,6 +1069,29 @@ model TaxMaster {
   updatedAt  DateTime @updatedAt
 
   @@map("tax_masters")
+}
+
+// ============ プロフィール強化: 保有資格 ============
+
+model QualificationMaster {
+  id        String              @id @default(cuid())
+  name      String              @unique
+  category  String?
+  sortOrder Int                 @default(0)
+  users     UserQualification[]
+
+  @@map("qualification_masters")
+}
+
+model UserQualification {
+  id              String              @id @default(cuid())
+  userId          String
+  qualificationId String
+  user            User                @relation(fields: [userId], references: [id])
+  qualification   QualificationMaster @relation(fields: [qualificationId], references: [id])
+
+  @@unique([userId, qualificationId])
+  @@map("user_qualifications")
 }
 
 // ============ Factory Floors ============

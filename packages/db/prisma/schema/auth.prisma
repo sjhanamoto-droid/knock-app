@@ -16,8 +16,15 @@ model User {
   company       Company   @relation(fields: [companyId], references: [id])
   policyStatus  Boolean   @default(false)
   isActive      Boolean   @default(false)
-  kycType       Int?
-  resetToken    String?
+  kycType              Int?
+  resetToken           String?
+
+  // プロフィール強化
+  gender               Gender?
+  workEligibility      WorkEligibility?
+  tradeName            String?           // 屋号
+  workersCompInsurance Boolean?          // 労災加入
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -32,6 +39,9 @@ model User {
 
   // V2: 段階的認証
   verifications        UserVerification[]
+
+  // プロフィール強化: 保有資格
+  qualifications       UserQualification[]
 
   @@map("users")
 }
@@ -84,6 +94,11 @@ model Company {
   socialInsurance       Boolean?
   otherInsurance        Boolean?
 
+  // プロフィール強化
+  workforceCapacity     WorkforceCapacity?           // 稼働可能人数
+  constructionPermit    ConstructionPermit?          // 建設業許可証
+  invoiceRegistration   InvoiceRegistrationStatus?   // インボイス登録状態
+
   // 受入可否
   isAcceptingWork       Boolean       @default(true)
 
@@ -129,6 +144,9 @@ model Company {
   givenEvaluations      Evaluation[]    @relation("EvaluatorCompany")
   receivedEvaluations   Evaluation[]    @relation("EvaluateeCompany")
   trustScore            TrustScore?
+
+  // プロフィール強化: その他保険詳細
+  insurances            CompanyInsurance[]
 
   @@map("companies")
 }
@@ -219,4 +237,16 @@ model DeviceToken {
   updatedAt DateTime @updatedAt
 
   @@map("device_tokens")
+}
+
+// ============ プロフィール強化: その他保険 ============
+
+model CompanyInsurance {
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+  type      String  // 保険種別名
+
+  @@unique([companyId, type])
+  @@map("company_insurances")
 }

@@ -181,6 +181,10 @@ exports.Prisma.UserScalarFieldEnum = {
   isActive: 'isActive',
   kycType: 'kycType',
   resetToken: 'resetToken',
+  gender: 'gender',
+  workEligibility: 'workEligibility',
+  tradeName: 'tradeName',
+  workersCompInsurance: 'workersCompInsurance',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   deletedAt: 'deletedAt'
@@ -218,6 +222,9 @@ exports.Prisma.CompanyScalarFieldEnum = {
   fireInsurance: 'fireInsurance',
   socialInsurance: 'socialInsurance',
   otherInsurance: 'otherInsurance',
+  workforceCapacity: 'workforceCapacity',
+  constructionPermit: 'constructionPermit',
+  invoiceRegistration: 'invoiceRegistration',
   isAcceptingWork: 'isAcceptingWork',
   selfIntro: 'selfIntro',
   yearsOfExperience: 'yearsOfExperience',
@@ -293,6 +300,12 @@ exports.Prisma.DeviceTokenScalarFieldEnum = {
   userAgent: 'userAgent',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CompanyInsuranceScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  type: 'type'
 };
 
 exports.Prisma.BillingRequestScalarFieldEnum = {
@@ -680,6 +693,19 @@ exports.Prisma.TaxMasterScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.QualificationMasterScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  category: 'category',
+  sortOrder: 'sortOrder'
+};
+
+exports.Prisma.UserQualificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  qualificationId: 'qualificationId'
+};
+
 exports.Prisma.FactoryFloorScalarFieldEnum = {
   id: 'id',
   createdUserId: 'createdUserId',
@@ -831,6 +857,21 @@ exports.UserRole = exports.$Enums.UserRole = {
   OTHER: 'OTHER'
 };
 
+exports.Gender = exports.$Enums.Gender = {
+  MALE: 'MALE',
+  FEMALE: 'FEMALE',
+  OTHER: 'OTHER',
+  UNSPECIFIED: 'UNSPECIFIED'
+};
+
+exports.WorkEligibility = exports.$Enums.WorkEligibility = {
+  JAPANESE_NATIONAL: 'JAPANESE_NATIONAL',
+  PERMANENT_RESIDENT: 'PERMANENT_RESIDENT',
+  SPECIFIED_SKILLED: 'SPECIFIED_SKILLED',
+  WORK_VISA: 'WORK_VISA',
+  OTHER: 'OTHER'
+};
+
 exports.CompanyForm = exports.$Enums.CompanyForm = {
   CORPORATION: 'CORPORATION',
   INDIVIDUAL: 'INDIVIDUAL'
@@ -840,6 +881,28 @@ exports.CompanyType = exports.$Enums.CompanyType = {
   ORDERER: 'ORDERER',
   CONTRACTOR: 'CONTRACTOR',
   BOTH: 'BOTH'
+};
+
+exports.WorkforceCapacity = exports.$Enums.WorkforceCapacity = {
+  ONE: 'ONE',
+  TWO_TO_TEN: 'TWO_TO_TEN',
+  ELEVEN_TO_THIRTY: 'ELEVEN_TO_THIRTY',
+  THIRTY_ONE_TO_FIFTY: 'THIRTY_ONE_TO_FIFTY',
+  FIFTY_PLUS: 'FIFTY_PLUS'
+};
+
+exports.ConstructionPermit = exports.$Enums.ConstructionPermit = {
+  NONE: 'NONE',
+  MLIT_GENERAL: 'MLIT_GENERAL',
+  MLIT_SPECIAL: 'MLIT_SPECIAL',
+  GOVERNOR_GENERAL: 'GOVERNOR_GENERAL',
+  GOVERNOR_SPECIAL: 'GOVERNOR_SPECIAL'
+};
+
+exports.InvoiceRegistrationStatus = exports.$Enums.InvoiceRegistrationStatus = {
+  NOT_ENTERED: 'NOT_ENTERED',
+  NOT_REGISTERED: 'NOT_REGISTERED',
+  REGISTERED: 'REGISTERED'
 };
 
 exports.PlanType = exports.$Enums.PlanType = {
@@ -975,6 +1038,7 @@ exports.Prisma.ModelName = {
   PaymentInfo: 'PaymentInfo',
   Notification: 'Notification',
   DeviceToken: 'DeviceToken',
+  CompanyInsurance: 'CompanyInsurance',
   BillingRequest: 'BillingRequest',
   BillingRequestDetail: 'BillingRequestDetail',
   AdditionalOrder: 'AdditionalOrder',
@@ -1005,6 +1069,8 @@ exports.Prisma.ModelName = {
   CompanyOccupation: 'CompanyOccupation',
   Unit: 'Unit',
   TaxMaster: 'TaxMaster',
+  QualificationMaster: 'QualificationMaster',
+  UserQualification: 'UserQualification',
   FactoryFloor: 'FactoryFloor',
   FactoryFloorMember: 'FactoryFloorMember',
   FactoryFloorOrder: 'FactoryFloorOrder',
