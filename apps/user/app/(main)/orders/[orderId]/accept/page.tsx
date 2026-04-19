@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail, acceptOrder, rejectOrder } from "@/lib/actions/orders";
+import { checkBankInfo, updateCompany } from "@/lib/actions/profile";
 import { getNegotiationRoomId } from "@/lib/actions/chat";
 import { formatCurrency } from "@knock/utils";
 import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
@@ -38,12 +39,66 @@ export default function OrderAcceptPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [redirectPath, setRedirectPath] = useState("/");
 
+  // 銀行口座情報
+  const [showBankForm, setShowBankForm] = useState(false);
+  const [bankSaving, setBankSaving] = useState(false);
+  const [bankError, setBankError] = useState("");
+  const [bankData, setBankData] = useState({
+    bankName: "",
+    bankBranchName: "",
+    bankAccountType: "ORDINARY" as "ORDINARY" | "CURRENT",
+    bankAccountNumber: "",
+    bankAccountName: "",
+  });
+
   useEffect(() => {
     getOrderDetail(orderId)
       .then(setOrder)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [orderId]);
+
+  async function handleAcceptClick() {
+    setSubmitting(true);
+    try {
+      const info = await checkBankInfo();
+      if (!info.complete) {
+        setBankData({
+          bankName: info.bankName ?? "",
+          bankBranchName: info.bankBranchName ?? "",
+          bankAccountType: (info.bankAccountType as "ORDINARY" | "CURRENT") ?? "ORDINARY",
+          bankAccountNumber: info.bankAccountNumber ?? "",
+          bankAccountName: info.bankAccountName ?? "",
+        });
+        setShowBankForm(true);
+        setSubmitting(false);
+        return;
+      }
+      setShowAcceptDialog(true);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleBankSaveAndAccept() {
+    setBankError("");
+    if (!bankData.bankName || !bankData.bankBranchName || !bankData.bankAccountNumber || !bankData.bankAccountName) {
+      setBankError("すべての項目を入力してください");
+      return;
+    }
+    setBankSaving(true);
+    try {
+      await updateCompany(bankData);
+      setShowBankForm(false);
+      setShowAcceptDialog(true);
+    } catch (e) {
+      setBankError(e instanceof Error ? e.message : "保存に失敗しました");
+    } finally {
+      setBankSaving(false);
+    }
+  }
 
   async function handleAccept() {
     setSubmitting(true);
@@ -196,12 +251,12 @@ export default function OrderAcceptPage() {
         </div>
 
         <button
-          onClick={() => setShowAcceptDialog(true)}
+          onClick={handleAcceptClick}
           disabled={submitting}
           className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
           style={{ backgroundColor: accentColor }}
         >
-          {submitting ? "処理中..." : "受注する"}
+          {submitting ? "確認中..." : "受注する"}
         </button>
 
         <button
@@ -227,6 +282,102 @@ export default function OrderAcceptPage() {
           辞退する
         </button>
       </div>
+
+      {/* 銀行口座情報入力フォーム */}
+      {showBankForm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+          <div className="w-full max-w-[430px] rounded-t-2xl bg-white p-5 pb-8 animate-in slide-in-from-bottom">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[17px] font-bold text-knock-text">振込先口座の登録</h2>
+              <button onClick={() => setShowBankForm(false)} className="p-1">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M5 5L15 15M15 5L5 15" stroke="#6B6B6B" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            <p className="mb-4 text-[13px] text-knock-text-secondary">
+              受注するには振込先口座の登録が必要です。請求書や支払いに使用されます。
+            </p>
+
+            {bankError && (
+              <div className="mb-3 rounded-xl bg-red-50 px-4 py-2.5 text-[13px] text-red-600">{bankError}</div>
+            )}
+
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700">銀行名</label>
+                <input
+                  value={bankData.bankName}
+                  onChange={(e) => setBankData((p) => ({ ...p, bankName: e.target.value }))}
+                  placeholder="○○銀行"
+                  className="w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700">支店名</label>
+                <input
+                  value={bankData.bankBranchName}
+                  onChange={(e) => setBankData((p) => ({ ...p, bankBranchName: e.target.value }))}
+                  placeholder="○○支店"
+                  className="w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700">口座種別</label>
+                <div className="flex gap-3">
+                  {(["ORDINARY", "CURRENT"] as const).map((v) => (
+                    <label
+                      key={v}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 cursor-pointer text-[14px] font-semibold transition-all"
+                      style={{
+                        backgroundColor: bankData.bankAccountType === v ? "rgba(245,166,35,0.1)" : "#F0F0F0",
+                        border: bankData.bankAccountType === v ? "2px solid #F5A623" : "2px solid transparent",
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="bankAccountType"
+                        value={v}
+                        checked={bankData.bankAccountType === v}
+                        onChange={() => setBankData((p) => ({ ...p, bankAccountType: v }))}
+                        className="sr-only"
+                      />
+                      {v === "ORDINARY" ? "普通" : "当座"}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700">口座番号</label>
+                <input
+                  value={bankData.bankAccountNumber}
+                  onChange={(e) => setBankData((p) => ({ ...p, bankAccountNumber: e.target.value }))}
+                  placeholder="1234567"
+                  className="w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700">口座名義</label>
+                <input
+                  value={bankData.bankAccountName}
+                  onChange={(e) => setBankData((p) => ({ ...p, bankAccountName: e.target.value }))}
+                  placeholder="カ）ノック"
+                  className="w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] outline-none"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleBankSaveAndAccept}
+              disabled={bankSaving}
+              className="mt-5 w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
+            >
+              {bankSaving ? "保存中..." : "保存して受注する"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 受注確認ダイアログ */}
       <ConfirmDialog

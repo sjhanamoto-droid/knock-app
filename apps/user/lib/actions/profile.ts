@@ -43,6 +43,11 @@ export async function getProfile() {
           invoiceNumber: true,
           logo: true,
           stampImage: true,
+          bankName: true,
+          bankBranchName: true,
+          bankAccountType: true,
+          bankAccountNumber: true,
+          bankAccountName: true,
         },
       },
     },
@@ -134,6 +139,45 @@ export async function changePassword(data: {
   return { success: true };
 }
 
+export async function checkBankInfo(): Promise<{
+  complete: boolean;
+  bankName: string | null;
+  bankBranchName: string | null;
+  bankAccountType: string | null;
+  bankAccountNumber: string | null;
+  bankAccountName: string | null;
+}> {
+  const user = await requireSession();
+  const company = await prisma.company.findUnique({
+    where: { id: user.companyId },
+    select: {
+      bankName: true,
+      bankBranchName: true,
+      bankAccountType: true,
+      bankAccountNumber: true,
+      bankAccountName: true,
+    },
+  });
+  if (!company) throw new Error("会社情報が見つかりません");
+
+  const complete = !!(
+    company.bankName &&
+    company.bankBranchName &&
+    company.bankAccountType &&
+    company.bankAccountNumber &&
+    company.bankAccountName
+  );
+
+  return {
+    complete,
+    bankName: company.bankName,
+    bankBranchName: company.bankBranchName,
+    bankAccountType: company.bankAccountType,
+    bankAccountNumber: company.bankAccountNumber,
+    bankAccountName: company.bankAccountName,
+  };
+}
+
 export async function updateAvatar(avatarDataUrl: string | null) {
   const user = await requireSession();
 
@@ -158,6 +202,11 @@ export async function updateCompany(data: {
   hpUrl?: string;
   invoiceNumber?: string;
   stampImage?: string | null;
+  bankName?: string;
+  bankBranchName?: string;
+  bankAccountType?: "ORDINARY" | "CURRENT";
+  bankAccountNumber?: string;
+  bankAccountName?: string;
 }) {
   const user = await requireSession();
 
