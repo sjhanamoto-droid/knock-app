@@ -18,7 +18,6 @@ export default function ChatRoomPage() {
   const [sending, setSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
-  const [showActionSheet, setShowActionSheet] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string>("");
@@ -336,7 +335,7 @@ export default function ChatRoomPage() {
               {data.room.members.length}人のメンバー
             </p>
           </div>
-          {isSiteInfo && (
+          {(isSiteInfo || isNegotiation) && (
             <div className="relative">
               <button
                 onClick={() => setShowMenu(!showMenu)}
@@ -352,18 +351,48 @@ export default function ChatRoomPage() {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
                   <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                    <button
-                      onClick={() => { setShowDocuments(true); setShowMenu(false); }}
-                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <path d="M4 1H10L14 5V13C14 14.1 13.1 15 12 15H4C2.9 15 2 14.1 2 13V3C2 1.9 2.9 1 4 1Z" stroke="#666" strokeWidth="1.2" fill="none"/>
-                        <path d="M10 1V5H14" stroke="#666" strokeWidth="1.2" fill="none"/>
-                      </svg>
-                      帳票確認
-                    </button>
-                    {/* 受注者: 完了報告を送信 */}
-                    {firstOrder && !isOrderer && firstOrder.status === "CONFIRMED" && (
+                    {/* 交渉ルーム: 発注依頼（発注者のみ） */}
+                    {isNegotiation && isOrderer && (
+                      <button
+                        onClick={() => { router.push("/sites"); setShowMenu(false); }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 1C4.69 1 2 3.69 2 7C2 11.5 8 15 8 15C8 15 14 11.5 14 7C14 3.69 11.31 1 8 1Z" stroke="#666" strokeWidth="1.2" fill="none"/>
+                          <path d="M6 7H10M8 5V9" stroke="#666" strokeWidth="1.2" strokeLinecap="round"/>
+                        </svg>
+                        発注依頼
+                      </button>
+                    )}
+                    {/* 交渉ルーム: 発注一覧/受注一覧 */}
+                    {isNegotiation && (
+                      <button
+                        onClick={() => { router.push(`/chat/${params.roomId}/orders?companyId=${partnerCompanyId}`); setShowMenu(false); }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M5 2H3.5C2.67 2 2 2.67 2 3.5V13.5C2 14.33 2.67 15 3.5 15H12.5C13.33 15 14 14.33 14 13.5V3.5C14 2.67 13.33 2 12.5 2H11" stroke="#666" strokeWidth="1.2" fill="none"/>
+                          <path d="M6 2C6 1.17 6.67 0.5 7.5 0.5H8.5C9.33 0.5 10 1.17 10 2C10 2.83 9.33 3.5 8.5 3.5H7.5C6.67 3.5 6 2.83 6 2Z" stroke="#666" strokeWidth="1" fill="none"/>
+                          <path d="M5 8L6.5 9.5L11 6" stroke="#666" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {isOrderer ? "発注一覧" : "受注一覧"}
+                      </button>
+                    )}
+                    {/* 現場ルーム: 帳票確認 */}
+                    {isSiteInfo && (
+                      <button
+                        onClick={() => { setShowDocuments(true); setShowMenu(false); }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M4 1H10L14 5V13C14 14.1 13.1 15 12 15H4C2.9 15 2 14.1 2 13V3C2 1.9 2.9 1 4 1Z" stroke="#666" strokeWidth="1.2" fill="none"/>
+                          <path d="M10 1V5H14" stroke="#666" strokeWidth="1.2" fill="none"/>
+                        </svg>
+                        帳票確認
+                      </button>
+                    )}
+                    {/* 現場ルーム: 受注者 完了報告 */}
+                    {isSiteInfo && firstOrder && !isOrderer && firstOrder.status === "CONFIRMED" && (
                       <button
                         onClick={() => { router.push(`/orders/${firstOrder.id}/completion-report`); setShowMenu(false); }}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
@@ -375,8 +404,8 @@ export default function ChatRoomPage() {
                         完了報告
                       </button>
                     )}
-                    {/* 発注者: 完了報告を確認 */}
-                    {firstOrder && isOrderer && data.room.factoryFloor?.status === "INSPECTION" && (
+                    {/* 現場ルーム: 発注者 完了報告を確認 */}
+                    {isSiteInfo && firstOrder && isOrderer && data.room.factoryFloor?.status === "INSPECTION" && (
                       <button
                         onClick={() => { router.push(`/orders/${firstOrder.id}/completion-review`); setShowMenu(false); }}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
@@ -388,8 +417,8 @@ export default function ChatRoomPage() {
                         完了報告を確認
                       </button>
                     )}
-                    {/* 発注者: 追加工事（施工中のみ） */}
-                    {isOrderer && data.room.factoryFloor?.status === "IN_PROGRESS" && (
+                    {/* 現場ルーム: 発注者 追加工事（施工中のみ） */}
+                    {isSiteInfo && isOrderer && data.room.factoryFloor?.status === "IN_PROGRESS" && (
                       <button
                         onClick={() => { router.push(`/chat/${params.roomId}/additional-order`); setShowMenu(false); }}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
@@ -400,6 +429,7 @@ export default function ChatRoomPage() {
                         追加工事
                       </button>
                     )}
+                    {/* 共通: 写真・ファイル共有 */}
                     <button
                       onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }}
                       disabled={uploading}
@@ -478,84 +508,6 @@ export default function ChatRoomPage() {
           </button>
         </div>
       </form>
-
-      {/* Negotiation Action Sheet — V1: bottom panel with ∧ toggle */}
-      {isNegotiation && (
-        <div className="shrink-0 border-t border-gray-200 bg-white">
-          {/* Toggle button */}
-          <button
-            onClick={() => setShowActionSheet(!showActionSheet)}
-            className="flex w-full items-center justify-center py-1.5 active:bg-gray-50"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              className={`text-gray-400 transition-transform ${showActionSheet ? "rotate-180" : ""}`}
-            >
-              <path d="M5 13L10 8L15 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-
-          {showActionSheet && (
-            <div className="border-t border-gray-200 pb-[env(safe-area-inset-bottom,8px)]">
-              {/* Header — V1: ← 会社名さま */}
-              <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3">
-                <button
-                  onClick={() => setShowActionSheet(false)}
-                  className="flex h-8 w-8 items-center justify-center"
-                >
-                  <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                    <path d="M14 4L7 11L14 18" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-                <span className="text-[16px] font-bold text-knock-text">
-                  {partnerCompanyName}さま
-                </span>
-              </div>
-
-              {/* Action buttons — V1: bare icons without bg circle */}
-              <div className={`flex items-center ${isOrderer ? "justify-center gap-16" : "justify-start pl-8"} px-4 py-5`}>
-                {isOrderer && (
-                  <button
-                    onClick={() => {
-                      setShowActionSheet(false);
-                      router.push(`/chat/${params.roomId}/select-site?companyId=${partnerCompanyId}`);
-                    }}
-                    className="flex flex-col items-center gap-2 active:opacity-70"
-                  >
-                    {/* V1 icon: speech bubble with + */}
-                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                      <path d="M18 6C10.82 6 5 10.48 5 16C5 19.12 7.02 21.9 10 23.68V30L16.18 26.56C16.78 26.64 17.38 26.68 18 26.68C25.18 26.68 31 22.2 31 16.68C31 11.16 25.18 6 18 6Z" stroke="#555" strokeWidth="1.5" fill="none" />
-                      <path d="M14 16H22M18 12V20" stroke="#555" strokeWidth="1.8" strokeLinecap="round" />
-                    </svg>
-                    <span className="text-[12px] font-bold text-knock-text">発注依頼</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    setShowActionSheet(false);
-                    router.push(`/chat/${params.roomId}/orders?companyId=${partnerCompanyId}`);
-                  }}
-                  className="flex flex-col items-center gap-2 active:opacity-70"
-                >
-                  {/* V1 icon: clipboard with checkmarks */}
-                  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-                    <path d="M11 8H9C7.9 8 7 8.9 7 10V28C7 29.1 7.9 30 9 30H27C28.1 30 29 29.1 29 28V10C29 8.9 28.1 8 27 8H25" stroke="#555" strokeWidth="1.5" fill="none" />
-                    <path d="M14 8C14 6.34 15.34 5 17 5H19C20.66 5 22 6.34 22 8C22 9.66 20.66 11 19 11H17C15.34 11 14 9.66 14 8Z" stroke="#555" strokeWidth="1.5" fill="none" />
-                    <path d="M12 17L15 20L24 14" stroke="#555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M12 24H24" stroke="#555" strokeWidth="1.2" strokeLinecap="round" />
-                  </svg>
-                  <span className="text-[12px] font-bold text-knock-text">
-                    {isOrderer ? "発注一覧" : "受注一覧"}
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Document Panel (Bottom Sheet) */}
       {showDocuments && (
