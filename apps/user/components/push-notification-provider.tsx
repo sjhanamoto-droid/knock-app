@@ -18,6 +18,32 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 export function PushNotificationProvider() {
   const [showBanner, setShowBanner] = useState(false);
 
+  const registerSubscription = useCallback(async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      // Check for existing subscription first to avoid duplicates
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        // Pass Uint8Array directly (not .buffer) for Safari/iOS compatibility
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+        });
+      }
+
+      await fetch("/api/push/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subscription }),
+      });
+    } catch (err) {
+      console.error("[Push] Registration failed:", err);
+    }
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("Notification" in window)) return;
@@ -30,27 +56,7 @@ export function PushNotificationProvider() {
     } else if (Notification.permission === "default") {
       setShowBanner(true);
     }
-  }, []);
-
-  const registerSubscription = useCallback(async () => {
-    try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
-
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY).buffer as ArrayBuffer,
-      });
-
-      await fetch("/api/push/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription }),
-      });
-    } catch {
-      // Silently fail
-    }
-  }, []);
+  }, [registerSubscription]);
 
   const handleEnable = useCallback(async () => {
     setShowBanner(false);
@@ -59,8 +65,8 @@ export function PushNotificationProvider() {
       if (permission === "granted") {
         await registerSubscription();
       }
-    } catch {
-      // Silently fail
+    } catch (err) {
+      console.error("[Push] Permission request failed:", err);
     }
   }, [registerSubscription]);
 

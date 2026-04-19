@@ -1,9 +1,24 @@
 /* Service Worker for Web Push Notifications */
 
+// iOS Safari requires explicit install/activate handlers
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 
-  const data = event.data.json();
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    data = { title: "Knock", body: event.data.text() };
+  }
+
   const title = data.title ?? "Knock";
   const options = {
     body: data.body ?? "",
