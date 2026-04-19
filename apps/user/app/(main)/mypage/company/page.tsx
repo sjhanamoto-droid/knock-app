@@ -10,6 +10,7 @@ import {
   saveCompanyOccupations,
 } from "@/lib/actions/occupations";
 import OccupationSelector from "@/components/occupation-selector";
+import { getAddressFromPostalCode } from "@knock/utils";
 
 type Profile = Awaited<ReturnType<typeof getProfile>>;
 type MajorItem = Awaited<ReturnType<typeof getOccupationMasters>>[number];
@@ -69,6 +70,10 @@ export default function CompanyEditPage() {
     hpUrl: "",
     invoiceNumber: "",
   });
+
+  // Address lookup state
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState("");
 
   // Stamp image state
   const [stampPreview, setStampPreview] = useState<string | null>(null);
@@ -157,6 +162,31 @@ export default function CompanyEditPage() {
 
   function set(key: string, value: string) {
     setFormData((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleFetchAddress() {
+    setAddressError("");
+    if (!formData.postalCode) {
+      setAddressError("郵便番号を入力してください");
+      return;
+    }
+    setAddressLoading(true);
+    try {
+      const result = await getAddressFromPostalCode(formData.postalCode);
+      if (!result) {
+        setAddressError("住所が見つかりませんでした");
+        return;
+      }
+      setFormData((prev) => ({
+        ...prev,
+        prefecture: result.prefecture,
+        city: result.city + result.town,
+      }));
+    } catch {
+      setAddressError("住所の取得に失敗しました");
+    } finally {
+      setAddressLoading(false);
+    }
   }
 
   if (loading) {
@@ -250,7 +280,18 @@ export default function CompanyEditPage() {
             <div className="flex flex-col gap-4">
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-gray-700">郵便番号</label>
-                <input value={formData.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputCls} placeholder="123-4567" />
+                <div className="flex gap-2">
+                  <input value={formData.postalCode} onChange={(e) => set("postalCode", e.target.value)} className={inputCls + " flex-1"} placeholder="123-4567" />
+                  <button
+                    type="button"
+                    onClick={handleFetchAddress}
+                    disabled={addressLoading}
+                    className="shrink-0 rounded-xl bg-knock-orange px-4 py-3 text-[13px] font-bold text-white transition-opacity disabled:opacity-50"
+                  >
+                    {addressLoading ? "取得中..." : "住所取得"}
+                  </button>
+                </div>
+                {addressError && <p className="mt-1.5 text-[12px] text-red-600">{addressError}</p>}
               </div>
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-gray-700">都道府県</label>

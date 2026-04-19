@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { registerStep1, registerStep2, registerStep3 } from "@/lib/actions/registration";
+import { getAddressFromPostalCode } from "@knock/utils";
 
 /* ──────────── Schemas ──────────── */
 
@@ -122,6 +123,8 @@ export default function RegisterPage() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
 
   /* ──── Step 1 Form ──── */
   const step1Form = useForm<Step1Data>({ resolver: zodResolver(step1Schema) });
@@ -136,6 +139,29 @@ export default function RegisterPage() {
     setCompanyId(result.companyId!);
     setCredentials({ email: data.email, password: data.password });
     setStep(2);
+  }
+
+  async function handleFetchAddress() {
+    setAddressError(null);
+    const postalCode = step2Form.getValues("postalCode");
+    if (!postalCode) {
+      setAddressError("郵便番号を入力してください");
+      return;
+    }
+    setAddressLoading(true);
+    try {
+      const result = await getAddressFromPostalCode(postalCode);
+      if (!result) {
+        setAddressError("住所が見つかりませんでした");
+        return;
+      }
+      step2Form.setValue("prefecture", result.prefecture, { shouldValidate: true });
+      step2Form.setValue("city", result.city + result.town, { shouldValidate: true });
+    } catch {
+      setAddressError("住所の取得に失敗しました");
+    } finally {
+      setAddressLoading(false);
+    }
   }
 
   /* ──── Step 2 Form ──── */
@@ -407,20 +433,31 @@ export default function RegisterPage() {
               {step2Form.formState.errors.nameKana && <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>{step2Form.formState.errors.nameKana.message}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[13px] font-semibold mb-1.5 block" style={{ color: "#1A2340" }}>郵便番号</label>
-                <input placeholder="000-0000" {...step2Form.register("postalCode")} className={inputClass} style={inputStyle} />
-                {step2Form.formState.errors.postalCode && <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>{step2Form.formState.errors.postalCode.message}</p>}
+            <div>
+              <label className="text-[13px] font-semibold mb-1.5 block" style={{ color: "#1A2340" }}>郵便番号</label>
+              <div className="flex gap-2">
+                <input placeholder="000-0000" {...step2Form.register("postalCode")} className={inputClass + " flex-1"} style={inputStyle} />
+                <button
+                  type="button"
+                  onClick={handleFetchAddress}
+                  disabled={addressLoading}
+                  className="shrink-0 rounded-xl px-4 py-3 text-[13px] font-bold text-white transition-opacity"
+                  style={{ backgroundColor: "#F5A623", opacity: addressLoading ? 0.7 : 1 }}
+                >
+                  {addressLoading ? "取得中..." : "住所取得"}
+                </button>
               </div>
-              <div>
-                <label className="text-[13px] font-semibold mb-1.5 block" style={{ color: "#1A2340" }}>都道府県</label>
-                <select {...step2Form.register("prefecture")} className={inputClass} style={inputStyle}>
-                  <option value="">選択</option>
-                  {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-                {step2Form.formState.errors.prefecture && <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>{step2Form.formState.errors.prefecture.message}</p>}
-              </div>
+              {step2Form.formState.errors.postalCode && <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>{step2Form.formState.errors.postalCode.message}</p>}
+              {addressError && <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>{addressError}</p>}
+            </div>
+
+            <div>
+              <label className="text-[13px] font-semibold mb-1.5 block" style={{ color: "#1A2340" }}>都道府県</label>
+              <select {...step2Form.register("prefecture")} className={inputClass} style={inputStyle}>
+                <option value="">選択</option>
+                {PREFECTURES.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+              {step2Form.formState.errors.prefecture && <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>{step2Form.formState.errors.prefecture.message}</p>}
             </div>
 
             <div>
