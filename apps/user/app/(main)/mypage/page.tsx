@@ -370,7 +370,7 @@ export default function MyPage() {
                 title="会社情報"
                 editHref={
                   profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                    ? "/mypage/company"
+                    ? "/mypage/company?section=info"
                     : undefined
                 }
               >
@@ -396,6 +396,19 @@ export default function MyPage() {
                       : null
                   }
                 />
+                {/* 印鑑画像プレビュー */}
+                <div className="flex flex-col gap-0.5 py-3.5 border-b border-gray-100 last:border-b-0">
+                  <span className="text-[12px] font-bold text-knock-text">印鑑画像</span>
+                  {profile.company.stampImage ? (
+                    <img
+                      src={profile.company.stampImage}
+                      alt="印鑑"
+                      className="mt-1 h-16 w-16 rounded border border-gray-200 object-contain bg-white p-1"
+                    />
+                  ) : (
+                    <span className="text-[14px] text-gray-400">─</span>
+                  )}
+                </div>
               </SectionCard>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
@@ -408,7 +421,7 @@ export default function MyPage() {
               title="受発注情報"
               editHref={
                 profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                  ? "/mypage/company"
+                  ? "/mypage/company?section=order"
                   : undefined
               }
             >
@@ -447,7 +460,7 @@ export default function MyPage() {
               title="許可証・保険・その他"
               editHref={
                 profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                  ? "/mypage/company"
+                  ? "/mypage/company?section=license"
                   : undefined
               }
             >
@@ -493,7 +506,7 @@ export default function MyPage() {
               title="振込先口座"
               editHref={
                 profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                  ? "/mypage/company"
+                  ? "/mypage/company?section=bank"
                   : undefined
               }
             >

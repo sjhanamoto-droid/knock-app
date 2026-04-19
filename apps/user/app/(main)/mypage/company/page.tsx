@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   getProfile,
   updateCompany,
@@ -66,6 +66,12 @@ function CameraIcon({ size = 16 }: { size?: number }) {
 
 export default function CompanyEditPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const section = searchParams.get("section"); // info | order | license | bank | null(=all)
+  const showInfo = !section || section === "info";
+  const showOrder = !section || section === "order";
+  const showLicense = !section || section === "license";
+  const showBank = !section || section === "bank";
   const { accentColor } = useMode();
 
   const [profile, setProfile] = useState<Profile>(null);
@@ -280,7 +286,9 @@ export default function CompanyEditPage() {
             </svg>
           </button>
           <div className="flex flex-col items-center gap-0.5">
-            <h1 className="text-[17px] font-bold tracking-wide text-knock-text">会社情報編集</h1>
+            <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
+              {section === "info" ? "会社情報編集" : section === "order" ? "受発注情報編集" : section === "license" ? "許可証・保険編集" : section === "bank" ? "振込先口座編集" : "会社情報編集"}
+            </h1>
             <WavyUnderline color={accentColor} />
           </div>
           <div className="w-10" />
@@ -299,8 +307,10 @@ export default function CompanyEditPage() {
           </div>
         )}
 
-        {/* 基本情報 */}
+        {/* 基本情報 + 住所 + 振込先口座 (共通form) */}
+        {(showInfo || showBank) && (
         <form onSubmit={handleSubmit}>
+          {showInfo && (
           <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
             <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
               基本情報
@@ -332,9 +342,11 @@ export default function CompanyEditPage() {
               </div>
             </div>
           </div>
+          )}
 
           {/* 住所 */}
-          <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+          {showInfo && (
+          <div className={`${showInfo && !showBank ? "" : "mt-4"} rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]`}>
             <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
               住所
             </h3>
@@ -372,9 +384,11 @@ export default function CompanyEditPage() {
               </div>
             </div>
           </div>
+          )}
 
           {/* 振込先口座 */}
-          <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+          {showBank && (
+          <div className={`${showInfo ? "mt-4" : ""} rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]`}>
             <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
               振込先口座
             </h3>
@@ -405,17 +419,20 @@ export default function CompanyEditPage() {
               </div>
             </div>
           </div>
+          )}
 
           <button
             type="submit"
             disabled={saving}
             className="mt-4 w-full rounded-xl bg-knock-orange py-3.5 text-[15px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {saving ? "保存中..." : "基本情報・口座を保存"}
+            {saving ? "保存中..." : section === "bank" ? "口座情報を保存" : section === "info" ? "会社情報を保存" : "会社情報・口座を保存"}
           </button>
         </form>
+        )}
 
         {/* 受発注情報 */}
+        {showOrder && (
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
           <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
             受発注情報
@@ -522,8 +539,10 @@ export default function CompanyEditPage() {
             {savingBiz ? "保存中..." : bizSaved ? "保存しました" : "受発注情報を保存"}
           </button>
         </div>
+        )}
 
         {/* 許可証・保険・その他 */}
+        {showLicense && (
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
           <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
             許可証・保険・その他
@@ -632,8 +651,10 @@ export default function CompanyEditPage() {
             {savingLicense ? "保存中..." : licenseSaved ? "保存しました" : "許可証・保険を保存"}
           </button>
         </div>
+        )}
 
         {/* 印鑑画像 */}
+        {showInfo && (
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
           <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">印鑑画像</h3>
           <p className="mb-3 text-[12px] text-gray-500">帳票（注文書・納品書・請求書）に自動挿入されます</p>
@@ -704,6 +725,7 @@ export default function CompanyEditPage() {
             </label>
           )}
         </div>
+        )}
       </div>
     </div>
   );
