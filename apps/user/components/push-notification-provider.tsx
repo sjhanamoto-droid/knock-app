@@ -45,23 +45,29 @@ export function PushNotificationProvider() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator)) return;
-    if (!VAPID_PUBLIC_KEY) return;
+    console.log("[Push] Init check start");
+    if (typeof window === "undefined") { console.log("[Push] Skip: no window"); return; }
+    if (!("serviceWorker" in navigator)) { console.log("[Push] Skip: no serviceWorker"); return; }
+    if (!VAPID_PUBLIC_KEY) { console.log("[Push] Skip: no VAPID_PUBLIC_KEY"); return; }
+
+    const hasNotification = "Notification" in window;
+    const hasPushManager = "PushManager" in window;
+    console.log("[Push] Notification:", hasNotification, "PushManager:", hasPushManager);
 
     // iOS Safari（非PWA）ではNotification APIが存在しない
-    if (!("Notification" in window) || !("PushManager" in window)) return;
+    if (!hasNotification || !hasPushManager) { console.log("[Push] Skip: API not available"); return; }
 
-    if (Notification.permission === "granted") {
+    const perm = Notification.permission;
+    console.log("[Push] Permission:", perm);
+
+    if (perm === "granted") {
       registerSubscription();
-    } else if (Notification.permission === "denied") {
-      // 以前拒否された場合、設定から有効にする案内を表示
+    } else if (perm === "denied") {
       const dismissed = localStorage.getItem("knock_push_denied_dismissed");
       if (!dismissed) {
         setBannerType("denied");
       }
     } else {
-      // "default" — まだ聞いていない
       setBannerType("ask");
     }
   }, [registerSubscription]);
