@@ -87,6 +87,11 @@ export default function CompanyEditPage() {
     building: "",
     hpUrl: "",
     invoiceNumber: "",
+    bankName: "",
+    bankBranchName: "",
+    bankAccountType: "",
+    bankAccountNumber: "",
+    bankAccountName: "",
   });
 
   // Address lookup state
@@ -145,6 +150,11 @@ export default function CompanyEditPage() {
           building: c.building ?? "",
           hpUrl: c.hpUrl ?? "",
           invoiceNumber: c.invoiceNumber ?? "",
+          bankName: c.bankName ?? "",
+          bankBranchName: c.bankBranchName ?? "",
+          bankAccountType: c.bankAccountType ?? "",
+          bankAccountNumber: c.bankAccountNumber ?? "",
+          bankAccountName: c.bankAccountName ?? "",
         });
         // 受発注情報
         setCompanyForm(c.companyForm ?? "");
@@ -194,6 +204,11 @@ export default function CompanyEditPage() {
         building: formData.building || undefined,
         hpUrl: formData.hpUrl || undefined,
         invoiceNumber: formData.invoiceNumber || undefined,
+        bankName: formData.bankName || undefined,
+        bankBranchName: formData.bankBranchName || undefined,
+        bankAccountType: (formData.bankAccountType as "ORDINARY" | "CURRENT") || undefined,
+        bankAccountNumber: formData.bankAccountNumber || undefined,
+        bankAccountName: formData.bankAccountName || undefined,
       });
       const updated = await getProfile();
       if (updated) setProfile(updated);
@@ -358,12 +373,45 @@ export default function CompanyEditPage() {
             </div>
           </div>
 
+          {/* 振込先口座 */}
+          <div className="mt-4 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+            <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
+              振込先口座
+            </h3>
+            <div className="flex flex-col gap-4">
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">銀行名</label>
+                <input value={formData.bankName} onChange={(e) => set("bankName", e.target.value)} className={inputCls} placeholder="例: みずほ銀行" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">支店名</label>
+                <input value={formData.bankBranchName} onChange={(e) => set("bankBranchName", e.target.value)} className={inputCls} placeholder="例: 渋谷支店" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">口座種別</label>
+                <select value={formData.bankAccountType} onChange={(e) => set("bankAccountType", e.target.value)} className={inputCls}>
+                  <option value="">未選択</option>
+                  <option value="ORDINARY">普通</option>
+                  <option value="CURRENT">当座</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">口座番号</label>
+                <input value={formData.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} className={inputCls} placeholder="1234567" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">口座名義（カタカナ）</label>
+                <input value={formData.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} className={inputCls} placeholder="カ）ノックカブシキガイシャ" />
+              </div>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={saving}
             className="mt-4 w-full rounded-xl bg-knock-orange py-3.5 text-[15px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {saving ? "保存中..." : "基本情報を保存"}
+            {saving ? "保存中..." : "基本情報・口座を保存"}
           </button>
         </form>
 
