@@ -137,10 +137,6 @@ export default function CompanyEditPage() {
           router.replace("/mypage");
           return;
         }
-        if (p.role !== "REPRESENTATIVE" && p.role !== "MANAGER") {
-          router.replace("/mypage");
-          return;
-        }
         setProfile(p);
         setStampPreview(p.company.stampImage ?? null);
         const c = p.company;

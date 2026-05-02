@@ -372,11 +372,7 @@ export default function MyPage() {
             {profile.company ? (
               <SectionCard
                 title="会社情報"
-                editHref={
-                  profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                    ? "/mypage/company?section=info"
-                    : undefined
-                }
+                editHref="/mypage/company?section=info"
               >
                 <FieldRow label="企業名" value={profile.company.name || null} />
                 <FieldRow
@@ -423,11 +419,7 @@ export default function MyPage() {
             {/* ─── 受発注情報 ─── */}
             <SectionCard
               title="受発注情報"
-              editHref={
-                profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                  ? "/mypage/company?section=order"
-                  : undefined
-              }
+              editHref="/mypage/company?section=order"
             >
               <FieldRow
                 label="事業形態"
@@ -462,11 +454,7 @@ export default function MyPage() {
             {/* ─── 許可証・保険・その他 ─── */}
             <SectionCard
               title="許可証・保険・その他"
-              editHref={
-                profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                  ? "/mypage/company?section=license"
-                  : undefined
-              }
+              editHref="/mypage/company?section=license"
             >
               <FieldRow
                 label="インボイス登録"
@@ -508,11 +496,7 @@ export default function MyPage() {
             {/* ─── 振込先口座 ─── */}
             <SectionCard
               title="振込先口座"
-              editHref={
-                profile.role === "REPRESENTATIVE" || profile.role === "MANAGER"
-                  ? "/mypage/company?section=bank"
-                  : undefined
-              }
+              editHref="/mypage/company?section=bank"
             >
               <FieldRow label="銀行名" value={profile.company?.bankName || null} />
               <FieldRow label="支店名" value={profile.company?.bankBranchName || null} />
