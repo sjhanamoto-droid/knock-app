@@ -1003,18 +1003,26 @@ export default function SiteDetailPage() {
       {site.status === "NOT_ORDERED" && isOrderer && !isParentSite && (
         <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+60px)] left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-4">
           <div className="flex flex-col gap-2 pb-3">
-            <Link
-              href={`/sites/${site.id}/order`}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 py-4 text-[15px] font-bold text-white shadow-lg transition-all active:scale-[0.98]"
-            >
-              指定の業者に発注する
-            </Link>
-            <Link
-              href={`/sites/${site.id}/post-job`}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-blue-500 bg-white py-3.5 text-[15px] font-bold text-blue-500 shadow-lg transition-all active:scale-[0.98]"
-            >
-              案件として掲載する
-            </Link>
+            {site.jobPostings && site.jobPostings.length > 0 ? (
+              <div className="flex w-full items-center justify-center gap-2 rounded-2xl bg-green-50 border-2 border-green-400 py-4 text-[15px] font-bold text-green-700">
+                現在掲載中です
+              </div>
+            ) : (
+              <>
+                <Link
+                  href={`/sites/${site.id}/order`}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 py-4 text-[15px] font-bold text-white shadow-lg transition-all active:scale-[0.98]"
+                >
+                  指定の業者に発注する
+                </Link>
+                <Link
+                  href={`/sites/${site.id}/post-job`}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-blue-500 bg-white py-3.5 text-[15px] font-bold text-blue-500 shadow-lg transition-all active:scale-[0.98]"
+                >
+                  案件として掲載する
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -161,6 +161,11 @@ export async function getSite(id: string) {
         select: { id: true, status: true },
         take: 1,
       },
+      jobPostings: {
+        where: { deletedAt: null, status: { in: ["PUBLISHED", "DRAFT"] } },
+        select: { id: true, status: true },
+        take: 1,
+      },
       children: {
         where: { deletedAt: null },
         orderBy: { createdAt: "asc" },
