@@ -230,15 +230,15 @@ export async function applyToJob(data: {
           userId: u.id,
           title: "案件応募",
           content: `「${job.title}」に応募がありました`,
-          type: 20,
-          targetId: application.id,
+          type: 27,
+          targetId: job.id,
         })),
       });
       void sendPushToUsers({
         userIds: ordererUsers.map((u) => u.id),
         title: "案件応募",
         body: `「${job.title}」に応募がありました`,
-        url: `/jobs/${application.id}`,
+        url: `/jobs/${job.id}/applications`,
       });
     }
 

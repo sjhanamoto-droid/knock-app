@@ -99,6 +99,55 @@ export async function getApplicationsForJob(jobPostingId: string) {
 }
 
 /**
+ * 応募詳細を取得（発注者）
+ */
+export async function getApplicationDetail(applicationId: string) {
+  const user = await requireSession();
+
+  const application = await prisma.jobApplication.findFirst({
+    where: {
+      id: applicationId,
+      jobPosting: { companyId: user.companyId, deletedAt: null },
+    },
+    include: {
+      jobPosting: {
+        select: { id: true, title: true, factoryFloorId: true, status: true },
+      },
+      company: {
+        select: {
+          id: true,
+          name: true,
+          logo: true,
+          prefecture: true,
+          city: true,
+          telNumber: true,
+          email: true,
+          constructionPermit: true,
+          socialInsurance: true,
+          invoiceNumber: true,
+          occupations: {
+            include: { occupationSubItem: { select: { name: true } } },
+          },
+          areas: {
+            include: { area: { select: { name: true } } },
+          },
+          insurances: { select: { type: true } },
+        },
+      },
+    },
+  });
+
+  if (!application) return null;
+
+  return {
+    ...application,
+    createdAt: application.createdAt.toISOString(),
+    updatedAt: application.updatedAt.toISOString(),
+    respondedAt: application.respondedAt?.toISOString() ?? null,
+  };
+}
+
+/**
  * 応募を採用する（発注者）
  * factoryFloorId がある場合は自動で FactoryFloorOrder を作成し、チャットルームも開設する
  */
@@ -215,15 +264,15 @@ export async function acceptApplication(applicationId: string) {
           userId: u.id,
           title: "応募採用",
           content: `「${application.jobPosting.title}」への応募が採用されました`,
-          type: 21,
-          targetId: applicationId,
+          type: 28,
+          targetId: application.jobPosting.id,
         })),
       });
       void sendPushToUsers({
         userIds: contractorUsers.map((u) => u.id),
         title: "応募採用",
         body: `「${application.jobPosting.title}」への応募が採用されました`,
-        url: `/jobs/${applicationId}`,
+        url: `/jobs/${application.jobPosting.id}`,
       });
     }
 
@@ -243,7 +292,7 @@ export async function rejectApplication(applicationId: string) {
       jobPosting: { companyId: user.companyId },
     },
     include: {
-      jobPosting: { select: { title: true } },
+      jobPosting: { select: { id: true, title: true } },
       company: { select: { id: true } },
     },
   });
@@ -265,15 +314,15 @@ export async function rejectApplication(applicationId: string) {
           userId: u.id,
           title: "応募結果",
           content: `「${application.jobPosting.title}」への応募は見送りとなりました`,
-          type: 22,
-          targetId: applicationId,
+          type: 28,
+          targetId: application.jobPosting.id,
         })),
       });
       void sendPushToUsers({
         userIds: contractorUsers.map((u) => u.id),
         title: "応募結果",
         body: `「${application.jobPosting.title}」への応募は見送りとなりました`,
-        url: `/jobs/${applicationId}`,
+        url: `/jobs/${application.jobPosting.id}`,
       });
     }
   });

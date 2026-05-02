@@ -29,8 +29,8 @@ export function getNotificationRoute(type: number, targetId: string | null): str
     case 32: return `/orders/${targetId}/additional-review`; // 追加工事依頼 → 承諾/辞退
     case 33: return `/orders/${targetId}/additional-review`; // 追加工事承諾 → 確定
     // V2: マッチング
-    case 27: return `/jobs/${targetId}`;               // 案件応募通知
-    case 28: return `/jobs/${targetId}`;               // 応募結果通知
+    case 27: return `/jobs/${targetId}/applications`;   // 案件応募通知 → 応募一覧
+    case 28: return `/jobs/${targetId}`;               // 応募結果通知 → 案件詳細
     // V2: 信用スコア・認証
     case 29: return `/mypage/trust-score`;             // スコア更新
     case 30: return `/documents/${targetId}`;          // 納品書発行 → 帳票確認へ
