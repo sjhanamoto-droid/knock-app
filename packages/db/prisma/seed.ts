@@ -65,25 +65,30 @@ async function main() {
   console.log(`✓ ${taxes.length} tax rates seeded`);
 
   // ============ Areas (エリアマスタ) ============
+  // 旧エリア（広域地域）を論理削除
+  await prisma.area.updateMany({
+    where: { deletedAt: null },
+    data: { deletedAt: new Date() },
+  });
+
   const areas = [
-    { serialNumber: 1, name: "北海道" },
-    { serialNumber: 2, name: "東北" },
-    { serialNumber: 3, name: "関東" },
-    { serialNumber: 4, name: "中部" },
-    { serialNumber: 5, name: "近畿" },
-    { serialNumber: 6, name: "中国" },
-    { serialNumber: 7, name: "四国" },
-    { serialNumber: 8, name: "九州・沖縄" },
+    { serialNumber: 1, name: "東京都" },
+    { serialNumber: 2, name: "神奈川県" },
+    { serialNumber: 3, name: "千葉県" },
+    { serialNumber: 4, name: "埼玉県" },
+    { serialNumber: 5, name: "茨城県" },
+    { serialNumber: 6, name: "栃木県" },
+    { serialNumber: 7, name: "群馬県" },
   ];
 
   for (const area of areas) {
     await prisma.area.upsert({
       where: { id: area.name },
-      update: {},
+      update: { serialNumber: area.serialNumber, deletedAt: null },
       create: { id: area.name, ...area },
     });
   }
-  console.log(`✓ ${areas.length} areas seeded`);
+  console.log(`✓ ${areas.length} areas seeded (関東都県)`);
 
   // ============ Other Insurance (その他保険マスタ) ============
   // Note: OtherInsurance model does not exist in schema; skipping.
