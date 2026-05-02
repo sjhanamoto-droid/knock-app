@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getOrder, acceptOrder, rejectOrder, cancelOrder } from "@/lib/actions/orders";
+import { checkContractorRequirements } from "@/lib/actions/contractor-requirements";
 import { orderStatusLabels, orderStatusColors, formatDate, formatCurrency } from "@knock/utils";
 import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
 import { useMode } from "@/lib/hooks/use-mode";
@@ -31,6 +32,7 @@ export default function OrderDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | "cancel" | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [checkingReqs, setCheckingReqs] = useState(false);
 
   useEffect(() => {
     getOrder(params.orderId as string)
@@ -239,11 +241,26 @@ export default function OrderDetailPage() {
               辞退する
             </button>
             <button
-              onClick={() => setConfirmAction("approve")}
-              disabled={actionLoading}
+              onClick={async () => {
+                setCheckingReqs(true);
+                try {
+                  const reqs = await checkContractorRequirements();
+                  if (!reqs.complete) {
+                    alert("受諾するには必要情報が足りません。追加してください。\n\n不足: " + reqs.missing.join("、"));
+                    router.push(`/mypage/requirements?returnTo=/orders/${params.orderId}`);
+                    return;
+                  }
+                  setConfirmAction("approve");
+                } catch {
+                  setConfirmAction("approve");
+                } finally {
+                  setCheckingReqs(false);
+                }
+              }}
+              disabled={actionLoading || checkingReqs}
               className="flex-1 rounded-xl bg-knock-orange py-3.5 text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
             >
-              受諾する
+              {checkingReqs ? "確認中..." : "受諾する"}
             </button>
           </div>
         )}

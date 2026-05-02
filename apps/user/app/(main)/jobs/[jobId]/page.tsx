@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getJobDetail, applyToJob } from "@/lib/actions/job-search";
+import { checkContractorRequirements } from "@/lib/actions/contractor-requirements";
 import { formatCurrency } from "@knock/utils";
 
 type JobDetail = Awaited<ReturnType<typeof getJobDetail>>;
@@ -17,6 +18,7 @@ export default function JobDetailPage() {
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState("");
   const [showApplyForm, setShowApplyForm] = useState(false);
+  const [checkingReqs, setCheckingReqs] = useState(false);
 
   useEffect(() => {
     getJobDetail(jobId)
@@ -296,11 +298,27 @@ export default function JobDetailPage() {
         ) : (
           <>
             <button
-              onClick={() => setShowApplyForm(true)}
-              className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97]"
+              onClick={async () => {
+                setCheckingReqs(true);
+                try {
+                  const reqs = await checkContractorRequirements();
+                  if (!reqs.complete) {
+                    alert("案件を受けるには必要情報が足りません。追加してください。\n\n不足: " + reqs.missing.join("、"));
+                    router.push(`/mypage/requirements?returnTo=/jobs/${jobId}`);
+                    return;
+                  }
+                  setShowApplyForm(true);
+                } catch {
+                  setShowApplyForm(true);
+                } finally {
+                  setCheckingReqs(false);
+                }
+              }}
+              disabled={checkingReqs}
+              className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
               style={{ backgroundColor: accentColor }}
             >
-              この案件に応募する
+              {checkingReqs ? "確認中..." : "この案件に応募する"}
             </button>
             <button
               onClick={() => {
