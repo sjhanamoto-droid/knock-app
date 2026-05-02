@@ -2,13 +2,24 @@
 
 import { signIn, signOut } from "@/auth";
 import { AuthError } from "next-auth";
+import { prisma } from "@/lib/prisma";
 
 export async function login(data: { email: string; password: string }) {
   try {
+    // 登録ステップを確認してリダイレクト先を決定
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
+      select: { company: { select: { registrationStep: true } } },
+    });
+
+    const step = user?.company?.registrationStep;
+    const redirectTo =
+      step === 1 ? "/mypage/company" : step === 2 ? "/mypage/edit" : "/";
+
     await signIn("credentials", {
       email: data.email,
       password: data.password,
-      redirectTo: "/",
+      redirectTo,
     });
   } catch (error) {
     if (error instanceof AuthError) {

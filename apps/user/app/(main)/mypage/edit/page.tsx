@@ -149,8 +149,15 @@ export default function EditProfilePage() {
         }),
         saveUserQualifications(selectedQualIds),
       ]);
-      setSuccess("保存しました");
-      setTimeout(() => router.push("/mypage?tab=personal"), 1500);
+      // 登録完了チェック: registrationStep が解消されていたらホームへ
+      const refreshed = await getProfile();
+      if (refreshed?.company?.registrationStep === null) {
+        setSuccess("登録が完了しました！");
+        setTimeout(() => router.push("/"), 1500);
+      } else {
+        setSuccess("保存しました");
+        setTimeout(() => router.push("/mypage?tab=personal"), 1500);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {

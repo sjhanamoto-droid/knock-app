@@ -64,6 +64,7 @@ export async function getProfile() {
           constructionPermit: true,
           invoiceRegistration: true,
           socialInsurance: true,
+          registrationStep: true,
           insurances: { select: { type: true } },
           areas: {
             select: { area: { select: { id: true, name: true } } },
@@ -131,6 +132,19 @@ export async function updateProfile(data: {
       deletedAt: true,
     },
   });
+
+  // registrationStep が 2 の場合、個人情報保存で登録完了
+  const company = await prisma.company.findUnique({
+    where: { id: user.companyId },
+    select: { registrationStep: true },
+  });
+
+  if (company?.registrationStep === 2) {
+    await prisma.company.update({
+      where: { id: user.companyId },
+      data: { registrationStep: null, isActive: true },
+    });
+  }
 
   return {
     ...updated,
@@ -246,14 +260,20 @@ export async function updateCompany(data: {
 }) {
   const user = await requireSession();
 
-  // 代表者・管理者のみ許可
-  if (user.role !== "REPRESENTATIVE" && user.role !== "MANAGER") {
-    throw new Error("権限がありません");
+  // registrationStep が 1 の場合、会社情報保存で次のステップへ進める
+  const company = await prisma.company.findUnique({
+    where: { id: user.companyId },
+    select: { registrationStep: true },
+  });
+
+  const updateData: Record<string, unknown> = { ...data };
+  if (company?.registrationStep === 1) {
+    updateData.registrationStep = 2;
   }
 
   const updated = await prisma.company.update({
     where: { id: user.companyId },
-    data,
+    data: updateData,
   });
 
   return {

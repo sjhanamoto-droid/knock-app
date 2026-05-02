@@ -214,8 +214,15 @@ export default function CompanyEditPage() {
       });
       const updated = await getProfile();
       if (updated) setProfile(updated);
-      setSuccess("保存しました");
-      setTimeout(() => router.push("/mypage?tab=business"), 1500);
+      // registrationStep が 2 になっていたら個人情報入力へ誘導
+      const nextStep = updated?.company?.registrationStep;
+      if (nextStep === 2) {
+        setSuccess("保存しました。次に個人情報を入力してください。");
+        setTimeout(() => router.push("/mypage/edit"), 1500);
+      } else {
+        setSuccess("保存しました");
+        setTimeout(() => router.push("/mypage?tab=business"), 1500);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
