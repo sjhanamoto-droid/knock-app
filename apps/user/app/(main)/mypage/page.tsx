@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getProfile } from "@/lib/actions/profile";
@@ -138,8 +139,11 @@ function SectionCard({
 /* ──────────── Main Page ──────────── */
 
 export default function MyPage() {
+  const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"personal" | "business" | "settings">("personal");
+  const tabParam = searchParams.get("tab");
+  const initialTab = tabParam === "business" ? "business" : tabParam === "settings" ? "settings" : "personal";
+  const [activeTab, setActiveTab] = useState<"personal" | "business" | "settings">(initialTab);
   const [profile, setProfile] = useState<Profile>(null);
   const [trustScore, setTrustScore] = useState<TrustScoreData | null>(null);
   const [loading, setLoading] = useState(true);

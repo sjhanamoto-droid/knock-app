@@ -219,7 +219,7 @@ export default function CompanyEditPage() {
       const updated = await getProfile();
       if (updated) setProfile(updated);
       setSuccess("保存しました");
-      setTimeout(() => setSuccess(""), 3000);
+      setTimeout(() => router.push("/mypage?tab=business"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
@@ -526,7 +526,7 @@ export default function CompanyEditPage() {
                   saveCompanyOccupations(selections),
                 ]);
                 setBizSaved(true);
-                setTimeout(() => setBizSaved(false), 3000);
+                setTimeout(() => router.push("/mypage?tab=business"), 1500);
               } catch (err) {
                 setError(err instanceof Error ? err.message : "受発注情報の保存に失敗しました");
               } finally {
@@ -638,7 +638,7 @@ export default function CompanyEditPage() {
                   saveCompanyInsurances(selectedInsurances),
                 ]);
                 setLicenseSaved(true);
-                setTimeout(() => setLicenseSaved(false), 3000);
+                setTimeout(() => router.push("/mypage?tab=business"), 1500);
               } catch (err) {
                 setError(err instanceof Error ? err.message : "許可証・保険情報の保存に失敗しました");
               } finally {

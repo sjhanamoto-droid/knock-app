@@ -150,7 +150,7 @@ export default function EditProfilePage() {
         saveUserQualifications(selectedQualIds),
       ]);
       setSuccess("保存しました");
-      setTimeout(() => setSuccess(""), 3000);
+      setTimeout(() => router.push("/mypage?tab=personal"), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
