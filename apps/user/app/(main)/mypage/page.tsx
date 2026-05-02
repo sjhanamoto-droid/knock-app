@@ -337,6 +337,7 @@ export default function MyPage() {
                   : null
               }
             />
+            <FieldRow label="自己紹介" value={profile.bio || null} />
             <FieldRow label="メールアドレス" value={profile.email} />
             <FieldRow label="電話番号" value={profile.telNumber || null} />
             <FieldRow

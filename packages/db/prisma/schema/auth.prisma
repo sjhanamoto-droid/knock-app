@@ -24,6 +24,7 @@ model User {
   workEligibility      WorkEligibility?
   tradeName            String?           // 屋号
   workersCompInsurance Boolean?          // 労災加入
+  bio                  String?           // 自己紹介
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

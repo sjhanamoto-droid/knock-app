@@ -28,6 +28,7 @@ export async function getProfile() {
       workEligibility: true,
       tradeName: true,
       workersCompInsurance: true,
+      bio: true,
       qualifications: {
         select: {
           qualification: { select: { id: true, name: true, category: true } },
@@ -102,6 +103,7 @@ export async function updateProfile(data: {
   workEligibility?: "JAPANESE_NATIONAL" | "PERMANENT_RESIDENT" | "SPECIFIED_SKILLED" | "WORK_VISA" | "OTHER" | null;
   tradeName?: string | null;
   workersCompInsurance?: boolean | null;
+  bio?: string | null;
 }) {
   const user = await requireSession();
 
