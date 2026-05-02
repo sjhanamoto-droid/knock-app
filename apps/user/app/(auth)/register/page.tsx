@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { registerStep1, registerStep2, registerStep3 } from "@/lib/actions/registration";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import {
+  registerStep1,
+  registerStep2,
+  registerStep3,
+  getRegistrationState,
+  completeRegistrationAsLoggedIn,
+} from "@/lib/actions/registration";
 import { getAddressFromPostalCode } from "@knock/utils";
 
 /* ──────────── Schemas ──────────── */
@@ -127,6 +135,25 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [isReturningUser, setIsReturningUser] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { update: updateSession } = useSession();
+  const router = useRouter();
+
+  // ログイン済みで登録未完了のユーザーを検出
+  useEffect(() => {
+    getRegistrationState().then((state) => {
+      if (state) {
+        setIsReturningUser(true);
+        setCompanyId(state.companyId);
+        setUserType(state.companyType as "ORDERER" | "CONTRACTOR");
+        // registrationStep=1 → 会社情報入力（step 2）
+        // registrationStep=2 → 担当者情報入力（step 3）
+        setStep(state.registrationStep === 1 ? 2 : 3);
+      }
+      setLoading(false);
+    });
+  }, []);
 
   /* ──── Step 1 Form ──── */
   const step1Form = useForm<Step1Data>({ resolver: zodResolver(step1Schema) });
@@ -189,11 +216,34 @@ export default function RegisterPage() {
     setServerError(null);
     const dateOfBirth = `${data.birthYear}-${data.birthMonth.padStart(2, "0")}-${data.birthDay.padStart(2, "0")}`;
     const { birthYear, birthMonth, birthDay, ...rest } = data;
+
+    if (isReturningUser) {
+      // ログイン済みユーザー: credentials不要の完了アクション
+      const result = await completeRegistrationAsLoggedIn({ ...rest, dateOfBirth });
+      if (result?.error) {
+        setServerError(result.error);
+        return;
+      }
+      // セッションの registrationStep を更新してミドルウェアを通過させる
+      await updateSession({ registrationStep: null });
+      router.push("/");
+      return;
+    }
+
     const result = await registerStep3(companyId!, { ...rest, dateOfBirth }, credentials!);
     if (result?.error) {
       setServerError(result.error);
     }
     // Success: registerStep3 auto-redirects to /onboarding
+  }
+
+  /* ──── Loading ──── */
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-[15px]" style={{ color: "#6B6B6B" }}>読み込み中...</p>
+      </div>
+    );
   }
 
   /* ──── Type Selection (Step 0) ──── */
@@ -283,17 +333,28 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-[430px]">
-        {/* Back button */}
-        <button
-          onClick={() => step === 1 ? setStep(0) : setStep(step - 1)}
-          className="flex items-center gap-1 mb-6 text-[14px] active:opacity-70"
-          style={{ color: "#6B6B6B" }}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 4L6 8L10 12" stroke="#6B6B6B" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          戻る
-        </button>
+        {/* Back button (returning users: hide when at their first step) */}
+        {!(isReturningUser && ((step === 2 && userType) || step <= 2)) ? (
+          <button
+            onClick={() => {
+              if (isReturningUser) {
+                // returning user の最小ステップは registrationStep に基づく
+                if (step > 2) setStep(step - 1);
+              } else {
+                step === 1 ? setStep(0) : setStep(step - 1);
+              }
+            }}
+            className="flex items-center gap-1 mb-6 text-[14px] active:opacity-70"
+            style={{ color: "#6B6B6B" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M10 4L6 8L10 12" stroke="#6B6B6B" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            戻る
+          </button>
+        ) : (
+          <div className="mb-6" />
+        )}
 
         <Stepper current={step} />
 

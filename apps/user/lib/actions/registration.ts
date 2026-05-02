@@ -1,11 +1,110 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { signIn } from "@/auth";
+import { auth, signIn } from "@/auth";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import { getEffectivePrice } from "@knock/utils";
 import { createDefaultTemplates } from "@/lib/actions/templates";
+
+/** ログイン済みユーザーの登録状態を返す */
+export async function getRegistrationState() {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      email: true,
+      companyId: true,
+      company: { select: { registrationStep: true, type: true } },
+    },
+  });
+
+  if (!user || user.company?.registrationStep == null) return null;
+
+  return {
+    companyId: user.companyId,
+    registrationStep: user.company.registrationStep as number,
+    companyType: user.company.type,
+    email: user.email,
+  };
+}
+
+/** ログイン済みユーザーが登録ステップ3を完了する（credentials不要） */
+export async function completeRegistrationAsLoggedIn(data: {
+  lastName: string;
+  firstName: string;
+  lastNameKana: string;
+  firstNameKana: string;
+  dateOfBirth: string;
+  telPhone: string;
+}) {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "ログインが必要です" };
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, companyId: true },
+  });
+  if (!user) return { error: "ユーザーが見つかりません" };
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          lastName: data.lastName,
+          firstName: data.firstName,
+          lastNameKana: data.lastNameKana,
+          firstNameKana: data.firstNameKana,
+          dateOfBirth: data.dateOfBirth,
+          telNumber: data.telPhone,
+          role: "REPRESENTATIVE",
+          isActive: true,
+        },
+      });
+
+      const company = await tx.company.update({
+        where: { id: user.companyId },
+        data: { isActive: true, registrationStep: null },
+      });
+
+      // サブスクリプション（既存チェック）
+      const existing = await tx.subscription.findFirst({
+        where: { companyId: user.companyId },
+      });
+      if (!existing) {
+        const planType = company.type === "BOTH" ? "CONTRACTOR" : company.type;
+        await tx.subscription.create({
+          data: {
+            companyId: user.companyId,
+            planType: planType as "CONTRACTOR" | "ORDERER",
+            status: "TRIAL",
+            priceMonthly: getEffectivePrice(planType as "CONTRACTOR" | "ORDERER"),
+          },
+        });
+        if (company.type === "BOTH") {
+          await tx.subscription.create({
+            data: {
+              companyId: user.companyId,
+              planType: "ORDERER",
+              status: "TRIAL",
+              priceMonthly: getEffectivePrice("ORDERER"),
+            },
+          });
+        }
+      }
+    });
+
+    void createDefaultTemplates(user.companyId);
+
+    return { success: true };
+  } catch (error) {
+    console.error("[completeRegistrationAsLoggedIn] Error:", error);
+    return { error: "登録に失敗しました。もう一度お試しください。" };
+  }
+}
 
 export async function registerStep1(
   data: { email: string; password: string },

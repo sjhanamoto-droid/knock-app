@@ -1,7 +1,12 @@
 "use client";
 
+import { SessionProvider } from "next-auth/react";
 import { ToastProvider } from "@knock/ui";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <ToastProvider>{children}</ToastProvider>;
+  return (
+    <SessionProvider>
+      <ToastProvider>{children}</ToastProvider>
+    </SessionProvider>
+  );
 }

@@ -9,17 +9,27 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
+      const registrationStep = (auth as unknown as Record<string, unknown>)?.registrationStep;
       const publicPaths = ["/login", "/forgot-password", "/reset-password", "/register"];
       const isPublicPath = publicPaths.some((path) => nextUrl.pathname.startsWith(path));
+      const isRegisterPath = nextUrl.pathname.startsWith("/register");
 
-      if (isPublicPath) {
-        if (isLoggedIn) {
+      if (isLoggedIn) {
+        // 登録未完了 → /register 以外をブロック
+        if (registrationStep != null) {
+          if (isRegisterPath) return true;
+          return Response.redirect(new URL("/register", nextUrl));
+        }
+        // 登録完了済み → 公開パスからリダイレクト
+        if (isPublicPath) {
           return Response.redirect(new URL("/", nextUrl));
         }
         return true;
       }
 
-      return isLoggedIn;
+      // 未ログイン
+      if (isPublicPath) return true;
+      return false;
     },
     async jwt({ token, user, trigger, session }) {
       if (user) {

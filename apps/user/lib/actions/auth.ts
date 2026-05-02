@@ -13,8 +13,7 @@ export async function login(data: { email: string; password: string }) {
     });
 
     const step = user?.company?.registrationStep;
-    const redirectTo =
-      step === 1 ? "/mypage/company" : step === 2 ? "/mypage/edit" : "/";
+    const redirectTo = step != null ? "/register" : "/";
 
     await signIn("credentials", {
       email: data.email,

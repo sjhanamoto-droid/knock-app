@@ -66,6 +66,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             token.activeMode = session.activeMode;
           }
         }
+        // registrationStep の更新（登録完了時）
+        if ("registrationStep" in session) {
+          token.registrationStep = session.registrationStep;
+        }
       }
 
       // DBフォールバック: companyId が未設定の古いトークンに対応
