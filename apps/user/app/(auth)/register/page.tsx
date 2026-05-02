@@ -36,7 +36,9 @@ const step3Schema = z.object({
   firstName: z.string().min(1, "名を入力してください"),
   lastNameKana: z.string().min(1, "セイを入力してください"),
   firstNameKana: z.string().min(1, "メイを入力してください"),
-  dateOfBirth: z.string().min(1, "生年月日を入力してください"),
+  birthYear: z.string().min(1, "年を入力してください").regex(/^\d{4}$/, "西暦4桁で入力してください"),
+  birthMonth: z.string().min(1, "月を入力してください").regex(/^(0?[1-9]|1[0-2])$/, "1〜12で入力してください"),
+  birthDay: z.string().min(1, "日を入力してください").regex(/^(0?[1-9]|[12]\d|3[01])$/, "1〜31で入力してください"),
   telPhone: z.string().min(1, "電話番号を入力してください"),
 });
 
@@ -185,7 +187,9 @@ export default function RegisterPage() {
 
   async function onStep3(data: Step3Data) {
     setServerError(null);
-    const result = await registerStep3(companyId!, data, credentials!);
+    const dateOfBirth = `${data.birthYear}-${data.birthMonth.padStart(2, "0")}-${data.birthDay.padStart(2, "0")}`;
+    const { birthYear, birthMonth, birthDay, ...rest } = data;
+    const result = await registerStep3(companyId!, { ...rest, dateOfBirth }, credentials!);
     if (result?.error) {
       setServerError(result.error);
     }
@@ -540,8 +544,49 @@ export default function RegisterPage() {
 
             <div>
               <label className="text-[13px] font-semibold mb-1.5 block" style={{ color: "#1A2340" }}>生年月日</label>
-              <input type="date" {...step3Form.register("dateOfBirth")} className={inputClass} style={inputStyle} />
-              {step3Form.formState.errors.dateOfBirth && <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>{step3Form.formState.errors.dateOfBirth.message}</p>}
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="1990"
+                    maxLength={4}
+                    {...step3Form.register("birthYear")}
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                  <p className="mt-1 text-[11px] text-center" style={{ color: "#6B6B6B" }}>年（西暦）</p>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="1"
+                    maxLength={2}
+                    {...step3Form.register("birthMonth")}
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                  <p className="mt-1 text-[11px] text-center" style={{ color: "#6B6B6B" }}>月</p>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="1"
+                    maxLength={2}
+                    {...step3Form.register("birthDay")}
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                  <p className="mt-1 text-[11px] text-center" style={{ color: "#6B6B6B" }}>日</p>
+                </div>
+              </div>
+              {(step3Form.formState.errors.birthYear || step3Form.formState.errors.birthMonth || step3Form.formState.errors.birthDay) && (
+                <p className="mt-1.5 text-xs" style={{ color: "#B91C1C" }}>
+                  {step3Form.formState.errors.birthYear?.message || step3Form.formState.errors.birthMonth?.message || step3Form.formState.errors.birthDay?.message}
+                </p>
+              )}
             </div>
 
             <div>

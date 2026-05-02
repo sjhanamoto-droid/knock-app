@@ -592,17 +592,49 @@ function Step3Form({
   credentials: { email: string; password: string };
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [birthYear, setBirthYear] = useState("");
+  const [birthMonth, setBirthMonth] = useState("");
+  const [birthDay, setBirthDay] = useState("");
+  const [birthError, setBirthError] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<RegistrationStep3Input>({
     resolver: zodResolver(registrationStep3Schema),
   });
 
+  useEffect(() => {
+    if (birthYear && birthMonth && birthDay) {
+      const dateOfBirth = `${birthYear}-${birthMonth.padStart(2, "0")}-${birthDay.padStart(2, "0")}`;
+      setValue("dateOfBirth", dateOfBirth, { shouldValidate: true });
+      setBirthError(null);
+    } else {
+      setValue("dateOfBirth", "", { shouldValidate: false });
+    }
+  }, [birthYear, birthMonth, birthDay, setValue]);
+
   const onSubmit = async (data: RegistrationStep3Input) => {
+    if (!birthYear || !birthMonth || !birthDay) {
+      setBirthError("生年月日を入力してください");
+      return;
+    }
+    if (!/^\d{4}$/.test(birthYear)) {
+      setBirthError("西暦4桁で入力してください");
+      return;
+    }
+    if (!/^(0?[1-9]|1[0-2])$/.test(birthMonth)) {
+      setBirthError("月は1〜12で入力してください");
+      return;
+    }
+    if (!/^(0?[1-9]|[12]\d|3[01])$/.test(birthDay)) {
+      setBirthError("日は1〜31で入力してください");
+      return;
+    }
     setServerError(null);
+    setBirthError(null);
     const result = await registerStep3(companyId, data, credentials);
     if (result?.error) {
       setServerError(result.error);
@@ -695,18 +727,51 @@ function Step3Form({
       </div>
 
       <div>
-        <label htmlFor="dateOfBirth" className={labelClass}>
+        <label className={labelClass}>
           生年月日 {requiredMark}
         </label>
-        <input
-          id="dateOfBirth"
-          type="date"
-          {...register("dateOfBirth")}
-          className={inputClass}
-        />
-        {errors.dateOfBirth && (
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="1990"
+              maxLength={4}
+              value={birthYear}
+              onChange={(e) => setBirthYear(e.target.value.replace(/\D/g, ""))}
+              className={inputClass}
+            />
+            <p className="mt-1 text-[11px] text-center text-knock-text-muted">年（西暦）</p>
+          </div>
+          <div>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="1"
+              maxLength={2}
+              value={birthMonth}
+              onChange={(e) => setBirthMonth(e.target.value.replace(/\D/g, ""))}
+              className={inputClass}
+            />
+            <p className="mt-1 text-[11px] text-center text-knock-text-muted">月</p>
+          </div>
+          <div>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="1"
+              maxLength={2}
+              value={birthDay}
+              onChange={(e) => setBirthDay(e.target.value.replace(/\D/g, ""))}
+              className={inputClass}
+            />
+            <p className="mt-1 text-[11px] text-center text-knock-text-muted">日</p>
+          </div>
+        </div>
+        <input type="hidden" {...register("dateOfBirth")} />
+        {(birthError || errors.dateOfBirth) && (
           <p className="mt-1 text-sm text-knock-red">
-            {errors.dateOfBirth.message}
+            {birthError || errors.dateOfBirth?.message}
           </p>
         )}
       </div>
