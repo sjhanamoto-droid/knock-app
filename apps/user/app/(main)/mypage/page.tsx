@@ -339,7 +339,7 @@ export default function MyPage() {
               label="就労資格"
               value={profile.workEligibility ? workEligibilityLabels[profile.workEligibility] : null}
             />
-            <FieldRow label="屋号" value={profile.tradeName || null} />
+
             <FieldRow
               label="保有資格"
               value={

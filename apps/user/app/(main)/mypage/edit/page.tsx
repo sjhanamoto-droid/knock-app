@@ -480,17 +480,6 @@ export default function EditProfilePage() {
               </div>
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
-                  屋号
-                </label>
-                <input
-                  value={formData.tradeName}
-                  onChange={(e) => set("tradeName", e.target.value)}
-                  placeholder="例: ○○建設"
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
                   保有資格
                 </label>
                 <QualificationSelector
