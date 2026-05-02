@@ -73,7 +73,7 @@ export default function CompanyEditPage() {
   const showLicense = !section || section === "license";
   const showBank = !section || section === "bank";
   const showBilling = !section || section === "billing";
-  const { accentColor } = useMode();
+  const { accentColor, isContractor } = useMode();
 
   const [profile, setProfile] = useState<Profile>(null);
   const [loading, setLoading] = useState(true);
@@ -668,8 +668,8 @@ export default function CompanyEditPage() {
         </div>
         )}
 
-        {/* 請求設定 */}
-        {showBilling && (
+        {/* 請求設定（発注者のみ） */}
+        {showBilling && !isContractor && (
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
           <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
             請求設定

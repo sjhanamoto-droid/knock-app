@@ -521,7 +521,8 @@ export default function MyPage() {
               <FieldRow label="口座名義" value={profile.company?.bankAccountName || null} />
             </SectionCard>
 
-            {/* ─── 請求設定 ─── */}
+            {/* ─── 請求設定（発注者のみ） ─── */}
+            {!isContractor && (
             <SectionCard
               title="請求設定"
               editHref="/mypage/company?section=billing"
@@ -551,6 +552,7 @@ export default function MyPage() {
                 }
               />
             </SectionCard>
+            )}
           </>
         )}
 
