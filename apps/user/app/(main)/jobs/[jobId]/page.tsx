@@ -270,8 +270,34 @@ export default function JobDetailPage() {
           </div>
         )}
 
-        {/* 応募ボタン */}
-        {showApplyForm ? (
+        {/* 応募状況に応じた表示 */}
+        {job.myApplication?.status === "ACCEPTED" ? (
+          <div className="flex flex-col gap-3">
+            <div className="rounded-xl bg-emerald-50 px-4 py-4 text-center">
+              <p className="text-[15px] font-bold text-emerald-700">採用されました</p>
+              <p className="mt-1 text-[13px] text-emerald-600">この案件への応募が採用されました</p>
+            </div>
+            {job.myApplication.factoryFloorId && (
+              <button
+                onClick={() => router.push(`/orders/${job.myApplication!.factoryFloorId}`)}
+                className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97]"
+                style={{ backgroundColor: accentColor }}
+              >
+                注文内容を確認する
+              </button>
+            )}
+          </div>
+        ) : job.myApplication?.status === "PENDING" ? (
+          <div className="rounded-xl bg-amber-50 px-4 py-4 text-center">
+            <p className="text-[15px] font-bold text-amber-700">応募済み（審査中）</p>
+            <p className="mt-1 text-[13px] text-amber-600">発注者の確認をお待ちください</p>
+          </div>
+        ) : job.myApplication?.status === "REJECTED" ? (
+          <div className="rounded-xl bg-gray-100 px-4 py-4 text-center">
+            <p className="text-[15px] font-bold text-gray-500">見送り</p>
+            <p className="mt-1 text-[13px] text-gray-400">この案件への応募は見送りとなりました</p>
+          </div>
+        ) : showApplyForm ? (
           <div className="flex flex-col gap-3">
             <textarea
               value={message}

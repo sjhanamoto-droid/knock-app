@@ -276,7 +276,10 @@ export async function acceptApplication(applicationId: string) {
       });
     }
 
-    return application;
+    return {
+      ...application,
+      factoryFloorId: application.jobPosting.factoryFloorId,
+    };
   });
 }
 

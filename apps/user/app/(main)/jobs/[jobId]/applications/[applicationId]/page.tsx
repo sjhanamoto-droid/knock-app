@@ -62,8 +62,13 @@ export default function ApplicationDetailPage() {
     setActionLoading(true);
     try {
       if (confirmAction === "accept") {
-        await acceptApplication(applicationId);
+        const result = await acceptApplication(applicationId);
         toast("採用しました");
+        // 注文書作成フローへ遷移
+        if (result?.factoryFloorId) {
+          router.push(`/sites/${result.factoryFloorId}/order/confirm`);
+          return;
+        }
       } else {
         await rejectApplication(applicationId);
         toast("見送りしました");

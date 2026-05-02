@@ -121,7 +121,7 @@ export async function searchJobs(filters?: {
  * 案件詳細を取得
  */
 export async function getJobDetail(jobId: string) {
-  await requireSession();
+  const user = await requireSession();
 
   const job = await prisma.jobPosting.findFirst({
     where: {
@@ -178,9 +178,32 @@ export async function getJobDetail(jobId: string) {
 
   if (!job) throw new Error("案件が見つかりません");
 
+  // 自社の応募状況を取得
+  const myApplication = await prisma.jobApplication.findFirst({
+    where: {
+      jobPostingId: jobId,
+      companyId: user.companyId,
+    },
+    select: {
+      id: true,
+      status: true,
+      jobPosting: {
+        select: { factoryFloorId: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   return {
     ...job,
     compensationAmount: job.compensationAmount ? Number(job.compensationAmount) : null,
+    myApplication: myApplication
+      ? {
+          id: myApplication.id,
+          status: myApplication.status,
+          factoryFloorId: myApplication.jobPosting.factoryFloorId,
+        }
+      : null,
   };
 }
 
