@@ -66,6 +66,7 @@ export default function EditProfilePage() {
     workEligibility: "" as string,
     tradeName: "",
     workersCompInsurance: "" as string,
+    bio: "",
   });
 
   // Qualification state
@@ -95,6 +96,7 @@ export default function EditProfilePage() {
                 : profile.workersCompInsurance === false
                 ? "false"
                 : "",
+            bio: profile.bio ?? "",
           });
           setAvatarPreview(profile.avatar ?? null);
           setSelectedQualIds(
@@ -146,6 +148,7 @@ export default function EditProfilePage() {
               : formData.workersCompInsurance === "false"
               ? false
               : null,
+          bio: formData.bio || null,
         }),
         saveUserQualifications(selectedQualIds),
       ]);
@@ -508,6 +511,22 @@ export default function EditProfilePage() {
                   <option value="true">加入している</option>
                   <option value="false">加入していない</option>
                 </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">
+                  自己紹介
+                </label>
+                <textarea
+                  value={formData.bio}
+                  onChange={(e) => set("bio", e.target.value)}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="経歴や得意分野など自由にご記入ください"
+                  className={inputCls + " resize-none"}
+                />
+                <p className="mt-1 text-right text-[11px] text-gray-400">
+                  {formData.bio.length}/500
+                </p>
               </div>
             </div>
           </div>
