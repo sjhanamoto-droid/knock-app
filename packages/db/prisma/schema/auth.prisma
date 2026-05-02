@@ -100,6 +100,11 @@ model Company {
   constructionPermit    ConstructionPermit?          // 建設業許可証
   invoiceRegistration   InvoiceRegistrationStatus?   // インボイス登録状態
 
+  // 請求設定
+  billingClosingDay     Int?                          // 締め日（1-28, null=月末）
+  billingGraceDays      Int?          @default(5)     // 猶予日数
+  paymentDueType        PaymentDueType?               // 支払期日タイプ
+
   // 受入可否
   isAcceptingWork       Boolean       @default(true)
 

@@ -59,6 +59,14 @@ const bankAccountTypeLabels: Record<string, string> = {
   CURRENT: "当座",
 };
 
+const paymentDueTypeLabels: Record<string, string> = {
+  NEXT_MONTH_END: "翌月末",
+  NEXT_MONTH_25: "翌月25日",
+  NEXT_MONTH_20: "翌月20日",
+  NEXT_MONTH_15: "翌月15日",
+  TWO_MONTHS_END: "翌々月末",
+};
+
 type Profile = Awaited<ReturnType<typeof getProfile>>;
 type TrustScoreData = Awaited<ReturnType<typeof getTrustScore>>;
 
@@ -512,6 +520,37 @@ export default function MyPage() {
               <FieldRow label="口座番号" value={profile.company?.bankAccountNumber || null} />
               <FieldRow label="口座名義" value={profile.company?.bankAccountName || null} />
             </SectionCard>
+
+            {/* ─── 請求設定 ─── */}
+            <SectionCard
+              title="請求設定"
+              editHref="/mypage/company?section=billing"
+            >
+              <FieldRow
+                label="締め日"
+                value={
+                  profile.company?.billingClosingDay
+                    ? `毎月${profile.company.billingClosingDay}日`
+                    : profile.company?.paymentDueType ? "月末" : null
+                }
+              />
+              <FieldRow
+                label="猶予日数"
+                value={
+                  profile.company?.billingGraceDays != null
+                    ? `${profile.company.billingGraceDays}日`
+                    : null
+                }
+              />
+              <FieldRow
+                label="支払期日"
+                value={
+                  profile.company?.paymentDueType
+                    ? paymentDueTypeLabels[profile.company.paymentDueType]
+                    : null
+                }
+              />
+            </SectionCard>
           </>
         )}
 
@@ -525,6 +564,7 @@ export default function MyPage() {
                   : []),
                 { href: "/mypage/trust-score", label: "信用スコア詳細" },
                 { href: "/documents", label: "帳票管理" },
+                { href: "/billing", label: "請求書管理" },
                 { href: "/members", label: "メンバー管理" },
                 { href: "/templates", label: "テンプレート管理" },
                 { href: "/notifications", label: "通知一覧" },

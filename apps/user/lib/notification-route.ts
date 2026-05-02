@@ -34,6 +34,11 @@ export function getNotificationRoute(type: number, targetId: string | null): str
     // V2: 信用スコア・認証
     case 29: return `/mypage/trust-score`;             // スコア更新
     case 30: return `/documents/${targetId}`;          // 納品書発行 → 帳票確認へ
+    // V2: 請求書
+    case 40: return `/billing`;                    // 請求書ドラフト生成 → 請求書一覧
+    case 41: return `/billing/${targetId}`;        // 請求書確定通知 → 請求書詳細
+    case 42: return `/billing`;                    // 支払期日リマインド → 請求書一覧
+    case 43: return `/billing/${targetId}`;        // 支払い完了通知 → 請求書詳細
     default: return null;
   }
 }

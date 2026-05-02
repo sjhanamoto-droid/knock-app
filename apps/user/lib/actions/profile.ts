@@ -65,6 +65,10 @@ export async function getProfile() {
           constructionPermit: true,
           invoiceRegistration: true,
           socialInsurance: true,
+          // 請求設定
+          billingClosingDay: true,
+          billingGraceDays: true,
+          paymentDueType: true,
           registrationStep: true,
           insurances: { select: { type: true } },
           areas: {
@@ -259,6 +263,10 @@ export async function updateCompany(data: {
   constructionPermit?: "NONE" | "MLIT_GENERAL" | "MLIT_SPECIAL" | "GOVERNOR_GENERAL" | "GOVERNOR_SPECIAL" | null;
   invoiceRegistration?: "NOT_ENTERED" | "NOT_REGISTERED" | "REGISTERED" | null;
   socialInsurance?: boolean | null;
+  // 請求設定
+  billingClosingDay?: number | null;
+  billingGraceDays?: number | null;
+  paymentDueType?: "NEXT_MONTH_END" | "NEXT_MONTH_25" | "NEXT_MONTH_20" | "NEXT_MONTH_15" | "TWO_MONTHS_END" | null;
 }) {
   const user = await requireSession();
 

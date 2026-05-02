@@ -211,3 +211,13 @@ enum WorkforceCapacity {
   THIRTY_ONE_TO_FIFTY  // 31〜50人
   FIFTY_PLUS           // 51人〜
 }
+
+// ============ 請求設定 Enums ============
+
+enum PaymentDueType {
+  NEXT_MONTH_END       // 翌月末
+  NEXT_MONTH_25        // 翌月25日
+  NEXT_MONTH_20        // 翌月20日
+  NEXT_MONTH_15        // 翌月15日
+  TWO_MONTHS_END       // 翌々月末
+}

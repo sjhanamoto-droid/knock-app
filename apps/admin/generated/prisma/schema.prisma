@@ -88,6 +88,7 @@ model User {
   workEligibility      WorkEligibility?
   tradeName            String? // 屋号
   workersCompInsurance Boolean? // 労災加入
+  bio                  String? // 自己紹介
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -162,6 +163,11 @@ model Company {
   workforceCapacity   WorkforceCapacity? // 稼働可能人数
   constructionPermit  ConstructionPermit? // 建設業許可証
   invoiceRegistration InvoiceRegistrationStatus? // インボイス登録状態
+
+  // 請求設定
+  billingClosingDay Int? // 締め日（1-28, null=月末）
+  billingGraceDays  Int?            @default(5) // 猶予日数
+  paymentDueType    PaymentDueType? // 支払期日タイプ
 
   // 受入可否
   isAcceptingWork Boolean @default(true)
@@ -529,6 +535,16 @@ enum WorkforceCapacity {
   FIFTY_PLUS // 51人〜
 }
 
+// ============ 請求設定 Enums ============
+
+enum PaymentDueType {
+  NEXT_MONTH_END // 翌月末
+  NEXT_MONTH_25 // 翌月25日
+  NEXT_MONTH_20 // 翌月20日
+  NEXT_MONTH_15 // 翌月15日
+  TWO_MONTHS_END // 翌々月末
+}
+
 // ============ Billing ============
 
 model BillingRequest {
@@ -825,6 +841,8 @@ model Document {
   issuedAt            DateTime? // 発行日
   confirmedAt         DateTime? // 確認日
   yearMonth           String?           @db.Char(6) // YYYYMM（請求書の対象月）
+  dueDate             DateTime? // 支払期日
+  autoConfirmedAt     DateTime? // 自動確定日時
   metadata            Json? // 帳票固有の追加データ
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt

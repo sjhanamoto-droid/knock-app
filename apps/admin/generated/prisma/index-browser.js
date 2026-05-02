@@ -185,6 +185,7 @@ exports.Prisma.UserScalarFieldEnum = {
   workEligibility: 'workEligibility',
   tradeName: 'tradeName',
   workersCompInsurance: 'workersCompInsurance',
+  bio: 'bio',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   deletedAt: 'deletedAt'
@@ -225,6 +226,9 @@ exports.Prisma.CompanyScalarFieldEnum = {
   workforceCapacity: 'workforceCapacity',
   constructionPermit: 'constructionPermit',
   invoiceRegistration: 'invoiceRegistration',
+  billingClosingDay: 'billingClosingDay',
+  billingGraceDays: 'billingGraceDays',
+  paymentDueType: 'paymentDueType',
   isAcceptingWork: 'isAcceptingWork',
   selfIntro: 'selfIntro',
   yearsOfExperience: 'yearsOfExperience',
@@ -525,6 +529,8 @@ exports.Prisma.DocumentScalarFieldEnum = {
   issuedAt: 'issuedAt',
   confirmedAt: 'confirmedAt',
   yearMonth: 'yearMonth',
+  dueDate: 'dueDate',
+  autoConfirmedAt: 'autoConfirmedAt',
   metadata: 'metadata',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -903,6 +909,14 @@ exports.InvoiceRegistrationStatus = exports.$Enums.InvoiceRegistrationStatus = {
   NOT_ENTERED: 'NOT_ENTERED',
   NOT_REGISTERED: 'NOT_REGISTERED',
   REGISTERED: 'REGISTERED'
+};
+
+exports.PaymentDueType = exports.$Enums.PaymentDueType = {
+  NEXT_MONTH_END: 'NEXT_MONTH_END',
+  NEXT_MONTH_25: 'NEXT_MONTH_25',
+  NEXT_MONTH_20: 'NEXT_MONTH_20',
+  NEXT_MONTH_15: 'NEXT_MONTH_15',
+  TWO_MONTHS_END: 'TWO_MONTHS_END'
 };
 
 exports.PlanType = exports.$Enums.PlanType = {

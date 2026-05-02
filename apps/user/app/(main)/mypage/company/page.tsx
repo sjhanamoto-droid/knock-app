@@ -72,6 +72,7 @@ export default function CompanyEditPage() {
   const showOrder = !section || section === "order";
   const showLicense = !section || section === "license";
   const showBank = !section || section === "bank";
+  const showBilling = !section || section === "billing";
   const { accentColor } = useMode();
 
   const [profile, setProfile] = useState<Profile>(null);
@@ -130,6 +131,13 @@ export default function CompanyEditPage() {
   const [savingLicense, setSavingLicense] = useState(false);
   const [licenseSaved, setLicenseSaved] = useState(false);
 
+  // 請求設定 state
+  const [billingClosingDay, setBillingClosingDay] = useState("");
+  const [billingGraceDays, setBillingGraceDays] = useState("5");
+  const [paymentDueType, setPaymentDueType] = useState("");
+  const [savingBilling, setSavingBilling] = useState(false);
+  const [billingSaved, setBillingSaved] = useState(false);
+
   useEffect(() => {
     getProfile()
       .then((p) => {
@@ -169,6 +177,10 @@ export default function CompanyEditPage() {
           c.socialInsurance === true ? "true" : c.socialInsurance === false ? "false" : ""
         );
         setSelectedInsurances(c.insurances?.map((i) => i.type) ?? []);
+        // 請求設定
+        setBillingClosingDay(c.billingClosingDay?.toString() ?? "");
+        setBillingGraceDays(c.billingGraceDays?.toString() ?? "5");
+        setPaymentDueType(c.paymentDueType ?? "");
         setLoading(false);
       })
       .catch((err) => {
@@ -290,7 +302,7 @@ export default function CompanyEditPage() {
           </button>
           <div className="flex flex-col items-center gap-0.5">
             <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
-              {section === "info" ? "会社情報編集" : section === "order" ? "受発注情報編集" : section === "license" ? "許可証・保険編集" : section === "bank" ? "振込先口座編集" : "会社情報編集"}
+              {section === "info" ? "会社情報編集" : section === "order" ? "受発注情報編集" : section === "license" ? "許可証・保険編集" : section === "bank" ? "振込先口座編集" : section === "billing" ? "請求設定編集" : "会社情報編集"}
             </h1>
             <WavyUnderline color={accentColor} />
           </div>
@@ -652,6 +664,85 @@ export default function CompanyEditPage() {
             className="mt-4 w-full rounded-xl bg-knock-orange py-3.5 text-[15px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
           >
             {savingLicense ? "保存中..." : licenseSaved ? "保存しました" : "許可証・保険を保存"}
+          </button>
+        </div>
+        )}
+
+        {/* 請求設定 */}
+        {showBilling && (
+        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+          <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">
+            請求設定
+          </h3>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">締め日</label>
+              <select
+                value={billingClosingDay}
+                onChange={(e) => setBillingClosingDay(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">月末</option>
+                <option value="25">25日</option>
+                <option value="20">20日</option>
+                <option value="15">15日</option>
+                <option value="10">10日</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">猶予日数</label>
+              <select
+                value={billingGraceDays}
+                onChange={(e) => setBillingGraceDays(e.target.value)}
+                className={inputCls}
+              >
+                <option value="3">3日</option>
+                <option value="5">5日</option>
+                <option value="7">7日</option>
+                <option value="10">10日</option>
+              </select>
+              <p className="mt-1 text-[11px] text-gray-400">締め日後、請求書の確定までの猶予期間</p>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">支払期日</label>
+              <select
+                value={paymentDueType}
+                onChange={(e) => setPaymentDueType(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">未選択</option>
+                <option value="NEXT_MONTH_END">翌月末</option>
+                <option value="NEXT_MONTH_25">翌月25日</option>
+                <option value="NEXT_MONTH_20">翌月20日</option>
+                <option value="NEXT_MONTH_15">翌月15日</option>
+                <option value="TWO_MONTHS_END">翌々月末</option>
+              </select>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              setSavingBilling(true);
+              setBillingSaved(false);
+              try {
+                await updateCompany({
+                  billingClosingDay: billingClosingDay ? parseInt(billingClosingDay) : null,
+                  billingGraceDays: billingGraceDays ? parseInt(billingGraceDays) : null,
+                  paymentDueType:
+                    (paymentDueType as "NEXT_MONTH_END" | "NEXT_MONTH_25" | "NEXT_MONTH_20" | "NEXT_MONTH_15" | "TWO_MONTHS_END") || null,
+                });
+                setBillingSaved(true);
+                setTimeout(() => router.push("/mypage?tab=business"), 1500);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "請求設定の保存に失敗しました");
+              } finally {
+                setSavingBilling(false);
+              }
+            }}
+            disabled={savingBilling}
+            className="mt-4 w-full rounded-xl bg-knock-orange py-3.5 text-[15px] font-bold text-white shadow-sm transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            {savingBilling ? "保存中..." : billingSaved ? "保存しました" : "請求設定を保存"}
           </button>
         </div>
         )}

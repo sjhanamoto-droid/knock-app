@@ -19,6 +19,8 @@ model Document {
   issuedAt            DateTime?          // 発行日
   confirmedAt         DateTime?          // 確認日
   yearMonth           String?            @db.Char(6)  // YYYYMM（請求書の対象月）
+  dueDate             DateTime?          // 支払期日
+  autoConfirmedAt     DateTime?          // 自動確定日時
   metadata            Json?              // 帳票固有の追加データ
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
