@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   getApplicationDetail,
   acceptApplication,
@@ -215,6 +216,17 @@ export default function ApplicationDetailPage() {
               </div>
             )}
           </div>
+
+          {/* 詳細を見るボタン */}
+          <Link
+            href={`/search/${app.company.id}`}
+            className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2.5 text-[13px] font-bold text-gray-600 transition-all active:scale-[0.98] active:bg-gray-50"
+          >
+            詳細を見る
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
+              <path d="M8 4L14 10L8 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
         </div>
 
         {/* 応募メッセージ */}
