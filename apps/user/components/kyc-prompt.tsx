@@ -32,6 +32,8 @@ export default function KycPrompt() {
         ? "個人情報の登録"
         : "登録の完了";
 
+  const href = step === 1 ? "/mypage/company" : "/mypage/edit";
+
   return (
     <div className="mx-4 mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
       <p className="text-[13px] font-bold text-amber-800">
@@ -41,7 +43,7 @@ export default function KycPrompt() {
         案件への応募や発注を行うには、{stepLabel}が必要です。
       </p>
       <Link
-        href="/settings/profile"
+        href={href}
         className="mt-2 inline-block rounded-lg bg-amber-600 px-4 py-2 text-[12px] font-bold text-white"
       >
         登録を続ける
