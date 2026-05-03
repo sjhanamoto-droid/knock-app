@@ -109,8 +109,10 @@ export default function ChatRoomPage() {
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       if (!res.ok) throw new Error("Upload failed");
 
-      const { url } = await res.json();
-      const newMsg = await sendFileMessage(params.roomId as string, url, file.name);
+      const result = await res.json();
+      const fileUrl = result.url ?? result.urls?.[0];
+      if (!fileUrl) throw new Error("Upload failed: no URL returned");
+      const newMsg = await sendFileMessage(params.roomId as string, fileUrl, file.name);
       setData((prev) =>
         prev ? { ...prev, messages: [...prev.messages, newMsg as Message] } : prev
       );
@@ -320,7 +322,7 @@ export default function ChatRoomPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-80px)] flex-col">
+    <div className="flex h-[calc(100dvh-80px)] w-full max-w-full flex-col overflow-x-hidden">
       {/* Header */}
       <header className="shrink-0 border-b border-gray-100 bg-white">
         <div className="flex items-center gap-3 px-4 py-3">

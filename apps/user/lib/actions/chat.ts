@@ -212,7 +212,7 @@ export async function getNewMessages(roomId: string, afterId: string) {
 export async function sendFileMessage(roomId: string, fileUrl: string, fileName: string) {
   const user = await requireSession();
 
-  if (!fileUrl || !fileUrl.startsWith("/uploads/")) {
+  if (!fileUrl) {
     throw new Error("無効なファイルURLです");
   }
 
