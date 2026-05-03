@@ -32,6 +32,15 @@ const PREFECTURES = [
   "茨城県",
 ];
 
+const PREFECTURE_CENTERS: Record<string, { lng: number; lat: number; zoom: number }> = {
+  "東京都": { lng: 139.6917, lat: 35.6895, zoom: 11 },
+  "千葉県": { lng: 140.1233, lat: 35.6047, zoom: 10 },
+  "埼玉県": { lng: 139.6489, lat: 35.8617, zoom: 10 },
+  "神奈川県": { lng: 139.6425, lat: 35.4478, zoom: 10 },
+  "栃木県": { lng: 139.8836, lat: 36.5657, zoom: 9 },
+  "茨城県": { lng: 140.4468, lat: 36.3418, zoom: 9 },
+};
+
 /* ──────────── Icons ──────────── */
 
 function MenuIcon() {
@@ -151,6 +160,7 @@ export default function JobsPage() {
   const [prefecture, setPrefecture] = useState("");
   const [occupations, setOccupations] = useState<OccupationOption[]>([]);
   const [jobPins, setJobPins] = useState<JobPin[]>([]);
+  const [mapFlyTo, setMapFlyTo] = useState<{ lng: number; lat: number; zoom?: number } | null>(null);
   const [mapLoading, setMapLoading] = useState(false);
 
   useEffect(() => {
@@ -300,7 +310,13 @@ export default function JobsPage() {
           )}
           <select
             value={prefecture}
-            onChange={(e) => setPrefecture(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setPrefecture(val);
+              if (viewMode === "map" && val && PREFECTURE_CENTERS[val]) {
+                setMapFlyTo({ ...PREFECTURE_CENTERS[val] });
+              }
+            }}
             className="flex-1 rounded-xl border-none bg-[#F0F0F0] px-3 py-2.5 text-[13px] text-knock-text outline-none"
           >
             <option value="">都道府県</option>
@@ -323,6 +339,7 @@ export default function JobsPage() {
               onSelectJob={(id) => {
                 window.location.href = `/jobs/${id}`;
               }}
+              flyTo={mapFlyTo}
             />
           </div>
         )}

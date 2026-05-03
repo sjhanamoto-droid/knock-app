@@ -12,6 +12,27 @@ function serializeBigInt<T>(obj: T): T {
   );
 }
 
+/** 住所文字列から緯度経度を取得（Mapbox Geocoding API） */
+async function geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
+  if (!address.trim()) return null;
+  try {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) return null;
+    const res = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${token}&country=jp&limit=1`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.features && data.features.length > 0) {
+      const [lng, lat] = data.features[0].center;
+      return { latitude: lat, longitude: lng };
+    }
+  } catch {
+    // ジオコーディング失敗は無視
+  }
+  return null;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toBigIntOrNull(v: any): bigint | null {
   if (v === "" || v == null) return null;
@@ -220,6 +241,22 @@ export async function createSite(data: CreateFactoryFloorInput & {
 }) {
   const user = await requireSession();
 
+  // ジオコーディング（トランザクション外で実行）
+  const geo = data.address ? await geocodeAddress(data.address) : null;
+
+  // 子現場のジオコーディング（親と異なる住所の場合のみ）
+  const childGeos: (typeof geo)[] = [];
+  if (data.children) {
+    for (const child of data.children) {
+      const childAddr = child.address || data.address || null;
+      if (childAddr && childAddr !== data.address) {
+        childGeos.push(await geocodeAddress(childAddr));
+      } else {
+        childGeos.push(geo); // 親と同じ住所なら親のジオコーディング結果を再利用
+      }
+    }
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     // 1. 現場レコード作成
     const site = await tx.factoryFloor.create({
@@ -243,6 +280,8 @@ export async function createSite(data: CreateFactoryFloorInput & {
         paymentLatterDay: toNumberOrNull(data.paymentLatterDay),
         parentId: data.parentId || null,
         budget: toBigIntOrNull(data.budget),
+        latitude: geo?.latitude ?? null,
+        longitude: geo?.longitude ?? null,
       },
     });
 
@@ -299,7 +338,9 @@ export async function createSite(data: CreateFactoryFloorInput & {
 
     // 7. 子現場の一括作成（親現場作成時）
     if (data.children && data.children.length > 0) {
-      for (const child of data.children) {
+      for (let ci = 0; ci < data.children.length; ci++) {
+        const child = data.children[ci];
+        const childGeo = childGeos[ci];
         const childSite = await tx.factoryFloor.create({
           data: {
             createdUserId: user.id,
@@ -313,6 +354,8 @@ export async function createSite(data: CreateFactoryFloorInput & {
             startDayRequest: child.startDayRequest ? new Date(child.startDayRequest) : null,
             endDayRequest: child.endDayRequest ? new Date(child.endDayRequest) : null,
             totalAmount: toBigIntOrNull(child.totalAmount),
+            latitude: childGeo?.latitude ?? null,
+            longitude: childGeo?.longitude ?? null,
           },
         });
         // 工種
@@ -398,6 +441,24 @@ export async function updateSite(
   });
   if (!existing) throw new Error("現場が見つかりません");
 
+  // 住所が変更された場合はジオコーディング（トランザクション外で実行）
+  const geoUpdate = data.address && data.address !== existing.address
+    ? await geocodeAddress(data.address)
+    : undefined;
+
+  // 子現場のジオコーディング
+  const updateChildGeos: ({ latitude: number; longitude: number } | null)[] = [];
+  if (data.children) {
+    for (const child of data.children) {
+      const childAddr = child.address || data.address || existing.address || null;
+      if (childAddr) {
+        updateChildGeos.push(await geocodeAddress(childAddr));
+      } else {
+        updateChildGeos.push(null);
+      }
+    }
+  }
+
   const result = await prisma.$transaction(async (tx) => {
     // 1. スカラーフィールド更新
     const site = await tx.factoryFloor.update({
@@ -418,6 +479,7 @@ export async function updateSite(
         paymentLatterMonth: toNumberOrNull(data.paymentLatterMonth) ?? undefined,
         paymentLatterDay: toNumberOrNull(data.paymentLatterDay) ?? undefined,
         budget: toBigIntOrNull(data.budget) ?? undefined,
+        ...(geoUpdate ? { latitude: geoUpdate.latitude, longitude: geoUpdate.longitude } : {}),
       },
     });
 
@@ -521,7 +583,9 @@ export async function updateSite(
 
     // 8. 子現場の追加（プロジェクト編集時）
     if (data.children && data.children.length > 0) {
-      for (const child of data.children) {
+      for (let ci = 0; ci < data.children.length; ci++) {
+        const child = data.children[ci];
+        const childGeo = updateChildGeos[ci];
         const childSite = await tx.factoryFloor.create({
           data: {
             createdUserId: user.id,
@@ -535,6 +599,8 @@ export async function updateSite(
             startDayRequest: child.startDayRequest ? new Date(child.startDayRequest) : null,
             endDayRequest: child.endDayRequest ? new Date(child.endDayRequest) : null,
             totalAmount: toBigIntOrNull(child.totalAmount),
+            latitude: childGeo?.latitude ?? null,
+            longitude: childGeo?.longitude ?? null,
           },
         });
         // 工種
@@ -653,6 +719,8 @@ export async function duplicateSite(id: string) {
         paymentType: original.paymentType,
         paymentLatterMonth: original.paymentLatterMonth,
         paymentLatterDay: original.paymentLatterDay,
+        latitude: original.latitude,
+        longitude: original.longitude,
       },
     });
 
