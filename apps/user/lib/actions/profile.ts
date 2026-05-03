@@ -312,20 +312,12 @@ export async function updateCompany(data: {
     }
   }
 
-  const updated = await prisma.company.update({
+  await prisma.company.update({
     where: { id: user.companyId },
     data: updateData,
   });
 
-  return {
-    ...updated,
-    latitude: updated.latitude ? Number(updated.latitude) : null,
-    longitude: updated.longitude ? Number(updated.longitude) : null,
-    contractApprovedDate: updated.contractApprovedDate?.toISOString() ?? null,
-    createdAt: updated.createdAt.toISOString(),
-    updatedAt: updated.updatedAt.toISOString(),
-    deletedAt: updated.deletedAt?.toISOString() ?? null,
-  };
+  return { success: true };
 }
 
 // ============ プロフィール強化: 資格・保険 ============
