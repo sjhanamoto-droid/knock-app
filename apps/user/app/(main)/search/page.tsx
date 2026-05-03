@@ -34,6 +34,15 @@ const PREFECTURES = [
   "茨城県",
 ] as const;
 
+const PREFECTURE_CENTERS: Record<string, { lng: number; lat: number; zoom: number }> = {
+  "東京都": { lng: 139.6917, lat: 35.6895, zoom: 11 },
+  "千葉県": { lng: 140.1233, lat: 35.6047, zoom: 10 },
+  "埼玉県": { lng: 139.6489, lat: 35.8617, zoom: 10 },
+  "神奈川県": { lng: 139.6425, lat: 35.4478, zoom: 10 },
+  "栃木県": { lng: 139.8836, lat: 36.5657, zoom: 9 },
+  "茨城県": { lng: 140.4468, lat: 36.3418, zoom: 9 },
+};
+
 /* ─── Icons ─── */
 
 function MenuIcon() {
@@ -391,6 +400,10 @@ export default function SearchPage() {
   function handlePrefectureSelect(pref: string | null) {
     setSelectedPrefecture(pref);
     applyFilters({ prefecture: pref });
+    // マップモード時は選択した都道府県の中心に移動
+    if (viewMode === "map" && pref && PREFECTURE_CENTERS[pref]) {
+      setMapFlyTo({ ...PREFECTURE_CENTERS[pref] });
+    }
   }
 
   async function handleAddressSearch(query: string) {
