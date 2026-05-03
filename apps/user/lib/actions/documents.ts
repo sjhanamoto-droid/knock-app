@@ -9,6 +9,7 @@ import { requireSession } from "@/lib/session";
 export async function getDocuments(filters?: {
   type?: "ORDER_SHEET" | "DELIVERY_NOTE" | "INVOICE";
   yearMonth?: string;
+  counterpartyCompanyId?: string;
   page?: number;
   limit?: number;
 }) {
@@ -17,7 +18,8 @@ export async function getDocuments(filters?: {
   const limit = filters?.limit ?? 20;
   const skip = (page - 1) * limit;
 
-  const where: Record<string, unknown> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
     deletedAt: null,
     OR: [
       { orderCompanyId: user.companyId },
@@ -27,6 +29,18 @@ export async function getDocuments(filters?: {
 
   if (filters?.type) {
     where.type = filters.type;
+  }
+
+  if (filters?.counterpartyCompanyId) {
+    // 取引先フィルター: 自社が発注者の場合は受注者で絞り込み、逆も
+    where.AND = [
+      {
+        OR: [
+          { orderCompanyId: filters.counterpartyCompanyId },
+          { workerCompanyId: filters.counterpartyCompanyId },
+        ],
+      },
+    ];
   }
 
   if (filters?.yearMonth) {
@@ -128,4 +142,40 @@ export async function getDocumentDetail(documentId: string) {
     taxAmount: document.taxAmount ? Number(document.taxAmount) : null,
     totalAmount: document.totalAmount ? Number(document.totalAmount) : null,
   };
+}
+
+/**
+ * 帳票の取引先（会社）一覧を取得
+ */
+export async function getDocumentCounterparties() {
+  const user = await requireSession();
+
+  const documents = await prisma.document.findMany({
+    where: {
+      deletedAt: null,
+      OR: [
+        { orderCompanyId: user.companyId },
+        { workerCompanyId: user.companyId },
+      ],
+    },
+    select: {
+      orderCompanyId: true,
+      workerCompanyId: true,
+      orderCompany: { select: { id: true, name: true } },
+      workerCompany: { select: { id: true, name: true } },
+    },
+  });
+
+  // 自社以外の取引先をユニークに抽出
+  const map = new Map<string, string>();
+  for (const doc of documents) {
+    if (doc.orderCompanyId !== user.companyId) {
+      map.set(doc.orderCompanyId, doc.orderCompany.name ?? "");
+    }
+    if (doc.workerCompanyId !== user.companyId) {
+      map.set(doc.workerCompanyId, doc.workerCompany.name ?? "");
+    }
+  }
+
+  return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
 }

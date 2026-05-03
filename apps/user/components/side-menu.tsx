@@ -13,38 +13,45 @@ interface SideMenuProps {
   companyName?: string;
 }
 
-const menuItems = [
-  { href: "/", label: "ホーム", icon: "home" },
-  { href: "/sites", label: "現場一覧", icon: "site" },
-  { href: "/chat", label: "チャット", icon: "chat" },
-  { href: "/orders", label: "発注一覧", icon: "order" },
-  { href: "/members", label: "メンバー管理", icon: "member" },
-  { href: "/templates", label: "テンプレート", icon: "template" },
-  { href: "/notifications", label: "通知", icon: "bell" },
-  { href: "/mypage", label: "マイページ", icon: "user" },
-] as const;
+type MenuSection = {
+  label: string;
+  items: { href: string; label: string; icon: string }[];
+};
+
+const MENU_SECTIONS: MenuSection[] = [
+  {
+    label: "帳票",
+    items: [
+      { href: "/documents?type=ORDER_SHEET", label: "注文書", icon: "order" },
+      { href: "/documents?type=DELIVERY_NOTE", label: "納品書", icon: "delivery" },
+      { href: "/documents?type=INVOICE", label: "請求書", icon: "invoice" },
+    ],
+  },
+  {
+    label: "設定",
+    items: [
+      { href: "/mypage/plan", label: "契約情報", icon: "plan" },
+    ],
+  },
+  {
+    label: "利用方法",
+    items: [
+      { href: "/manual", label: "マニュアル", icon: "manual" },
+      { href: "/contact", label: "問い合わせ", icon: "contact" },
+    ],
+  },
+  {
+    label: "その他",
+    items: [
+      { href: "/terms", label: "利用規約", icon: "terms" },
+      { href: "/privacy", label: "プライバシーポリシー", icon: "privacy" },
+      { href: "/legal", label: "特定商取引に基づく表記", icon: "legal" },
+    ],
+  },
+];
 
 function MenuItemIcon({ type }: { type: string }) {
   switch (type) {
-    case "home":
-      return (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M3 8.5L10 3L17 8.5V16C17 16.55 16.55 17 16 17H12.5V11.5H7.5V17H4C3.45 17 3 16.55 3 16V8.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    case "site":
-      return (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <rect x="3" y="7" width="14" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M7 7V5C7 3.895 7.895 3 9 3H11C12.105 3 13 3.895 13 5V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-      );
-    case "chat":
-      return (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M17 10C17 13.314 13.866 16 10 16C8.82 16 7.71 15.765 6.725 15.34L3 16L4.07 13.06C3.394 12.03 3 10.854 3 10C3 6.686 6.134 4 10 4C13.866 4 17 6.686 17 10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
     case "order":
       return (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -52,31 +59,66 @@ function MenuItemIcon({ type }: { type: string }) {
           <path d="M7 7H13M7 10H13M7 13H10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
       );
-    case "member":
+    case "delivery":
       return (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M4 17C4 14.239 6.686 12 10 12C13.314 12 16 14.239 16 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <rect x="4" y="3" width="12" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M7 10L9 12L13 8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
-    case "template":
+    case "invoice":
       return (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M6 7H14M6 10H14M6 13H10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <rect x="4" y="3" width="12" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M7 7H10M7 10H13" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path d="M10 13L12 15L16 11" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
-    case "bell":
+    case "plan":
       return (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <path d="M8 15C8 16.1 8.9 17 10 17C11.1 17 12 16.1 12 15M15 10C15 7.24 12.76 5 10 5C7.24 5 5 7.24 5 10V13L3.5 15H16.5L15 13V10Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <rect x="3" y="5" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M3 9H17" stroke="currentColor" strokeWidth="1.3" />
+          <path d="M7 12H10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
       );
-    case "user":
+    case "manual":
       return (
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="7" r="3" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M4 17C4 14.239 6.686 12 10 12C13.314 12 16 14.239 16 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M3 4C3 3.45 3.45 3 4 3H8C9.1 3 10 3.9 10 5V17C10 16.45 9.55 16 9 16H4C3.45 16 3 15.55 3 15V4Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M17 4C17 3.45 16.55 3 16 3H12C10.9 3 10 3.9 10 5V17C10 16.45 10.45 16 11 16H16C16.55 16 17 15.55 17 15V4Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        </svg>
+      );
+    case "contact":
+      return (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="3" y="4" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M3 7L10 11L17 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "terms":
+      return (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 3L16 6V10C16 13.5 13.5 16.5 10 17.5C6.5 16.5 4 13.5 4 10V6L10 3Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M7.5 10L9 11.5L12.5 8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "privacy":
+      return (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="6" y="9" width="8" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M7.5 9V7C7.5 5.067 9.067 3.5 10 3.5C10.933 3.5 12.5 5.067 12.5 7V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <circle cx="10" cy="12.5" r="1" fill="currentColor" />
+        </svg>
+      );
+    case "legal":
+      return (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M10 3V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M4 7L10 4L16 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4 7C4 7 3 10 4 11C5 12 7 12 7 11C7 10 6 7 6 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path d="M14 7C14 7 13 10 14 11C15 12 17 12 17 11C17 10 16 7 16 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <path d="M7 17H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       );
     default:
@@ -223,20 +265,32 @@ export function SideMenu({ open, onClose, userName, companyName }: SideMenuProps
           </div>
         )}
 
-        {/* Menu Items */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className="flex items-center gap-3.5 rounded-xl px-3 py-3 text-gray-700 transition-colors active:bg-gray-100"
-            >
-              <span className="text-gray-500">
-                <MenuItemIcon type={item.icon} />
-              </span>
-              <span className="text-[14px] font-medium">{item.label}</span>
-            </Link>
+        {/* Menu Sections */}
+        <nav className="flex-1 overflow-y-auto px-3 py-2">
+          {MENU_SECTIONS.map((section, si) => (
+            <div key={section.label}>
+              {/* Section label */}
+              <p className="mt-3 mb-1 px-3 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                {section.label}
+              </p>
+              {section.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onClose}
+                  className="flex items-center gap-3.5 rounded-xl px-3 py-2.5 text-gray-700 transition-colors active:bg-gray-100"
+                >
+                  <span className="text-gray-500">
+                    <MenuItemIcon type={item.icon} />
+                  </span>
+                  <span className="text-[14px] font-medium">{item.label}</span>
+                </Link>
+              ))}
+              {/* Divider between sections */}
+              {si < MENU_SECTIONS.length - 1 && (
+                <div className="mx-3 my-2 border-t border-gray-100" />
+              )}
+            </div>
           ))}
         </nav>
 

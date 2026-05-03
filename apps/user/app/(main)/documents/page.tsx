@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { SideMenu } from "@/components/side-menu";
-import { getDocuments } from "@/lib/actions/documents";
+import { getDocuments, getDocumentCounterparties } from "@/lib/actions/documents";
 import { getInvoiceCandidates, generateMonthlyInvoice } from "@/lib/actions/invoices";
 import {
   documentTypeLabels,
@@ -16,6 +17,7 @@ import { formatCurrency } from "@knock/utils";
 type DocumentFilter = "all" | "ORDER_SHEET" | "DELIVERY_NOTE" | "INVOICE";
 type DocListResult = Awaited<ReturnType<typeof getDocuments>>;
 type InvoiceCandidates = Awaited<ReturnType<typeof getInvoiceCandidates>>;
+type Counterparty = { id: string; name: string };
 
 const FILTER_TABS: { value: DocumentFilter; label: string }[] = [
   { value: "all", label: "全て" },
@@ -23,6 +25,12 @@ const FILTER_TABS: { value: DocumentFilter; label: string }[] = [
   { value: "DELIVERY_NOTE", label: "納品書" },
   { value: "INVOICE", label: "請求書" },
 ];
+
+const TYPE_TITLE_MAP: Record<string, string> = {
+  ORDER_SHEET: "注文書一覧",
+  DELIVERY_NOTE: "納品書一覧",
+  INVOICE: "請求書一覧",
+};
 
 /* ──────────── Icons ──────────── */
 
@@ -80,8 +88,15 @@ function formatJpDate(dateStr: string | Date | null | undefined): string {
 
 export default function DocumentsPage() {
   const { accentColor } = useMode();
+  const searchParams = useSearchParams();
+  const initialType = searchParams.get("type") as DocumentFilter | null;
+
   const [menuOpen, setMenuOpen] = useState(false);
-  const [filter, setFilter] = useState<DocumentFilter>("all");
+  const [filter, setFilter] = useState<DocumentFilter>(
+    initialType && FILTER_TABS.some((t) => t.value === initialType) ? initialType : "all"
+  );
+  const [counterparties, setCounterparties] = useState<Counterparty[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [result, setResult] = useState<DocListResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [candidates, setCandidates] = useState<InvoiceCandidates>([]);
@@ -91,16 +106,24 @@ export default function DocumentsPage() {
     return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
+  // 取引先一覧を取得
+  useEffect(() => {
+    getDocumentCounterparties()
+      .then(setCounterparties)
+      .catch(() => {});
+  }, []);
+
   const fetchDocuments = useCallback(() => {
     setLoading(true);
     getDocuments({
       type: filter === "all" ? undefined : filter,
       yearMonth: currentMonth,
+      counterpartyCompanyId: selectedCompanyId || undefined,
     })
       .then(setResult)
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [filter, currentMonth]);
+  }, [filter, currentMonth, selectedCompanyId]);
 
   useEffect(() => {
     fetchDocuments();
@@ -142,6 +165,11 @@ export default function DocumentsPage() {
     }
   }
 
+  // ページタイトルをフィルターに応じて変更
+  const pageTitle = filter !== "all" && TYPE_TITLE_MAP[filter]
+    ? TYPE_TITLE_MAP[filter]
+    : "帳票一覧";
+
   return (
     <div className="flex flex-col">
       <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -157,7 +185,7 @@ export default function DocumentsPage() {
           </button>
           <div className="flex flex-col items-center">
             <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
-              注文書一覧
+              {pageTitle}
             </h1>
             <div
               className="mt-0.5 h-[3px] w-12 rounded-full"
@@ -174,6 +202,25 @@ export default function DocumentsPage() {
       </header>
 
       <div className="flex flex-col gap-3 px-4 pt-3 pb-4">
+        {/* 取引先選択 */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">
+            取引先
+          </label>
+          <select
+            value={selectedCompanyId}
+            onChange={(e) => setSelectedCompanyId(e.target.value)}
+            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-[13px] text-knock-text focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">全ての取引先</option>
+            {counterparties.map((cp) => (
+              <option key={cp.id} value={cp.id}>
+                {cp.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Invoice Candidates Section */}
         {candidates.length > 0 && (
           <div className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
