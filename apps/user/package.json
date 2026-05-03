@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3000",
-    "build": "next build",
+    "build": "pnpm --filter @knock/db generate && next build",
     "start": "next start",
     "lint": "next lint",
     "clean": "rm -rf .next"
