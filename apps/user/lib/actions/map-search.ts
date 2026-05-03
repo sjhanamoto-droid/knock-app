@@ -81,3 +81,101 @@ export async function searchJobsWithLocation(filters?: {
       longitude: Number(job.factoryFloor!.longitude),
     }));
 }
+
+/**
+ * 地図表示用: 緯度経度付き協力会社（受注者）を検索する（発注者）
+ */
+export async function searchContractorsWithLocation(filters?: {
+  keyword?: string;
+  prefecture?: string;
+}) {
+  const user = await requireSession();
+
+  const where: Record<string, unknown> = {
+    type: { in: ["CONTRACTOR", "BOTH"] },
+    isActive: true,
+    deletedAt: null,
+    id: { not: user.companyId },
+    latitude: { not: null },
+    longitude: { not: null },
+  };
+
+  if (filters?.keyword?.trim()) {
+    where.name = { contains: filters.keyword.trim(), mode: "insensitive" };
+  }
+
+  if (filters?.prefecture) {
+    where.prefecture = filters.prefecture;
+  }
+
+  const companies = await prisma.company.findMany({
+    where,
+    orderBy: { name: "asc" },
+    take: 200,
+    select: {
+      id: true,
+      name: true,
+      logo: true,
+      prefecture: true,
+      city: true,
+      latitude: true,
+      longitude: true,
+      occupations: {
+        include: {
+          occupationSubItem: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  // 接続状態を取得（contractors.ts の searchContractors と同様のロジック）
+  const [matchings, inviteds] = await Promise.all([
+    prisma.matching.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { inviteCompanyId: user.companyId },
+          { beInviteCompanyId: user.companyId },
+        ],
+      },
+      select: { inviteCompanyId: true, beInviteCompanyId: true },
+    }),
+    prisma.invited.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { inviteCompanyId: user.companyId },
+          { invitedCompanyId: user.companyId },
+        ],
+      },
+      select: { inviteCompanyId: true, invitedCompanyId: true },
+    }),
+  ]);
+
+  const connectedIds = new Set(
+    matchings.map((m) =>
+      m.inviteCompanyId === user.companyId ? m.beInviteCompanyId : m.inviteCompanyId
+    )
+  );
+  const pendingIds = new Set(
+    inviteds.map((i) =>
+      i.inviteCompanyId === user.companyId ? i.invitedCompanyId : i.inviteCompanyId
+    )
+  );
+
+  return companies.map((c) => ({
+    id: c.id,
+    name: c.name,
+    logo: c.logo,
+    prefecture: c.prefecture,
+    city: c.city,
+    latitude: Number(c.latitude),
+    longitude: Number(c.longitude),
+    connectionStatus: connectedIds.has(c.id)
+      ? ("connected" as const)
+      : pendingIds.has(c.id)
+        ? ("pending" as const)
+        : ("none" as const),
+    occupationNames: c.occupations.map((o) => o.occupationSubItem.name).slice(0, 3),
+  }));
+}

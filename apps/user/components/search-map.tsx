@@ -14,9 +14,23 @@ type JobPin = {
   longitude: number;
 };
 
+type ContractorPin = {
+  id: string;
+  name: string | null;
+  logo: string | null;
+  prefecture: string | null;
+  city: string | null;
+  latitude: number;
+  longitude: number;
+  connectionStatus: "connected" | "pending" | "none";
+  occupationNames: string[];
+};
+
 type Props = {
-  jobs: JobPin[];
+  jobs?: JobPin[];
+  contractors?: ContractorPin[];
   onSelectJob?: (jobId: string) => void;
+  onSelectContractor?: (companyId: string) => void;
 };
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -32,7 +46,7 @@ function formatCompensation(
   return `¥${formatted}`;
 }
 
-export default function SearchMap({ jobs, onSelectJob }: Props) {
+export default function SearchMap({ jobs, contractors, onSelectJob, onSelectContractor }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -71,7 +85,8 @@ export default function SearchMap({ jobs, onSelectJob }: Props) {
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
-    jobs.forEach((job) => {
+    // Job markers
+    (jobs ?? []).forEach((job) => {
       const el = document.createElement("div");
       el.style.cssText = [
         "width:32px",
@@ -114,7 +129,64 @@ export default function SearchMap({ jobs, onSelectJob }: Props) {
 
       markersRef.current.push(marker);
     });
-  }, [ready, jobs, onSelectJob]);
+
+    // Contractor markers
+    (contractors ?? []).forEach((contractor) => {
+      const el = document.createElement("div");
+      el.style.cssText = [
+        "width:40px",
+        "height:40px",
+        "background:#fff",
+        "border:3px solid #C8A063",
+        "border-radius:50%",
+        "overflow:hidden",
+        "cursor:pointer",
+        "box-shadow:0 2px 8px rgba(0,0,0,0.2)",
+        "display:flex",
+        "align-items:center",
+        "justify-content:center",
+      ].join(";");
+
+      if (contractor.logo) {
+        el.innerHTML = `<img src="${contractor.logo}" style="width:40px;height:40px;object-fit:cover;border-radius:50%;" />`;
+      } else {
+        const initial = contractor.name?.charAt(0) ?? "?";
+        el.innerHTML = `<div style="width:40px;height:40px;background:#C8A063;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;">${initial}</div>`;
+      }
+
+      const esc = (s: string) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+      const statusMap = {
+        connected: { bg: "#D1FAE5", color: "#065F46", label: "つながり済" },
+        pending: { bg: "#FEF3C7", color: "#92400E", label: "リクエスト中" },
+        none: { bg: "#F3F4F6", color: "#374151", label: "未つながり" },
+      };
+      const { bg: statusBg, color: statusColor, label: statusLabel } = statusMap[contractor.connectionStatus];
+
+      const popupContent = `
+        <div style="min-width:180px;font-family:sans-serif;">
+          <p style="font-size:14px;font-weight:700;margin:0 0 4px;color:#111;">${esc(contractor.name ?? "")}</p>
+          <p style="font-size:12px;color:#555;margin:0 0 4px;">${esc(contractor.prefecture ?? "")}${esc(contractor.city ?? "")}</p>
+          <p style="font-size:11px;color:#888;margin:0 0 6px;">${esc(contractor.occupationNames.join(" / "))}</p>
+          <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${statusBg};color:${statusColor};">
+            ${statusLabel}
+          </span>
+        </div>
+      `;
+
+      const popup = new mapboxgl.Popup({ offset: 20, closeButton: true }).setHTML(popupContent);
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([contractor.longitude, contractor.latitude])
+        .setPopup(popup)
+        .addTo(mapRef.current!);
+
+      el.addEventListener("click", () => onSelectContractor?.(contractor.id));
+
+      markersRef.current.push(marker);
+    });
+  }, [ready, jobs, contractors, onSelectJob, onSelectContractor]);
 
   if (!MAPBOX_TOKEN) {
     return (

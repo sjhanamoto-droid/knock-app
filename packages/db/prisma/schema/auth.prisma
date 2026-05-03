@@ -105,6 +105,10 @@ model Company {
   billingGraceDays      Int?          @default(5)     // 猶予日数
   paymentDueType        PaymentDueType?               // 支払期日タイプ
 
+  // 所在地座標（ジオコーディング結果）
+  latitude              Decimal?      @db.Decimal(20, 14)
+  longitude             Decimal?      @db.Decimal(20, 14)
+
   // 受入可否
   isAcceptingWork       Boolean       @default(true)
 

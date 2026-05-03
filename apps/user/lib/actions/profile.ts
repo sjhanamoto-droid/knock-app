@@ -281,6 +281,37 @@ export async function updateCompany(data: {
     updateData.registrationStep = 2;
   }
 
+  // Geocoding: address fields が含まれる場合は緯度経度を取得する
+  if (data.prefecture || data.city || data.streetAddress) {
+    try {
+      // 現在の住所と新しい値をマージして完全な住所を構築
+      const currentCompany = await prisma.company.findUnique({
+        where: { id: user.companyId },
+        select: { prefecture: true, city: true, streetAddress: true },
+      });
+      const prefecture = data.prefecture ?? currentCompany?.prefecture ?? "";
+      const city = data.city ?? currentCompany?.city ?? "";
+      const streetAddress = data.streetAddress ?? currentCompany?.streetAddress ?? "";
+      const query = `${prefecture}${city}${streetAddress}`;
+
+      if (query.trim()) {
+        const geoRes = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}&country=jp&limit=1`
+        );
+        if (geoRes.ok) {
+          const geoData = await geoRes.json();
+          if (geoData.features && geoData.features.length > 0) {
+            const [lng, lat] = geoData.features[0].center;
+            updateData.longitude = lng;
+            updateData.latitude = lat;
+          }
+        }
+      }
+    } catch {
+      // ジオコーディング失敗時は座標を設定しない（保存は継続）
+    }
+  }
+
   const updated = await prisma.company.update({
     where: { id: user.companyId },
     data: updateData,

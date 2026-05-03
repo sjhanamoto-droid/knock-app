@@ -5,8 +5,9 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { searchContractors } from "@/lib/actions/contractors";
 import { getOccupationMasters } from "@/lib/actions/occupations";
-import { searchJobsWithLocation } from "@/lib/actions/map-search";
+import { searchJobsWithLocation, searchContractorsWithLocation } from "@/lib/actions/map-search";
 import { SideMenu } from "@/components/side-menu";
+import { useMode } from "@/lib/hooks/use-mode";
 
 const SearchMap = dynamic(() => import("@/components/search-map"), {
   ssr: false,
@@ -20,6 +21,7 @@ const SearchMap = dynamic(() => import("@/components/search-map"), {
 type Contractor = Awaited<ReturnType<typeof searchContractors>>[number];
 type MajorItem = Awaited<ReturnType<typeof getOccupationMasters>>[number];
 type JobPin = Awaited<ReturnType<typeof searchJobsWithLocation>>[number];
+type ContractorPin = Awaited<ReturnType<typeof searchContractorsWithLocation>>[number];
 
 type ViewMode = "list" | "map";
 
@@ -291,6 +293,7 @@ function ContractorCard({ c }: { c: Contractor }) {
 /* ─── Main Page ─── */
 
 export default function SearchPage() {
+  const { isContractor } = useMode();
   const [menuOpen, setMenuOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [keyword, setKeyword] = useState("");
@@ -301,23 +304,38 @@ export default function SearchPage() {
   const [contractors, setContractors] = useState<Contractor[]>([]);
   const [majors, setMajors] = useState<MajorItem[]>([]);
   const [jobPins, setJobPins] = useState<JobPin[]>([]);
+  const [contractorPins, setContractorPins] = useState<ContractorPin[]>([]);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
 
   // 初期データ取得
   useEffect(() => {
-    Promise.all([
-      searchContractors(),
-      getOccupationMasters(),
-      searchJobsWithLocation(),
-    ])
-      .then(([contractorData, majorData, pinData]) => {
-        setContractors(contractorData);
-        setMajors(majorData);
-        setJobPins(pinData);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    if (isContractor) {
+      Promise.all([
+        searchContractors(),
+        getOccupationMasters(),
+        searchJobsWithLocation(),
+      ])
+        .then(([contractorData, majorData, pinData]) => {
+          setContractors(contractorData);
+          setMajors(majorData);
+          setJobPins(pinData);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      Promise.all([
+        searchContractors(),
+        getOccupationMasters(),
+        searchContractorsWithLocation(),
+      ])
+        .then(([contractorData, majorData, pinData]) => {
+          setContractors(contractorData);
+          setMajors(majorData);
+          setContractorPins(pinData);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [isContractor]);
 
   // フィルター適用
   const applyFilters = useCallback(
@@ -335,11 +353,19 @@ export default function SearchPage() {
       setSearching(true);
       try {
         if (viewMode === "map") {
-          const pins = await searchJobsWithLocation({
-            keyword: kw || undefined,
-            prefecture: pref || undefined,
-          });
-          setJobPins(pins);
+          if (isContractor) {
+            const pins = await searchJobsWithLocation({
+              keyword: kw || undefined,
+              prefecture: pref || undefined,
+            });
+            setJobPins(pins);
+          } else {
+            const pins = await searchContractorsWithLocation({
+              keyword: kw || undefined,
+              prefecture: pref || undefined,
+            });
+            setContractorPins(pins);
+          }
         } else {
           const results = await searchContractors({
             keyword: kw || undefined,
@@ -352,7 +378,7 @@ export default function SearchPage() {
         setSearching(false);
       }
     },
-    [keyword, selectedMajorId, selectedPrefecture, viewMode]
+    [keyword, selectedMajorId, selectedPrefecture, viewMode, isContractor]
   );
 
   function handleMajorSelect(id: string | null) {
@@ -377,11 +403,19 @@ export default function SearchPage() {
     setSearching(true);
     try {
       if (mode === "map") {
-        const pins = await searchJobsWithLocation({
-          keyword: keyword || undefined,
-          prefecture: selectedPrefecture || undefined,
-        });
-        setJobPins(pins);
+        if (isContractor) {
+          const pins = await searchJobsWithLocation({
+            keyword: keyword || undefined,
+            prefecture: selectedPrefecture || undefined,
+          });
+          setJobPins(pins);
+        } else {
+          const pins = await searchContractorsWithLocation({
+            keyword: keyword || undefined,
+            prefecture: selectedPrefecture || undefined,
+          });
+          setContractorPins(pins);
+        }
       } else {
         const results = await searchContractors({
           keyword: keyword || undefined,
@@ -457,7 +491,7 @@ export default function SearchPage() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={viewMode === "list" ? "会社名で検索" : "案件名で検索"}
+            placeholder={viewMode === "list" ? "会社名で検索" : (isContractor ? "案件名で検索" : "会社名で検索")}
             className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-[14px] text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
@@ -566,12 +600,17 @@ export default function SearchPage() {
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
               </div>
             )}
-            <SearchMap
-              jobs={jobPins}
-              onSelectJob={(id) => {
-                window.location.href = `/jobs/${id}`;
-              }}
-            />
+            {isContractor ? (
+              <SearchMap
+                jobs={jobPins}
+                onSelectJob={(id) => { window.location.href = `/jobs/${id}`; }}
+              />
+            ) : (
+              <SearchMap
+                contractors={contractorPins}
+                onSelectContractor={(id) => { window.location.href = `/search/${id}`; }}
+              />
+            )}
           </div>
         )}
 

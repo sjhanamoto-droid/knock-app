@@ -229,6 +229,8 @@ exports.Prisma.CompanyScalarFieldEnum = {
   billingClosingDay: 'billingClosingDay',
   billingGraceDays: 'billingGraceDays',
   paymentDueType: 'paymentDueType',
+  latitude: 'latitude',
+  longitude: 'longitude',
   isAcceptingWork: 'isAcceptingWork',
   selfIntro: 'selfIntro',
   yearsOfExperience: 'yearsOfExperience',
