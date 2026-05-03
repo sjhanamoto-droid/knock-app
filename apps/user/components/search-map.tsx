@@ -31,6 +31,7 @@ type Props = {
   contractors?: ContractorPin[];
   onSelectJob?: (jobId: string) => void;
   onSelectContractor?: (companyId: string) => void;
+  flyTo?: { lng: number; lat: number; zoom?: number } | null;
 };
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -46,7 +47,7 @@ function formatCompensation(
   return `¥${formatted}`;
 }
 
-export default function SearchMap({ jobs, contractors, onSelectJob, onSelectContractor }: Props) {
+export default function SearchMap({ jobs, contractors, onSelectJob, onSelectContractor, flyTo }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
@@ -187,6 +188,16 @@ export default function SearchMap({ jobs, contractors, onSelectJob, onSelectCont
       markersRef.current.push(marker);
     });
   }, [ready, jobs, contractors, onSelectJob, onSelectContractor]);
+
+  // flyTo: 親から指定された座標にマップを移動
+  useEffect(() => {
+    if (!ready || !mapRef.current || !flyTo) return;
+    mapRef.current.flyTo({
+      center: [flyTo.lng, flyTo.lat],
+      zoom: flyTo.zoom ?? 13,
+      duration: 1500,
+    });
+  }, [ready, flyTo]);
 
   if (!MAPBOX_TOKEN) {
     return (

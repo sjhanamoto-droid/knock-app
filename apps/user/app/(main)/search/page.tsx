@@ -305,6 +305,8 @@ export default function SearchPage() {
   const [majors, setMajors] = useState<MajorItem[]>([]);
   const [jobPins, setJobPins] = useState<JobPin[]>([]);
   const [contractorPins, setContractorPins] = useState<ContractorPin[]>([]);
+  const [addressQuery, setAddressQuery] = useState("");
+  const [mapFlyTo, setMapFlyTo] = useState<{ lng: number; lat: number; zoom?: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
 
@@ -391,10 +393,33 @@ export default function SearchPage() {
     applyFilters({ prefecture: pref });
   }
 
+  async function handleAddressSearch(query: string) {
+    if (!query.trim()) return;
+    try {
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      if (!token) return;
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=jp&limit=1`
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        setMapFlyTo({ lng, lat, zoom: 13 });
+      }
+    } catch {
+      // ジオコーディング失敗は無視
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter") {
       e.preventDefault();
-      applyFilters({ kw: keyword });
+      if (viewMode === "map" && !isContractor) {
+        handleAddressSearch(addressQuery);
+      } else {
+        applyFilters({ kw: keyword });
+      }
     }
   }
 
@@ -463,38 +488,66 @@ export default function SearchPage() {
       </header>
 
       <div className="flex flex-col gap-3 px-4 pt-3 pb-8">
-        {/* キーワード検索 */}
-        <div className="relative">
-          <svg
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-            width="18"
-            height="18"
-            viewBox="0 0 18 18"
-            fill="none"
-          >
-            <circle
-              cx="8"
-              cy="8"
-              r="5.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
+        {/* 検索入力 — マップモード×発注者は住所検索、それ以外はキーワード検索 */}
+        {viewMode === "map" && !isContractor ? (
+          <div className="relative">
+            <svg
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+            >
+              <path
+                d="M9 1C6.239 1 4 3.239 4 6C4 9.5 9 17 9 17C9 17 14 9.5 14 6C14 3.239 11.761 1 9 1Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+              <circle cx="9" cy="6" r="2" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <input
+              type="text"
+              value={addressQuery}
+              onChange={(e) => setAddressQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="住所で検索（例: 東京都渋谷区）"
+              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-[14px] text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
-            <path
-              d="M12.5 12.5L16 16"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
+          </div>
+        ) : (
+          <div className="relative">
+            <svg
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+            >
+              <circle
+                cx="8"
+                cy="8"
+                r="5.5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              />
+              <path
+                d="M12.5 12.5L16 16"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={viewMode === "list" ? "会社名で検索" : "案件名で検索"}
+              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-[14px] text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
-          </svg>
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={viewMode === "list" ? "会社名で検索" : (isContractor ? "案件名で検索" : "会社名で検索")}
-            className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-[14px] text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
+          </div>
+        )}
 
         {/* リスト / マップ 切り替え */}
         <div className="flex rounded-xl border border-gray-200 bg-gray-50 p-1 gap-1">
@@ -609,6 +662,7 @@ export default function SearchPage() {
               <SearchMap
                 contractors={contractorPins}
                 onSelectContractor={(id) => { window.location.href = `/search/${id}`; }}
+                flyTo={mapFlyTo}
               />
             )}
           </div>
