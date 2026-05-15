@@ -22,6 +22,12 @@ export default function NewCustomerPage() {
 
     const fd = new FormData(e.currentTarget);
     try {
+      const userPassword = fd.get("userPassword") as string;
+      if (userPassword && userPassword.length < 8) {
+        setError("パスワードは8文字以上で入力してください");
+        setLoading(false);
+        return;
+      }
       await createCompany({
         name: fd.get("name") as string,
         email: fd.get("email") as string,
@@ -32,6 +38,10 @@ export default function NewCustomerPage() {
         city: (fd.get("city") as string) || undefined,
         streetAddress: (fd.get("streetAddress") as string) || undefined,
         telNumber: (fd.get("telNumber") as string) || undefined,
+        userLastName: (fd.get("userLastName") as string) || undefined,
+        userFirstName: (fd.get("userFirstName") as string) || undefined,
+        userEmail: (fd.get("userEmail") as string) || undefined,
+        userPassword: userPassword || undefined,
       });
       router.push("/customers");
       router.refresh();
@@ -105,6 +115,35 @@ export default function NewCustomerPage() {
           <div>
             <label className={labelCls}>番地以下</label>
             <input name="streetAddress" className={inputCls} />
+          </div>
+        </div>
+
+        {/* 初期ユーザー（ログインアカウント） */}
+        <div className="rounded-2xl border-none bg-white p-6 shadow-[0_1px_8px_rgba(0,0,0,0.06)] space-y-4">
+          <h2 className="text-[16px] font-bold text-gray-900">初期ユーザー（ログインアカウント）</h2>
+          <p className="text-[12px] text-gray-500">
+            企業に紐づくログイン用ユーザーを同時に作成します。入力しない場合、後から顧客詳細ページで追加できます。
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>姓</label>
+              <input name="userLastName" className={inputCls} placeholder="花本" />
+            </div>
+            <div>
+              <label className={labelCls}>名</label>
+              <input name="userFirstName" className={inputCls} placeholder="太郎" />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>ユーザーメールアドレス</label>
+            <input name="userEmail" type="email" className={inputCls} placeholder="user@example.com" />
+          </div>
+
+          <div>
+            <label className={labelCls}>パスワード</label>
+            <input name="userPassword" type="text" className={inputCls} placeholder="8文字以上" />
           </div>
         </div>
 

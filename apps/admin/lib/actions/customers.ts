@@ -155,16 +155,45 @@ export async function createCompany(data: {
   streetAddress?: string;
   building?: string;
   telNumber?: string;
+  // 初期ユーザー情報
+  userLastName?: string;
+  userFirstName?: string;
+  userEmail?: string;
+  userPassword?: string;
 }) {
   const admin = await requireAdminSession();
 
-  return prisma.company.create({
+  const {
+    userLastName, userFirstName, userEmail, userPassword,
+    ...companyData
+  } = data;
+
+  const company = await prisma.company.create({
     data: {
-      ...data,
+      ...companyData,
       adminCompanyId: admin.adminCompanyId,
       isActive: true,
     },
   });
+
+  // 初期ユーザーを同時作成
+  if (userLastName && userFirstName && userEmail && userPassword) {
+    const hashedPassword = await bcrypt.hash(userPassword, 12);
+    await prisma.user.create({
+      data: {
+        companyId: company.id,
+        lastName: userLastName,
+        firstName: userFirstName,
+        email: userEmail,
+        password: hashedPassword,
+        role: "REPRESENTATIVE",
+        isActive: true,
+        policyStatus: true,
+      },
+    });
+  }
+
+  return company;
 }
 
 export async function updateCompany(
