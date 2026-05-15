@@ -20,7 +20,7 @@ export interface OrderSheetPdfData {
   orderCompanyRepresentative: string;
   // 現場情報
   siteName: string;
-  deliveryDate: string | Date | null;
+  siteCode: string;
   // 明細
   priceDetails: {
     name: string;
@@ -143,7 +143,7 @@ function drawIssuerBlock(doc: jsPDF, data: OrderSheetPdfData, startY: number): n
 }
 
 /**
- * 現場名・納品希望日
+ * 現場名・現場コード
  */
 function drawSiteInfo(doc: jsPDF, data: OrderSheetPdfData, y: number): number {
   doc.setFontSize(10.5);
@@ -157,14 +157,17 @@ function drawSiteInfo(doc: jsPDF, data: OrderSheetPdfData, y: number): number {
 
   y += 8;
 
-  // 納品希望日
-  doc.setFont("NotoSansJP", "bold");
-  doc.text("納品希望日:", ML, y);
-  doc.setFont("NotoSansJP", "normal");
-  const dateX = ML + doc.getTextWidth("納品希望日:") + 3;
-  doc.text(dateJP(data.deliveryDate), dateX, y);
+  // 現場コード
+  if (data.siteCode) {
+    doc.setFont("NotoSansJP", "bold");
+    doc.text("現場コード:", ML, y);
+    doc.setFont("NotoSansJP", "normal");
+    const codeX = ML + doc.getTextWidth("現場コード:") + 3;
+    doc.text(data.siteCode, codeX, y);
+    y += 8;
+  }
 
-  return y + 10;
+  return y + 2;
 }
 
 /**

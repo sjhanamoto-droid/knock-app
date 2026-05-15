@@ -16,10 +16,8 @@ export interface DeliveryNotePdfData {
   /** 受取人 = 発注者 */
   orderCompanyName: string;
   siteName: string;
+  siteCode: string;
   siteAddress: string;
-  startDate: string | Date | null;
-  endDate: string | Date | null;
-  completionDate: string | Date | null;
   priceDetails: {
     name: string;
     quantity: number;
@@ -94,7 +92,7 @@ function drawRecipientAndDocInfo(doc: jsPDF, data: DeliveryNotePdfData, startY: 
   // ── 右側: 納品番号・発行日 ──
   doc.setFontSize(9.5);
   doc.text(`納品番号: ${data.documentNumber}`, RE, startY, { align: "right" });
-  doc.text(`発行日: ${dateJP(data.issuedAt)}`, RE, startY + 6, { align: "right" });
+  doc.text(`納品日: ${dateJP(data.issuedAt)}`, RE, startY + 6, { align: "right" });
 
   return y + 8;
 }
@@ -142,7 +140,7 @@ function drawIssuerBlock(doc: jsPDF, data: DeliveryNotePdfData, startY: number):
 }
 
 /**
- * 現場情報・工期
+ * 現場情報
  */
 function drawSiteInfo(doc: jsPDF, data: DeliveryNotePdfData, y: number): number {
   doc.setFontSize(10.5);
@@ -156,6 +154,16 @@ function drawSiteInfo(doc: jsPDF, data: DeliveryNotePdfData, y: number): number 
 
   y += 7;
 
+  // 現場コード
+  if (data.siteCode) {
+    doc.setFont("NotoSansJP", "bold");
+    doc.text("現場コード:", ML, y);
+    doc.setFont("NotoSansJP", "normal");
+    const codeX = ML + doc.getTextWidth("現場コード:") + 3;
+    doc.text(data.siteCode, codeX, y);
+    y += 7;
+  }
+
   // 工事場所
   if (data.siteAddress) {
     doc.setFont("NotoSansJP", "bold");
@@ -163,25 +171,6 @@ function drawSiteInfo(doc: jsPDF, data: DeliveryNotePdfData, y: number): number 
     doc.setFont("NotoSansJP", "normal");
     const addrX = ML + doc.getTextWidth("工事場所:") + 3;
     doc.text(data.siteAddress, addrX, y);
-    y += 7;
-  }
-
-  // 工期
-  doc.setFont("NotoSansJP", "bold");
-  doc.text("工期:", ML, y);
-  doc.setFont("NotoSansJP", "normal");
-  const periodX = ML + doc.getTextWidth("工期:") + 3;
-  doc.text(`${dateJP(data.startDate)} 〜 ${dateJP(data.endDate)}`, periodX, y);
-
-  y += 7;
-
-  // 完工日
-  if (data.completionDate) {
-    doc.setFont("NotoSansJP", "bold");
-    doc.text("完工日:", ML, y);
-    doc.setFont("NotoSansJP", "normal");
-    const compX = ML + doc.getTextWidth("完工日:") + 3;
-    doc.text(dateJP(data.completionDate), compX, y);
     y += 7;
   }
 

@@ -92,6 +92,7 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
         include: {
           company: true,
           workCompany: true,
+          parent: { select: { name: true } },
           priceDetails: { where: { deletedAt: null }, include: { unit: true } },
         },
       },
@@ -99,6 +100,9 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
   });
 
   const floor = order.factoryFloor;
+  const fullSiteName = floor.parent?.name
+    ? `${floor.parent.name} ${floor.name ?? ""}`
+    : (floor.name ?? "");
   const documentNumber = await generateDocumentNumber("ORDER_SHEET");
   const issuedAt = new Date();
 
@@ -180,8 +184,8 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
     orderCompanyTel: floor.company?.telNumber ?? "",
     orderCompanyRepresentative: "",
     // 現場情報
-    siteName: floor.name ?? "",
-    deliveryDate: floor.endDayRequest,
+    siteName: fullSiteName,
+    siteCode: floor.code ?? "",
     // 明細
     priceDetails: pdfPriceDetails,
     subtotal: Number(subtotal),
@@ -210,7 +214,7 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
       pdfUrl: pdfFilePath,
       issuedAt,
       metadata: {
-        siteName: floor.name,
+        siteName: fullSiteName,
         siteAddress: floor.address,
         contentRequest: floor.contentRequest,
         startDate: floor.startDayRequest?.toISOString(),
@@ -255,6 +259,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
         include: {
           company: true,
           workCompany: true,
+          parent: { select: { name: true } },
           priceDetails: { where: { deletedAt: null }, include: { unit: true } },
         },
       },
@@ -263,6 +268,9 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
   });
 
   const floor = order.factoryFloor;
+  const fullSiteNameDN = floor.parent?.name
+    ? `${floor.parent.name} ${floor.name ?? ""}`
+    : (floor.name ?? "");
   const documentNumber = await generateDocumentNumber("DELIVERY_NOTE");
   const issuedAt = new Date();
 
@@ -391,11 +399,9 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
     workCompanyTel: floor.workCompany?.telNumber ?? "",
     workCompanyEmail: floor.workCompany?.email ?? "",
     orderCompanyName: floor.company?.name ?? "",
-    siteName: floor.name ?? "",
+    siteName: fullSiteNameDN,
+    siteCode: floor.code ?? "",
     siteAddress: floor.address ?? "",
-    startDate: floor.startDayRequest,
-    endDate: floor.endDayRequest,
-    completionDate: order.completionReport?.completionDate ?? null,
     priceDetails: floor.priceDetails.map((p) => ({
       name: p.name ?? "",
       quantity: p.quantity ?? 0,
@@ -434,8 +440,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
       pdfUrl: pdfFilePath,
       issuedAt,
       metadata: {
-        siteName: floor.name,
-        completionDate: order.completionReport?.completionDate?.toISOString(),
+        siteName: fullSiteNameDN,
         finalAmount: paymentAmount,
       },
     },
