@@ -26,6 +26,9 @@ model Document {
   updatedAt           DateTime           @updatedAt
   deletedAt           DateTime?
 
+  @@index([factoryFloorOrderId, type, status])
+  @@index([workerCompanyId, yearMonth, status])
+  @@index([orderCompanyId, yearMonth, status])
   @@map("documents")
 }
 

@@ -298,6 +298,7 @@ model Notification {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
+  @@index([userId, seenFlag])
   @@map("notifications")
 }
 
@@ -660,6 +661,9 @@ model ChatRoom {
   billingRequests BillingRequest[]
   tmpReports      TmpReport[]
 
+  @@index([factoryFloorId, type, deletedAt])
+  @@index([orderCompanyId, deletedAt])
+  @@index([workerCompanyId, deletedAt])
   @@map("chat_rooms")
 }
 
@@ -676,6 +680,7 @@ model ChatRoomMember {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
+  @@index([roomId, userId, deletedAt])
   @@map("chat_room_members")
 }
 
@@ -699,6 +704,7 @@ model Message {
   updatedAt           DateTime           @updatedAt
   deletedAt           DateTime?
 
+  @@index([roomId, createdAt])
   @@map("messages")
 }
 
@@ -852,6 +858,9 @@ model Document {
   updatedAt           DateTime          @updatedAt
   deletedAt           DateTime?
 
+  @@index([factoryFloorOrderId, type, status])
+  @@index([workerCompanyId, yearMonth, status])
+  @@index([orderCompanyId, yearMonth, status])
   @@map("documents")
 }
 
@@ -1170,6 +1179,10 @@ model FactoryFloor {
   // V2: 案件掲載
   jobPostings JobPosting[]
 
+  @@index([companyId, deletedAt])
+  @@index([workCompanyId, deletedAt])
+  @@index([parentId, deletedAt])
+  @@index([status])
   @@map("factory_floors")
 }
 
@@ -1210,6 +1223,9 @@ model FactoryFloorOrder {
   evaluations      Evaluation[]
   completionReport CompletionReport?
 
+  @@index([factoryFloorId, deletedAt])
+  @@index([workCompanyId, deletedAt])
+  @@index([status])
   @@map("factory_floor_orders")
 }
 

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { unstable_cache } from "next/cache";
 import type { CreateFactoryFloorInput, UpdateFactoryFloorInput } from "@knock/types";
 
 // ============ ヘルパー ============
@@ -905,10 +906,14 @@ export async function getProjectSummary(parentId: string) {
 
 // ============ マスタデータ ============
 
-export async function getUnits() {
-  return prisma.unit.findMany({
-    where: { deletedAt: null },
-    select: { id: true, name: true },
-    orderBy: { createdAt: "asc" },
-  });
-}
+export const getUnits = unstable_cache(
+  async () => {
+    return prisma.unit.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+      orderBy: { createdAt: "asc" },
+    });
+  },
+  ["units-master"],
+  { revalidate: 3600 }
+);

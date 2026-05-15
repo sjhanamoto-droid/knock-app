@@ -52,6 +52,10 @@ model FactoryFloor {
   // V2: 案件掲載
   jobPostings      JobPosting[]
 
+  @@index([companyId, deletedAt])
+  @@index([workCompanyId, deletedAt])
+  @@index([parentId, deletedAt])
+  @@index([status])
   @@map("factory_floors")
 }
 
@@ -92,6 +96,9 @@ model FactoryFloorOrder {
   evaluations        Evaluation[]
   completionReport   CompletionReport?
 
+  @@index([factoryFloorId, deletedAt])
+  @@index([workCompanyId, deletedAt])
+  @@index([status])
   @@map("factory_floor_orders")
 }
 

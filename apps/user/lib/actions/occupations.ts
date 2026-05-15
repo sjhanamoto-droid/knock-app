@@ -2,23 +2,28 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { unstable_cache } from "next/cache";
 
-export async function getOccupationMasters() {
-  const majors = await prisma.occupationMajorItem.findMany({
-    include: {
-      subItems: {
-        select: { id: true, name: true },
+export const getOccupationMasters = unstable_cache(
+  async () => {
+    const majors = await prisma.occupationMajorItem.findMany({
+      include: {
+        subItems: {
+          select: { id: true, name: true },
+        },
       },
-    },
-    orderBy: { id: "asc" },
-  });
+      orderBy: { id: "asc" },
+    });
 
-  return majors.map((m) => ({
-    id: m.id,
-    name: m.name,
-    subItems: m.subItems,
-  }));
-}
+    return majors.map((m) => ({
+      id: m.id,
+      name: m.name,
+      subItems: m.subItems,
+    }));
+  },
+  ["occupation-masters"],
+  { revalidate: 3600 }
+);
 
 export async function getCompanyOccupations() {
   const user = await requireSession();

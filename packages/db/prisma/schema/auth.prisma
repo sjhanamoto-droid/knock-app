@@ -234,6 +234,7 @@ model Notification {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
+  @@index([userId, seenFlag])
   @@map("notifications")
 }
 

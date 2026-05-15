@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { unstable_cache } from "next/cache";
 
 // ============ 受注者検索（フィルター対応） ============
 
@@ -297,10 +298,14 @@ export async function getContractor(companyId: string) {
 
 // ============ エリアマスタ ============
 
-export async function getAreas() {
-  return prisma.area.findMany({
-    where: { deletedAt: null },
-    orderBy: { serialNumber: "asc" },
-    select: { id: true, name: true },
-  });
-}
+export const getAreas = unstable_cache(
+  async () => {
+    return prisma.area.findMany({
+      where: { deletedAt: null },
+      orderBy: { serialNumber: "asc" },
+      select: { id: true, name: true },
+    });
+  },
+  ["areas-master"],
+  { revalidate: 3600 }
+);
