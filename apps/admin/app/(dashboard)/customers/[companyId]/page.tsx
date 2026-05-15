@@ -7,6 +7,7 @@ import {
   updateCompany,
   deleteCompany,
   updateUser,
+  createUser,
   resetUserPassword,
   getOccupationMasters,
   saveCompanyOccupations,
@@ -195,12 +196,19 @@ export default function CompanyDetailPage() {
         {activeTab === "users" && (
           <UsersTab
             users={company.users}
+            companyId={company.id}
             onUserUpdated={(updated) =>
               setCompany({
                 ...company,
                 users: company.users.map((u: UserItem) =>
                   u.id === updated.id ? updated : u
                 ),
+              })
+            }
+            onUserCreated={(newUser) =>
+              setCompany({
+                ...company,
+                users: [...company.users, newUser],
               })
             }
           />
@@ -680,15 +688,40 @@ function InfoTab({
 
 function UsersTab({
   users,
+  companyId,
   onUserUpdated,
+  onUserCreated,
 }: {
   users: UserItem[];
+  companyId: string;
   onUserUpdated: (user: UserItem) => void;
+  onUserCreated: (user: UserItem) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          onClick={() => { setCreating(!creating); setEditingId(null); }}
+          className="rounded-xl bg-knock-blue px-5 py-2.5 text-[13px] font-bold text-white hover:opacity-90"
+        >
+          {creating ? "キャンセル" : "+ ユーザーを追加"}
+        </button>
+      </div>
+
+      {creating && (
+        <UserCreateForm
+          companyId={companyId}
+          onCreated={(newUser) => {
+            onUserCreated(newUser);
+            setCreating(false);
+          }}
+          onCancel={() => setCreating(false)}
+        />
+      )}
+
       <div className="overflow-hidden rounded-2xl border-none bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
         <table className="w-full text-left text-sm">
           <thead>
@@ -770,6 +803,177 @@ function UsersTab({
           onCancel={() => setEditingId(null)}
         />
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// User Create Form
+// ---------------------------------------------------------------------------
+
+function UserCreateForm({
+  companyId,
+  onCreated,
+  onCancel,
+}: {
+  companyId: string;
+  onCreated: (user: UserItem) => void;
+  onCancel: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    lastName: "",
+    firstName: "",
+    lastNameKana: "",
+    firstNameKana: "",
+    email: "",
+    telNumber: "",
+    dateOfBirth: "",
+    role: "OTHER",
+    password: "",
+  });
+
+  function set(key: string, value: string) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleCreate() {
+    if (!form.lastName || !form.firstName) {
+      alert("姓と名を入力してください");
+      return;
+    }
+    if (!form.email) {
+      alert("メールアドレスを入力してください");
+      return;
+    }
+    if (!form.password || form.password.length < 8) {
+      alert("パスワードは8文字以上で入力してください");
+      return;
+    }
+    setSaving(true);
+    try {
+      const created = await createUser(companyId, {
+        lastName: form.lastName,
+        firstName: form.firstName,
+        lastNameKana: form.lastNameKana || undefined,
+        firstNameKana: form.firstNameKana || undefined,
+        email: form.email,
+        password: form.password,
+        telNumber: form.telNumber || undefined,
+        dateOfBirth: form.dateOfBirth || undefined,
+        role: form.role as "REPRESENTATIVE" | "MANAGER" | "OTHER",
+      });
+      onCreated(created as UserItem);
+    } catch (err) {
+      console.error("[UserCreate] error:", err);
+      alert("ユーザーの作成に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border-none bg-white p-6 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+      <h3 className="mb-4 text-[15px] font-bold text-gray-900">
+        新規ユーザーを追加
+      </h3>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="姓 *">
+          <input
+            className={inputCls}
+            value={form.lastName}
+            onChange={(e) => set("lastName", e.target.value)}
+            placeholder="花本"
+          />
+        </Field>
+        <Field label="名 *">
+          <input
+            className={inputCls}
+            value={form.firstName}
+            onChange={(e) => set("firstName", e.target.value)}
+            placeholder="太郎"
+          />
+        </Field>
+        <Field label="姓（カナ）">
+          <input
+            className={inputCls}
+            value={form.lastNameKana}
+            onChange={(e) => set("lastNameKana", e.target.value)}
+            placeholder="ハナモト"
+          />
+        </Field>
+        <Field label="名（カナ）">
+          <input
+            className={inputCls}
+            value={form.firstNameKana}
+            onChange={(e) => set("firstNameKana", e.target.value)}
+            placeholder="タロウ"
+          />
+        </Field>
+        <Field label="メール *">
+          <input
+            type="email"
+            className={inputCls}
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            placeholder="user@example.com"
+          />
+        </Field>
+        <Field label="パスワード *">
+          <input
+            type="text"
+            className={inputCls}
+            value={form.password}
+            onChange={(e) => set("password", e.target.value)}
+            placeholder="8文字以上"
+          />
+        </Field>
+        <Field label="電話">
+          <input
+            className={inputCls}
+            value={form.telNumber}
+            onChange={(e) => set("telNumber", e.target.value)}
+            placeholder="090-0000-0000"
+          />
+        </Field>
+        <Field label="生年月日">
+          <input
+            type="date"
+            className={inputCls}
+            value={form.dateOfBirth}
+            onChange={(e) => set("dateOfBirth", e.target.value)}
+          />
+        </Field>
+        <Field label="権限">
+          <select
+            className={selectCls}
+            value={form.role}
+            onChange={(e) => set("role", e.target.value)}
+          >
+            <option value="REPRESENTATIVE">代表者</option>
+            <option value="MANAGER">管理者</option>
+            <option value="OTHER">一般</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="mt-5 flex justify-end gap-2">
+        <button
+          onClick={onCancel}
+          disabled={saving}
+          className="rounded-xl border border-gray-200 px-5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          キャンセル
+        </button>
+        <button
+          onClick={handleCreate}
+          disabled={saving}
+          className="rounded-xl bg-knock-orange px-6 py-2.5 text-[13px] font-bold text-white hover:bg-knock-amber disabled:opacity-50"
+        >
+          {saving ? "作成中..." : "ユーザーを作成"}
+        </button>
+      </div>
     </div>
   );
 }

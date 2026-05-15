@@ -245,6 +245,57 @@ export async function resetUserPassword(userId: string, newPassword: string) {
   return { success: true };
 }
 
+export async function createUser(
+  companyId: string,
+  data: {
+    lastName: string;
+    firstName: string;
+    email: string;
+    password: string;
+    role?: "REPRESENTATIVE" | "MANAGER" | "OTHER";
+    lastNameKana?: string;
+    firstNameKana?: string;
+    telNumber?: string;
+    dateOfBirth?: string;
+  }
+) {
+  await requireAdminSession();
+
+  const hashedPassword = await bcrypt.hash(data.password, 12);
+
+  const user = await prisma.user.create({
+    data: {
+      companyId,
+      lastName: data.lastName,
+      firstName: data.firstName,
+      lastNameKana: data.lastNameKana || null,
+      firstNameKana: data.firstNameKana || null,
+      email: data.email,
+      password: hashedPassword,
+      telNumber: data.telNumber || null,
+      dateOfBirth: data.dateOfBirth || null,
+      role: data.role ?? "OTHER",
+      isActive: true,
+      policyStatus: true,
+    },
+    select: {
+      id: true,
+      lastName: true,
+      firstName: true,
+      lastNameKana: true,
+      firstNameKana: true,
+      email: true,
+      telNumber: true,
+      dateOfBirth: true,
+      role: true,
+      isActive: true,
+      createdAt: true,
+    },
+  });
+
+  return { ...user, createdAt: user.createdAt.toISOString() };
+}
+
 export async function deleteCompany(id: string) {
   await requireAdminSession();
 
