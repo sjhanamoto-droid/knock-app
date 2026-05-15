@@ -50,6 +50,36 @@ function toNumberOrNull(v: any): number | null {
 export type SiteSortField = "createdAt" | "startDayRequest" | "endDayRequest";
 export type SiteSortOrder = "asc" | "desc";
 
+// ステータス進行順（若い番号ほど手前）
+const STATUS_PRIORITY: Record<string, number> = {
+  NOT_ORDERED: 0,
+  ORDER_REQUESTED: 1,
+  ORDERED: 2,
+  CONFIRMED: 3,
+  IN_PROGRESS: 4,
+  INSPECTION: 5,
+  COMPLETED: 6,
+  DEAL_COMPLETED: 7,
+};
+
+/** 子工事のステータスから親の実効ステータスを算出（一番手前のもの） */
+function computeEffectiveStatus(
+  parentStatus: string,
+  childStatuses: string[],
+): string {
+  if (childStatuses.length === 0) return parentStatus;
+  let earliest = parentStatus;
+  let earliestPri = STATUS_PRIORITY[parentStatus] ?? 99;
+  for (const cs of childStatuses) {
+    const pri = STATUS_PRIORITY[cs] ?? 99;
+    if (pri < earliestPri) {
+      earliestPri = pri;
+      earliest = cs;
+    }
+  }
+  return earliest;
+}
+
 export async function getSites(
   status?: string,
   search?: string,
@@ -65,9 +95,7 @@ export async function getSites(
     parentId: null, // 親現場のみ表示
   };
 
-  if (status) {
-    where.status = status;
-  }
+  // ステータスフィルタはDB側ではなく取得後に適用（子の実効ステータスで判定するため）
 
   if (search) {
     where.OR = [
@@ -82,11 +110,23 @@ export async function getSites(
     orderBy: { [sortBy]: sortOrder },
     include: {
       workCompany: { select: { name: true } },
+      children: { where: { deletedAt: null }, select: { status: true } },
       _count: { select: { members: true, orders: true, children: true } },
     },
   });
 
-  return serializeBigInt(sites);
+  // 子の実効ステータスを算出し、フィルタを適用
+  const result = sites
+    .map((site) => {
+      const childStatuses = site.children.map((c) => c.status);
+      const effectiveStatus = computeEffectiveStatus(site.status, childStatuses);
+      // children フィールドを除外し effectiveStatus を付与
+      const { children: _children, ...rest } = site;
+      return { ...rest, status: effectiveStatus };
+    })
+    .filter((site) => !status || site.status === status);
+
+  return serializeBigInt(result);
 }
 
 // ============ 受注者向け一覧取得 ============
