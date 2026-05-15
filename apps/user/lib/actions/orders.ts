@@ -746,6 +746,7 @@ export async function submitInspection(data: {
   expenses?: number;
   adjustmentAmount?: number;
   advancePayment?: number;
+  deliveryDate?: string;
 }) {
   const user = await requireSession();
 
@@ -771,6 +772,7 @@ export async function submitInspection(data: {
     adjustmentAmount: data.adjustmentAmount ?? 0,
     advancePayment: data.advancePayment ?? 0,
     memo: data.memo ?? "",
+    deliveryDate: data.deliveryDate ?? "",
   };
 
   return prisma.$transaction(async (tx) => {

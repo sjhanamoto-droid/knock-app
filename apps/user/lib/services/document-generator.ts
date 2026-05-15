@@ -272,7 +272,6 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
     ? `${floor.parent.name} ${floor.name ?? ""}`
     : (floor.name ?? "");
   const documentNumber = await generateDocumentNumber("DELIVERY_NOTE");
-  const issuedAt = new Date();
 
   // inspectionData から諸経費・調整金額・前払金・備考を取得
   type InspectionData = {
@@ -281,8 +280,14 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
     adjustmentAmount?: number;
     advancePayment?: number;
     memo?: string;
+    deliveryDate?: string;
   };
   const inspectionData = (order.inspectionData as InspectionData | null) ?? {};
+
+  // 納品日: inspectionDataに指定があればそちらを使用、なければ現在日時
+  const issuedAt = inspectionData.deliveryDate
+    ? new Date(inspectionData.deliveryDate + "T00:00:00")
+    : new Date();
 
   const expenses = inspectionData.expenses ?? 0;
   const adjustmentAmount = inspectionData.adjustmentAmount ?? 0;

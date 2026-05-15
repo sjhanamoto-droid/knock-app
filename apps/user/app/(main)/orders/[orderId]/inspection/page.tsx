@@ -445,6 +445,8 @@ export default function InspectionPage() {
   const [adjustmentAmount, setAdjustmentAmount] = useState("");
   const [advancePayment, setAdvancePayment] = useState("");
   const [memo, setMemo] = useState("");
+  const defaultDeliveryDate = new Date().toISOString().split("T")[0];
+  const [deliveryDate, setDeliveryDate] = useState(defaultDeliveryDate);
   const [showConfirm, setShowConfirm] = useState(false);
   const [ordererSuccess, setOrdererSuccess] = useState("");
 
@@ -464,6 +466,7 @@ export default function InspectionPage() {
             if (inspection.adjustmentAmount) setAdjustmentAmount(String(inspection.adjustmentAmount));
             if (inspection.advancePayment) setAdvancePayment(String(inspection.advancePayment));
             if (inspection.memo) setMemo(inspection.memo);
+            if ((inspection as Record<string, unknown>).deliveryDate) setDeliveryDate((inspection as Record<string, unknown>).deliveryDate as string);
           } else {
             // 初回: 完了報告の追加工事を初期値に
             if (data.completionReport?.hasAdditionalWork && data.completionReport.additionalWorkAmount) {
@@ -555,6 +558,14 @@ export default function InspectionPage() {
   }
 
   async function handleSubmit() {
+    // 納品日が変更されている場合は確認アラート
+    if (deliveryDate !== defaultDeliveryDate) {
+      const d = new Date(deliveryDate);
+      const label = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+      if (!confirm(`納品日が変更されています（${label}）。この日付でよろしいですか？`)) {
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       await submitInspection({
@@ -565,6 +576,7 @@ export default function InspectionPage() {
         expenses: expenses || undefined,
         adjustmentAmount: adjustment || undefined,
         advancePayment: advance || undefined,
+        deliveryDate,
       });
       setOrdererSuccess("納品内容確認依頼を送信しました");
     } catch (e) {
@@ -792,6 +804,22 @@ export default function InspectionPage() {
         <div className="rounded-xl border-2 border-red-400 py-4 text-center">
           <p className="text-[12px] font-bold text-red-500">支払金額</p>
           <p className="mt-1 text-[24px] font-bold text-knock-text">{formatYen(paymentAmount)}</p>
+        </div>
+
+        {/* 納品日 */}
+        <div>
+          <p className="mb-1 text-[13px] font-bold text-knock-text">
+            納品日
+            <span className="ml-1 text-[11px] font-normal text-knock-text-secondary">
+              （納品書に記載される日付です）
+            </span>
+          </p>
+          <input
+            type="date"
+            value={deliveryDate}
+            onChange={(e) => setDeliveryDate(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 bg-[#F5F5F5] px-3 py-2.5 text-[14px] text-knock-text outline-none focus:border-knock-accent focus:ring-1 focus:ring-knock-accent"
+          />
         </div>
 
         {/* 備考 */}
