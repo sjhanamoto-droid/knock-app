@@ -63,19 +63,20 @@ const STATUS_PRIORITY: Record<string, number> = {
   DEAL_COMPLETED: 7,
 };
 
-/** 子工事のステータスから親の実効ステータスを算出（一番手前のもの） */
+/** 子工事のステータスから親の実効ステータスを算出（子の中で一番手前のもの） */
 function computeEffectiveStatus(
   parentStatus: string,
   childStatuses: string[],
 ): string {
   if (childStatuses.length === 0) return parentStatus;
-  let earliest = parentStatus;
-  let earliestPri = STATUS_PRIORITY[parentStatus] ?? 99;
-  for (const cs of childStatuses) {
-    const pri = STATUS_PRIORITY[cs] ?? 99;
+  // 子工事がある場合は子工事のステータスのみで判定（親自身のステータスは無視）
+  let earliest = childStatuses[0];
+  let earliestPri = STATUS_PRIORITY[childStatuses[0]] ?? 99;
+  for (let i = 1; i < childStatuses.length; i++) {
+    const pri = STATUS_PRIORITY[childStatuses[i]] ?? 99;
     if (pri < earliestPri) {
       earliestPri = pri;
-      earliest = cs;
+      earliest = childStatuses[i];
     }
   }
   return earliest;
