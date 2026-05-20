@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
-import { generateInvoice } from "@/lib/services/document-generator";
+import { generateInvoice, generateInvoiceFromNotes } from "@/lib/services/document-generator";
 
 /**
  * 請求書候補を取得
@@ -529,4 +529,117 @@ export async function markInvoicePaid(documentId: string) {
   }
 
   return { success: true };
+}
+
+/**
+ * 未請求の納品書一覧を取得（発注者用・月別フィルター）
+ */
+export async function getAvailableDeliveryNotes(yearMonth: string) {
+  const user = await requireSession();
+
+  const year = parseInt(yearMonth.substring(0, 4));
+  const month = parseInt(yearMonth.substring(4, 6));
+  const startOfMonth = new Date(year, month - 1, 1);
+  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+
+  // 対象月の納品書を取得（自社が発注者）
+  const deliveryNotes = await prisma.document.findMany({
+    where: {
+      type: "DELIVERY_NOTE",
+      status: { in: ["ISSUED", "CONFIRMED"] },
+      orderCompanyId: user.companyId,
+      issuedAt: { gte: startOfMonth, lte: endOfMonth },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      documentNumber: true,
+      issuedAt: true,
+      totalAmount: true,
+      metadata: true,
+      workerCompanyId: true,
+      workerCompany: { select: { id: true, name: true } },
+    },
+    orderBy: { issuedAt: "desc" },
+  });
+
+  if (deliveryNotes.length === 0) return [];
+
+  // 既存の請求書に含まれている納品書IDを収集
+  const existingInvoices = await prisma.document.findMany({
+    where: {
+      type: "INVOICE",
+      orderCompanyId: user.companyId,
+      deletedAt: null,
+      status: { not: "VOID" },
+    },
+    select: { metadata: true },
+  });
+
+  const invoicedNoteIds = new Set<string>();
+  for (const inv of existingInvoices) {
+    const meta = inv.metadata as Record<string, unknown> | null;
+    const ids = (meta?.deliveryNoteIds as string[]) ?? [];
+    for (const id of ids) {
+      invoicedNoteIds.add(id);
+    }
+  }
+
+  // 未請求の納品書のみ返却
+  return deliveryNotes
+    .filter((n) => !invoicedNoteIds.has(n.id))
+    .map((n) => ({
+      id: n.id,
+      documentNumber: n.documentNumber,
+      issuedAt: n.issuedAt?.toISOString() ?? null,
+      totalAmount: n.totalAmount ? Number(n.totalAmount) : 0,
+      siteName: (n.metadata as Record<string, unknown> | null)?.siteName as string ?? "",
+      workerCompanyId: n.workerCompanyId,
+      workerCompanyName: n.workerCompany?.name ?? "",
+    }));
+}
+
+/**
+ * 手動で請求書を作成（発注者用）
+ */
+export async function createManualInvoice(
+  deliveryNoteIds: string[],
+  billingDate: string,
+) {
+  const user = await requireSession();
+
+  if (deliveryNoteIds.length === 0) {
+    throw new Error("納品書を選択してください");
+  }
+
+  // 全納品書が自社（発注者）のものであることを検証
+  const notes = await prisma.document.findMany({
+    where: {
+      id: { in: deliveryNoteIds },
+      type: "DELIVERY_NOTE",
+      deletedAt: null,
+    },
+    select: { id: true, orderCompanyId: true, workerCompanyId: true },
+  });
+
+  if (notes.length !== deliveryNoteIds.length) {
+    throw new Error("一部の納品書が見つかりません");
+  }
+
+  for (const note of notes) {
+    if (note.orderCompanyId !== user.companyId) {
+      throw new Error("権限のない納品書が含まれています");
+    }
+  }
+
+  // 同一受注者であることを検証
+  const workerIds = new Set(notes.map((n) => n.workerCompanyId));
+  if (workerIds.size > 1) {
+    throw new Error("異なる受注者の納品書が混在しています。同一受注者の納品書を選択してください");
+  }
+
+  const date = new Date(billingDate + "T00:00:00");
+  const docId = await generateInvoiceFromNotes(deliveryNoteIds, date);
+
+  return { id: docId };
 }

@@ -33,7 +33,7 @@ function WavyUnderline({ color }: { color: string }) {
 
 export default function BillingPage() {
   const router = useRouter();
-  const { accentColor } = useMode();
+  const { accentColor, isOrderer } = useMode();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,6 +105,21 @@ export default function BillingPage() {
           </svg>
         </button>
       </div>
+
+      {isOrderer && (
+        <div className="px-4 pb-2">
+          <button
+            onClick={() => router.push("/billing/new")}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-[14px] font-bold transition-all active:scale-[0.98]"
+            style={{ borderColor: accentColor, color: accentColor }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            請求書を作成する
+          </button>
+        </div>
+      )}
 
       <div className="space-y-3 px-4">
         {loading ? (

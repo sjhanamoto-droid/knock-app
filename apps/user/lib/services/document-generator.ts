@@ -572,3 +572,118 @@ export async function generateInvoice(
 
   return document.id;
 }
+
+/**
+ * 指定された納品書IDから請求書を生成（手動作成用）
+ */
+export async function generateInvoiceFromNotes(
+  deliveryNoteIds: string[],
+  billingDate: Date,
+): Promise<string> {
+  const deliveryNotes = await prisma.document.findMany({
+    where: {
+      id: { in: deliveryNoteIds },
+      type: "DELIVERY_NOTE",
+      status: { in: ["ISSUED", "CONFIRMED"] },
+      deletedAt: null,
+    },
+    include: {
+      factoryFloorOrder: true,
+    },
+  });
+
+  if (deliveryNotes.length === 0) {
+    throw new Error("請求対象の納品書がありません");
+  }
+
+  // 全て同一の (workerCompanyId, orderCompanyId) であることを検証
+  const workerCompanyId = deliveryNotes[0].workerCompanyId;
+  const orderCompanyId = deliveryNotes[0].orderCompanyId;
+  for (const note of deliveryNotes) {
+    if (note.workerCompanyId !== workerCompanyId || note.orderCompanyId !== orderCompanyId) {
+      throw new Error("異なる取引先の納品書が混在しています");
+    }
+  }
+
+  const documentNumber = await generateDocumentNumber("INVOICE");
+  const yearMonth = `${billingDate.getFullYear()}${String(billingDate.getMonth() + 1).padStart(2, "0")}`;
+
+  let totalSubtotal = BigInt(0);
+  let totalTax = BigInt(0);
+  let totalTotal = BigInt(0);
+
+  for (const note of deliveryNotes) {
+    totalSubtotal += note.subtotal ?? BigInt(0);
+    totalTax += note.taxAmount ?? BigInt(0);
+    totalTotal += note.totalAmount ?? BigInt(0);
+  }
+
+  const workerCompany = await prisma.company.findUnique({
+    where: { id: workerCompanyId },
+  });
+
+  const orderCompany = await prisma.company.findUnique({
+    where: { id: orderCompanyId },
+  });
+
+  const lineItems = deliveryNotes.map((n) => ({
+    documentNumber: n.documentNumber ?? "",
+    date: n.issuedAt,
+    siteName: (n.metadata as Record<string, unknown> | null)?.siteName as string ?? "",
+    amount: Number(n.totalAmount ?? 0),
+  }));
+
+  const pdfData: InvoicePdfData = {
+    documentNumber,
+    issuedAt: billingDate,
+    yearMonth,
+    workerCompanyName: workerCompany?.name ?? "",
+    workerCompanyPostalCode: workerCompany?.postalCode ?? "",
+    workerCompanyAddress: buildAddress(workerCompany),
+    workerCompanyInvoiceNumber: workerCompany?.invoiceNumber ?? "",
+    workerCompanyTel: workerCompany?.telNumber ?? "",
+    workerCompanyEmail: workerCompany?.email ?? "",
+    orderCompanyName: orderCompany?.name ?? "",
+    lineItems,
+    subtotal: Number(totalSubtotal),
+    taxAmount10: Number(totalTax),
+    totalAmount: Number(totalTotal),
+    bankName: workerCompany?.bankName ?? "",
+    bankBranchName: workerCompany?.bankBranchName ?? "",
+    bankAccountType: workerCompany?.bankAccountType === "CURRENT" ? "当座" : "普通",
+    bankAccountNumber: workerCompany?.bankAccountNumber ?? "",
+    bankAccountName: workerCompany?.bankAccountName ?? "",
+    stampImageBase64: loadStampImageBase64(workerCompany?.stampImage),
+  };
+
+  const pdfDataUrl = generateInvoicePdf(pdfData);
+  const pdfFilePath = savePdfToFile(pdfDataUrl, documentNumber);
+
+  const doc = await prisma.document.create({
+    data: {
+      type: "INVOICE",
+      status: "ISSUED",
+      documentNumber,
+      factoryFloorOrderId: deliveryNotes[0].factoryFloorOrderId,
+      orderCompanyId,
+      workerCompanyId,
+      subtotal: totalSubtotal,
+      taxAmount: totalTax,
+      totalAmount: totalTotal,
+      invoiceNumber: workerCompany?.invoiceNumber,
+      pdfUrl: pdfFilePath,
+      issuedAt: billingDate,
+      yearMonth,
+      metadata: {
+        deliveryNoteIds: deliveryNotes.map((n) => n.id),
+        lineItems: deliveryNotes.map((n) => ({
+          documentNumber: n.documentNumber,
+          siteName: (n.metadata as Record<string, unknown> | null)?.siteName ?? "",
+          amount: Number(n.totalAmount),
+        })),
+      },
+    },
+  });
+
+  return doc.id;
+}
