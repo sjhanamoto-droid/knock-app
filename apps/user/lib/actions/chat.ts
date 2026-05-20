@@ -221,7 +221,8 @@ export async function sendFileMessage(roomId: string, fileUrl: string, fileName:
   });
   if (!member) throw new Error("チャットルームのメンバーではありません");
 
-  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+  const isImage = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(fileName) ||
+    fileUrl.startsWith("data:image/");
 
   const newMessage = await prisma.$transaction(async (tx) => {
     const msg = await tx.message.create({

@@ -116,8 +116,8 @@ export default function ChatRoomPage() {
       setData((prev) =>
         prev ? { ...prev, messages: [...prev.messages, newMsg as Message] } : prev
       );
-    } catch {
-      // アップロードエラー
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "ファイルのアップロードに失敗しました");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -236,7 +236,8 @@ export default function ChatRoomPage() {
     const isOwn = msg.user.id === currentUserId;
     const fileUrl = (msg as Record<string, unknown>).file as string | null;
     const fileName = msg.message ?? "ファイル";
-    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+    const isImage = /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(fileName) ||
+      (fileUrl?.startsWith("data:image/") ?? false);
 
     return (
       <div
