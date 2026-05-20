@@ -44,9 +44,14 @@ export default function NewSitePage() {
   }, [parentId]);
 
   async function handleCreate(data: Parameters<typeof createSite>[0]) {
-    await createSite(data);
-    toast(parentId ? "工事を追加しました" : "現場を作成しました");
-    router.replace(parentId ? `/sites/${parentId}` : "/sites");
+    const result = await createSite(data);
+    if (parentId) {
+      toast("工事を追加しました");
+      router.replace(`/sites/${parentId}`);
+    } else {
+      toast("現場を作成しました。続けて工事詳細を入力してください。");
+      router.replace(`/sites/new?parentId=${result.id}`);
+    }
     router.refresh();
   }
 

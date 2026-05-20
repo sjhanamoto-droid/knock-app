@@ -18,9 +18,7 @@ import type { ChildSiteInput } from "@/lib/actions/sites";
 // 子現場フォーム用ローカル型（File オブジェクトを含む）
 type ChildFormEntry = {
   name: string;
-  code: string;
   contentRequest: string;
-  address: string;
   startDayRequest: string;
   endDayRequest: string;
   occupations: { occupationSubItemId: string }[];
@@ -313,9 +311,7 @@ export default function SiteForm({
                     const childTotal = getChildTotal(child);
                     return {
                       name: child.name,
-                      code: child.code || undefined,
                       contentRequest: child.contentRequest || undefined,
-                      address: child.address || undefined,
                       startDayRequest: child.startDayRequest || undefined,
                       endDayRequest: child.endDayRequest || undefined,
                       totalAmount: childTotal > 0 ? childTotal : undefined,
@@ -351,8 +347,8 @@ export default function SiteForm({
       {/* parentId hidden field */}
       {parentId && <input type="hidden" {...register("parentId")} />}
 
-      {/* タブ切替（親現場のみ） */}
-      {isParentSite && (
+      {/* タブ切替（親現場の編集時のみ） */}
+      {isParentSite && mode === "edit" && (
         <div className="flex gap-1 rounded-full bg-gray-100 p-1">
           <button
             type="button"
@@ -384,8 +380,8 @@ export default function SiteForm({
         </div>
       )}
 
-      {/* ======== 工事一覧タブ（親現場） ======== */}
-      {isParentSite && formTab === "children" && (
+      {/* ======== 工事一覧タブ（親現場の編集時のみ） ======== */}
+      {isParentSite && mode === "edit" && formTab === "children" && (
         <>
           {/* 既存の子現場（編集時） */}
           {mode === "edit" && initialData?.children && initialData.children.length > 0 && (
@@ -443,7 +439,7 @@ export default function SiteForm({
               setChildEntries([
                 ...childEntries,
                 {
-                  name: "", code: "", contentRequest: "", address: "",
+                  name: "", contentRequest: "",
                   startDayRequest: "", endDayRequest: "",
                   occupations: [], priceDetails: [],
                   drawingFiles: [], photoFiles: [], invoicePdfFiles: [],
@@ -511,15 +507,6 @@ export default function SiteForm({
                           />
                         </div>
                         <div>
-                          <label className={labelClass}>現場コード</label>
-                          <input
-                            value={child.code}
-                            onChange={(e) => updateChild(idx, { code: e.target.value })}
-                            className={inputClass}
-                            placeholder="例: SJ-2026-001"
-                          />
-                        </div>
-                        <div>
                           <label className={labelClass}>依頼内容</label>
                           <textarea
                             value={child.contentRequest}
@@ -529,20 +516,6 @@ export default function SiteForm({
                             placeholder="工事内容を入力"
                           />
                         </div>
-                      </div>
-                    </div>
-
-                    {/* 場所情報 */}
-                    <div>
-                      <p className={sectionTitleClass}>場所情報</p>
-                      <div>
-                        <label className={labelClass}>住所</label>
-                        <input
-                          value={child.address}
-                          onChange={(e) => updateChild(idx, { address: e.target.value })}
-                          className={inputClass}
-                          placeholder="東京都新宿区..."
-                        />
                       </div>
                     </div>
 
@@ -815,14 +788,17 @@ export default function SiteForm({
             )}
           </div>
 
-          <div>
-            <label className={labelClass}>現場コード</label>
-            <input
-              {...register("code")}
-              className={inputClass}
-              placeholder="例: SJ-2026-001"
-            />
-          </div>
+          {/* 現場コード（親現場のみ） */}
+          {!isChildSite && (
+            <div>
+              <label className={labelClass}>現場コード</label>
+              <input
+                {...register("code")}
+                className={inputClass}
+                placeholder="例: SJ-2026-001"
+              />
+            </div>
+          )}
 
           {/* 全体予算（親現場のみ） */}
           {!isChildSite && (
@@ -856,21 +832,22 @@ export default function SiteForm({
         </div>
       </div>
 
-      {/* ======== 2. 場所情報 ======== */}
-      <div className={cardClass}>
-        <p className={sectionTitleClass}>場所情報</p>
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className={labelClass}>住所</label>
-            <input
-              {...register("address")}
-              className={inputClass}
-              placeholder="東京都新宿区..."
-            />
+      {/* ======== 2. 場所情報（親現場のみ） ======== */}
+      {!isChildSite && (
+        <div className={cardClass}>
+          <p className={sectionTitleClass}>場所情報</p>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className={labelClass}>住所</label>
+              <input
+                {...register("address")}
+                className={inputClass}
+                placeholder="東京都新宿区..."
+              />
+            </div>
           </div>
-
         </div>
-      </div>
+      )}
 
       {/* ======== 3. 日程 ======== */}
       <div className={cardClass}>
@@ -1203,7 +1180,7 @@ export default function SiteForm({
             ? isChildSite ? "追加中..." : "作成中..."
             : "更新中..."
           : mode === "create"
-            ? isChildSite ? "工事を追加" : "プロジェクトを作成"
+            ? isChildSite ? "工事を追加" : "工事詳細を作成"
             : "変更を保存"}
       </button>
     </form>
