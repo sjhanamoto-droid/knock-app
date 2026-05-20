@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getSite, deleteSite, duplicateSite, getProjectSummary } from "@/lib/actions/sites";
 import {
@@ -57,6 +57,7 @@ const PAYMENT_TYPE_LABELS: Record<number, string> = {
 export default function SiteDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { isOrderer, accentColor } = useMode();
   const [site, setSite] = useState<SiteDetail | null>(null);
@@ -65,7 +66,8 @@ export default function SiteDetailPage() {
   const [duplicating, setDuplicating] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>("detail");
+  const initialTab = (searchParams.get("tab") as ActiveTab) || "detail";
+  const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [projectSummary, setProjectSummary] = useState<ProjectSummary | null>(null);
   const [showOrderAlert, setShowOrderAlert] = useState<string | null>(null); // child site id

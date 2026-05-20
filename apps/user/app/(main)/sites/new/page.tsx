@@ -47,10 +47,10 @@ export default function NewSitePage() {
     const result = await createSite(data);
     if (parentId) {
       toast("工事を追加しました");
-      router.replace(`/sites/${parentId}`);
+      router.replace(`/sites/${parentId}?tab=children`);
     } else {
-      toast("現場を作成しました。続けて工事詳細を入力してください。");
-      router.replace(`/sites/new?parentId=${result.id}`);
+      toast("現場を作成しました");
+      router.replace(`/sites/${result.id}?tab=children`);
     }
     router.refresh();
   }
