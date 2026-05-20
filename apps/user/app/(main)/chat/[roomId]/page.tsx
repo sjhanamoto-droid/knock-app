@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getChatRoom, getNewMessages, sendMessage, sendFileMessage, markAsRead } from "@/lib/actions/chat";
+import { getChatRoom, getNewMessages, sendMessage, markAsRead } from "@/lib/actions/chat";
 import { formatDateTime, formatCurrency, documentTypeLabels } from "@knock/utils";
 
 type ChatData = Awaited<ReturnType<typeof getChatRoom>>;
@@ -104,15 +104,16 @@ export default function ChatRoomPage() {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append("files", file);
+      formData.append("file", file);
+      formData.append("roomId", params.roomId as string);
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
+      const res = await fetch("/api/chat/send-file", { method: "POST", body: formData });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "ファイルの送信に失敗しました");
+      }
 
-      const result = await res.json();
-      const fileUrl = result.url ?? result.urls?.[0];
-      if (!fileUrl) throw new Error("Upload failed: no URL returned");
-      const newMsg = await sendFileMessage(params.roomId as string, fileUrl, file.name);
+      const newMsg = await res.json();
       setData((prev) =>
         prev ? { ...prev, messages: [...prev.messages, newMsg as Message] } : prev
       );

@@ -8,11 +8,6 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./generated/prisma/*.wasm", "./lib/fonts/**"],
   },
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "10mb",
-    },
-  },
 };
 
 export default nextConfig;
