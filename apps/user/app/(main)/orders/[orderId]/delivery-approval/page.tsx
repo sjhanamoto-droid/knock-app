@@ -65,6 +65,8 @@ export default function DeliveryApprovalPage() {
   const additionalWork = order.completionReport?.hasAdditionalWork
     ? Number(order.completionReport.additionalWorkAmount ?? 0)
     : 0;
+  const inspectionData = order.inspectionData as Record<string, unknown> | null;
+  const deliveryDate = inspectionData?.deliveryDate as string | undefined;
 
   return (
     <div className="flex flex-col">
@@ -124,6 +126,12 @@ export default function DeliveryApprovalPage() {
               </span>
             </div>
             <span className="text-right text-[11px] text-knock-text-secondary">（税込）</span>
+            {deliveryDate && (
+              <div className="mt-2 flex justify-between border-t pt-2">
+                <span>納品日</span>
+                <span className="font-bold">{deliveryDate}</span>
+              </div>
+            )}
           </div>
         </div>
 
