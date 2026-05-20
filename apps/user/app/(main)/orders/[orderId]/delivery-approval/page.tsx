@@ -38,7 +38,7 @@ export default function DeliveryApprovalPage() {
     setSubmitting(true);
     try {
       await approveDelivery(orderId);
-      setSuccessMessage("納品金額を承認しました");
+      setSuccessMessage("納品書が作成されました。これで工事が完了です。");
     } catch (e) {
       alert(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -175,7 +175,7 @@ export default function DeliveryApprovalPage() {
       />
       <AlertDialog
         open={!!successMessage}
-        onClose={() => router.replace(`/sites/${order?.factoryFloor?.id}`)}
+        onClose={() => router.replace("/sites")}
         title="完了"
         message={successMessage}
       />
