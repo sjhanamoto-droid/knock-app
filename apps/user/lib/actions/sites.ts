@@ -247,6 +247,15 @@ export async function getSite(id: string) {
     },
   });
 
+  if (!site) return null;
+
+  // 親現場の場合、子工事のステータスから実効ステータスを算出
+  if (!site.parentId && site.children && site.children.length > 0) {
+    const childStatuses = site.children.map((c) => c.status);
+    const effectiveStatus = computeEffectiveStatus(site.status, childStatuses);
+    return serializeBigInt({ ...site, status: effectiveStatus });
+  }
+
   return serializeBigInt(site);
 }
 
