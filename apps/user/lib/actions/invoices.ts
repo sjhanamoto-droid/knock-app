@@ -532,7 +532,7 @@ export async function markInvoicePaid(documentId: string) {
 }
 
 /**
- * 未請求の納品書一覧を取得（発注者用・月別フィルター）
+ * 未請求の納品書一覧を取得（月別フィルター）
  */
 export async function getAvailableDeliveryNotes(yearMonth: string) {
   const user = await requireSession();
@@ -542,12 +542,15 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
   const startOfMonth = new Date(year, month - 1, 1);
   const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
 
-  // 対象月の納品書を取得（自社が発注者）
+  // 対象月の納品書を取得（自社が発注者または受注者）
   const deliveryNotes = await prisma.document.findMany({
     where: {
       type: "DELIVERY_NOTE",
       status: { in: ["ISSUED", "CONFIRMED"] },
-      orderCompanyId: user.companyId,
+      OR: [
+        { orderCompanyId: user.companyId },
+        { workerCompanyId: user.companyId },
+      ],
       issuedAt: { gte: startOfMonth, lte: endOfMonth },
       deletedAt: null,
     },
@@ -557,7 +560,9 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
       issuedAt: true,
       totalAmount: true,
       metadata: true,
+      orderCompanyId: true,
       workerCompanyId: true,
+      orderCompany: { select: { id: true, name: true } },
       workerCompany: { select: { id: true, name: true } },
     },
     orderBy: { issuedAt: "desc" },
@@ -569,7 +574,10 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
   const existingInvoices = await prisma.document.findMany({
     where: {
       type: "INVOICE",
-      orderCompanyId: user.companyId,
+      OR: [
+        { orderCompanyId: user.companyId },
+        { workerCompanyId: user.companyId },
+      ],
       deletedAt: null,
       status: { not: "VOID" },
     },
@@ -600,7 +608,7 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
 }
 
 /**
- * 手動で請求書を作成（発注者用）
+ * 手動で請求書を作成
  */
 export async function createManualInvoice(
   deliveryNoteIds: string[],
@@ -612,7 +620,7 @@ export async function createManualInvoice(
     throw new Error("納品書を選択してください");
   }
 
-  // 全納品書が自社（発注者）のものであることを検証
+  // 全納品書が自社（発注者 or 受注者）のものであることを検証
   const notes = await prisma.document.findMany({
     where: {
       id: { in: deliveryNoteIds },
@@ -627,7 +635,7 @@ export async function createManualInvoice(
   }
 
   for (const note of notes) {
-    if (note.orderCompanyId !== user.companyId) {
+    if (note.orderCompanyId !== user.companyId && note.workerCompanyId !== user.companyId) {
       throw new Error("権限のない納品書が含まれています");
     }
   }
