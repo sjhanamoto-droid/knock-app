@@ -20,8 +20,8 @@
   --color-knock-accent: var(--mode-accent, #E8960C);
   --color-knock-accent-light: var(--mode-accent-light, #F5B84D);
 
-  --font-family-display: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
-  --font-family-body: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+  --font-family-display: var(--font-noto-sans-jp), "Hiragino Kaku Gothic ProN", sans-serif;
+  --font-family-body: var(--font-noto-sans-jp), "Hiragino Kaku Gothic ProN", sans-serif;
 }
 
 /* 受注者モード（デフォルト: オレンジ） */

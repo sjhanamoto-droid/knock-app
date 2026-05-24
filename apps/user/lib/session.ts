@@ -1,4 +1,7 @@
+import { cache } from "react";
 import { auth } from "@/auth";
+
+const getAuth = cache(() => auth());
 
 export interface SessionUser {
   id: string;
@@ -12,7 +15,7 @@ export interface SessionUser {
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
-  const session = await auth();
+  const session = await getAuth();
   if (!session?.user) return null;
 
   const s = session as unknown as Record<string, unknown>;

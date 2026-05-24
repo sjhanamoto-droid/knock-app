@@ -9,9 +9,8 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { validateSwitchMode } from "@/lib/actions/switch-mode";
-import { getSessionMode } from "@/lib/actions/mode";
 
 type Mode = "ORDERER" | "CONTRACTOR";
 
@@ -36,31 +35,26 @@ interface ModeContextValue {
 
 const ModeContext = createContext<ModeContextValue | null>(null);
 
-export function ModeProvider({ children }: { children: ReactNode }) {
-  const { status, update } = useSession();
-  const [companyType, setCompanyType] = useState("");
-  const [activeMode, setActiveMode] = useState<Mode>("CONTRACTOR");
+interface ModeProviderProps {
+  children: ReactNode;
+  initialMode: Mode;
+  initialCompanyType: string;
+}
 
-  // サーバーアクションからモード情報を取得（確実にカスタムフィールドが取れる）
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    getSessionMode()
-      .then((data) => {
-        if (data) {
-          setCompanyType(data.companyType);
-          setActiveMode((data.activeMode as Mode) || "CONTRACTOR");
-        } else {
-          // セッションはあるがサーバー側で無効（古いセッション等）→ サインアウト
-          signOut({ callbackUrl: "/login" });
-        }
-      })
-      .catch(() => {
-        // サーバーアクションエラー → セッション無効の可能性 → サインアウト
-        signOut({ callbackUrl: "/login" });
-      });
-  }, [status]);
+export function ModeProvider({ children, initialMode, initialCompanyType }: ModeProviderProps) {
+  const { update } = useSession();
+  const [activeMode, setActiveMode] = useState<Mode>(initialMode);
+  const [companyType] = useState(initialCompanyType);
 
   const canSwitch = companyType === "BOTH";
+
+  // data-mode 属性をルート要素に設定（CSS変数の切替用）
+  useEffect(() => {
+    document.documentElement.setAttribute("data-mode", activeMode);
+    return () => {
+      document.documentElement.removeAttribute("data-mode");
+    };
+  }, [activeMode]);
 
   const switchMode = useCallback(
     async (newMode: Mode) => {
