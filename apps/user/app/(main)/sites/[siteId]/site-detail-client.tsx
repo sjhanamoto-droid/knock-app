@@ -125,8 +125,14 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
   // 親現場かどうか（parentId がなく発注者の場合）
   const isParentSite = !site.parentId && isOrderer;
 
-  // Site type label: orderer sees 発注現場, contractor sees 受注現場
-  const siteTypeLabel = isParentSite ? "プロジェクト" : isOrderer ? "発注現場" : "受注現場";
+  // Site type label: child sites show parent name, otherwise プロジェクト/発注現場/受注現場
+  const siteTypeLabel = isParentSite
+    ? "プロジェクト"
+    : site.parent?.name
+      ? site.parent.name
+      : isOrderer
+        ? "発注現場"
+        : "受注現場";
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F5F5]">

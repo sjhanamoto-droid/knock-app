@@ -186,6 +186,7 @@ export async function getSite(id: string) {
       deletedAt: null,
     },
     include: {
+      parent: { select: { id: true, name: true } },
       workCompany: { select: { id: true, name: true } },
       members: {
         where: { deletedAt: null },
