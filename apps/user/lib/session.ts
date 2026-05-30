@@ -1,7 +1,4 @@
-import { cache } from "react";
-import { auth } from "@/auth";
-
-const getAuth = cache(() => auth());
+import { getCachedAuth as getAuth } from "@/lib/auth-cache";
 
 export interface SessionUser {
   id: string;

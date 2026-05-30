@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { requireKyc } from "@/lib/actions/verification";
@@ -7,23 +8,33 @@ import { sendPushToUsers } from "@/lib/push";
 
 /**
  * 検索フィルター用: 職種一覧を取得
+ * マスターデータ（ユーザー固有要素なし）なので Data Cache でDB往復を回避。
+ * 管理側でマスター更新時は revalidateTag("occupation-master") で無効化可能。
  */
-export async function getOccupationOptions() {
-  const items = await prisma.occupationSubItem.findMany({
-    where: { deletedAt: null },
-    select: {
-      id: true,
-      name: true,
-      occupationMajorItem: { select: { name: true } },
-    },
-    orderBy: { occupationMajorItem: { name: "asc" } },
-  });
+const getOccupationOptionsCached = unstable_cache(
+  async () => {
+    const items = await prisma.occupationSubItem.findMany({
+      where: { deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        occupationMajorItem: { select: { name: true } },
+      },
+      orderBy: { occupationMajorItem: { name: "asc" } },
+    });
 
-  return items.map((item) => ({
-    id: item.id,
-    name: item.name,
-    majorName: item.occupationMajorItem.name,
-  }));
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      majorName: item.occupationMajorItem.name,
+    }));
+  },
+  ["occupation-options"],
+  { revalidate: 3600, tags: ["occupation-master"] }
+);
+
+export async function getOccupationOptions() {
+  return getOccupationOptionsCached();
 }
 
 /**

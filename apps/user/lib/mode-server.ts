@@ -1,5 +1,4 @@
-import { cache } from "react";
-import { auth } from "@/auth";
+import { getCachedAuth as getAuth } from "@/lib/auth-cache";
 
 export type Mode = "ORDERER" | "CONTRACTOR";
 
@@ -12,8 +11,6 @@ export interface ModeData {
   accentColor: string;
   accentColorLight: string;
 }
-
-const getAuth = cache(() => auth());
 
 export async function getServerMode(): Promise<ModeData> {
   const session = await getAuth();

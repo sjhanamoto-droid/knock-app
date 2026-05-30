@@ -14,4 +14,6 @@ function createPrismaClient() {
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// サーバーレスのウォームインスタンス間で同一クライアント（=同一コネクションプール）を
+// 再利用し、リクエストごとの再接続を防ぐ。本番でも必ず保持する。
+globalForPrisma.prisma = prisma;

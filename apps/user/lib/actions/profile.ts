@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { requireSession } from "@/lib/session";
@@ -322,12 +323,21 @@ export async function updateCompany(data: {
 
 // ============ プロフィール強化: 資格・保険 ============
 
+// マスターデータ（ユーザー固有要素なし）なので Data Cache でDB往復を回避。
+// 管理側でマスター更新時は revalidateTag("qualification-master") で無効化可能。
+const getQualificationMastersCached = unstable_cache(
+  async () => {
+    return prisma.qualificationMaster.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, name: true, category: true },
+    });
+  },
+  ["qualification-masters"],
+  { revalidate: 3600, tags: ["qualification-master"] }
+);
+
 export async function getQualificationMasters() {
-  const masters = await prisma.qualificationMaster.findMany({
-    orderBy: { sortOrder: "asc" },
-    select: { id: true, name: true, category: true },
-  });
-  return masters;
+  return getQualificationMastersCached();
 }
 
 export async function saveUserQualifications(qualificationIds: string[]) {
