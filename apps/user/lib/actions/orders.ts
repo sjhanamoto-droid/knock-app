@@ -77,6 +77,10 @@ export async function getOrder(id: string) {
         where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
       },
+      // 相互評価CTAの出し分け用（自社が評価済みか判定）
+      evaluations: {
+        select: { evaluatorCompanyId: true },
+      },
     },
   });
 
@@ -1012,6 +1016,18 @@ export async function approveDelivery(orderId: string) {
         title: "納品承認",
         body: `${order.factoryFloor.name}の納品が承認されました。納品書が発行されています。`,
         url: `/documents/${documentId}`,
+      });
+
+      // 取引完了に伴い、発注者へ相互評価を依頼（プッシュは納品承認通知と重複するためアプリ内通知のみ）
+      await tx.notification.createMany({
+        data: ordererUsers.map((u) => ({
+          userId: u.id,
+          title: "取引相手を評価してください",
+          content: `${order.factoryFloor.name}の取引が完了しました。取引相手の評価をお願いします。`,
+          type: 35,
+          factoryFloorId: order.factoryFloor.id,
+          targetId: orderId,
+        })),
       });
     }
 

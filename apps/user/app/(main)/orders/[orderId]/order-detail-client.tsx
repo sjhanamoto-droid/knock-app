@@ -304,6 +304,30 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
             納品金額を確認
           </Link>
         )}
+
+        {/* アクション: 相互評価（納品完了後・発注者/受注者の両方） */}
+        {["DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(
+          order.factoryFloor.status ?? ""
+        ) &&
+          (() => {
+            const hasEvaluated =
+              order.evaluations?.some(
+                (e) => e.evaluatorCompanyId === order.viewerCompanyId
+              ) ?? false;
+            return (
+              <Link
+                href={`/orders/${order.id}/evaluate`}
+                className={`rounded-xl py-3.5 text-center text-[14px] font-bold transition-all active:scale-[0.98] ${
+                  hasEvaluated
+                    ? "border border-gray-300 text-gray-700"
+                    : "text-white shadow-sm"
+                }`}
+                style={hasEvaluated ? undefined : { backgroundColor: accentColor }}
+              >
+                {hasEvaluated ? "評価を確認する" : "取引相手を評価する"}
+              </Link>
+            );
+          })()}
       </div>
 
       {/* 確認ダイアログ */}

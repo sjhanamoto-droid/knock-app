@@ -98,6 +98,7 @@ function ContractorView({
   const [submitting, setSubmitting] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [approvedForEval, setApprovedForEval] = useState(false);
 
   const floor = order.factoryFloor;
 
@@ -132,7 +133,8 @@ function ContractorView({
     setSubmitting(true);
     try {
       await approveDelivery(order.id);
-      setSuccessMessage("納品金額を承認しました");
+      setApprovedForEval(true);
+      setSuccessMessage("納品金額を承認しました。続けて取引相手を評価できます。");
     } catch (e) {
       alert(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -383,7 +385,11 @@ function ContractorView({
       />
       <AlertDialog
         open={!!successMessage}
-        onClose={() => router.replace(`/orders/${order.id}`)}
+        onClose={() =>
+          router.replace(
+            approvedForEval ? `/orders/${order.id}/evaluate` : `/orders/${order.id}`
+          )
+        }
         title="完了"
         message={successMessage}
       />

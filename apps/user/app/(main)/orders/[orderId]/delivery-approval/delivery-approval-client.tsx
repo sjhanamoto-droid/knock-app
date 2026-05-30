@@ -34,7 +34,7 @@ export function DeliveryApprovalClient({ initialOrder, orderId }: Props) {
     setSubmitting(true);
     try {
       await approveDelivery(orderId);
-      setSuccessMessage("納品書が作成されました。これで工事が完了です。");
+      setSuccessMessage("納品書が作成され、取引が完了しました。続けて取引相手を評価できます。");
     } catch (e) {
       alert(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -163,7 +163,7 @@ export function DeliveryApprovalClient({ initialOrder, orderId }: Props) {
       />
       <AlertDialog
         open={!!successMessage}
-        onClose={() => router.replace("/sites")}
+        onClose={() => router.replace(`/orders/${orderId}/evaluate`)}
         title="完了"
         message={successMessage}
       />

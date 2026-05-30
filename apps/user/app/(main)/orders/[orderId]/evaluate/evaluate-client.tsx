@@ -27,10 +27,12 @@ function StarRating({
   value,
   onChange,
   color,
+  readonly,
 }: {
   value: number;
-  onChange: (v: number) => void;
+  onChange?: (v: number) => void;
   color: string;
+  readonly?: boolean;
 }) {
   return (
     <div className="flex gap-1">
@@ -38,8 +40,9 @@ function StarRating({
         <button
           key={star}
           type="button"
-          onClick={() => onChange(star)}
-          className="text-[28px] transition-all active:scale-110"
+          disabled={readonly}
+          onClick={() => onChange?.(star)}
+          className={`text-[28px] transition-all ${readonly ? "cursor-default" : "active:scale-110"}`}
         >
           {star <= value ? (
             <span style={{ color }}>★</span>
@@ -52,15 +55,22 @@ function StarRating({
   );
 }
 
+interface CriteriaLabels {
+  technical: { title: string; desc: string };
+  communication: { title: string; desc: string };
+  reliability: { title: string; desc: string };
+}
+
 interface Props {
   initialOrder: OrderDetail;
   orderId: string;
+  viewerCompanyId: string;
 }
 
-export function EvaluateClient({ initialOrder, orderId }: Props) {
+export function EvaluateClient({ initialOrder, orderId, viewerCompanyId }: Props) {
   const router = useRouter();
-  const { accentColor, isOrderer } = useMode();
-  const [order] = useState<OrderDetail | null>(initialOrder);
+  const { accentColor } = useMode();
+  const [order, setOrder] = useState<OrderDetail | null>(initialOrder);
   const [submitting, setSubmitting] = useState(false);
 
   const [technicalSkill, setTechnicalSkill] = useState(0);
@@ -70,15 +80,50 @@ export function EvaluateClient({ initialOrder, orderId }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
+  if (!order) {
+    return <div className="p-4 text-center text-knock-text-muted">取引が見つかりません</div>;
+  }
+
+  const floor = order.factoryFloor;
+  // 自社が発注者か受注者かを「実際の取引上の役割」で判定（アクティブモードに依存しない）
+  const isOrderer = floor.company?.id === viewerCompanyId;
+  const evaluatee = isOrderer ? floor.workCompany : floor.company;
+  const evaluateeCompanyId = evaluatee?.id;
+  const targetName = evaluatee?.name;
+
+  const evaluations = order.evaluations ?? [];
+  const myEvaluation = evaluations.find((e) => e.evaluatorCompanyId === viewerCompanyId) ?? null;
+  const receivedEvaluation =
+    evaluations.find((e) => e.evaluateeCompanyId === viewerCompanyId) ?? null;
+
+  // 評価対象（相手）の役割に応じてラベルを出し分け
+  const labels: CriteriaLabels = isOrderer
+    ? {
+        technical: { title: "技術力", desc: "仕上がりの品質" },
+        communication: { title: "コミュニケーション", desc: "連絡のスムーズさ" },
+        reliability: { title: "信頼性", desc: "時間や約束を守るか" },
+      }
+    : {
+        technical: { title: "対応・段取り", desc: "指示や段取りの明確さ" },
+        communication: { title: "コミュニケーション", desc: "連絡のスムーズさ・丁寧さ" },
+        reliability: { title: "信頼性", desc: "支払い・約束の確実さ" },
+      };
+
+  // 相手が自分を評価した内容を表示する際のラベル（自分の役割に応じる）
+  const receivedLabels: CriteriaLabels = isOrderer
+    ? {
+        technical: { title: "対応・段取り", desc: "" },
+        communication: { title: "コミュニケーション", desc: "" },
+        reliability: { title: "信頼性", desc: "" },
+      }
+    : {
+        technical: { title: "技術力", desc: "" },
+        communication: { title: "コミュニケーション", desc: "" },
+        reliability: { title: "信頼性", desc: "" },
+      };
+
   async function handleSubmit() {
     setShowConfirm(false);
-    if (!order) return;
-
-    const floor = order.factoryFloor;
-    const evaluateeCompanyId = isOrderer
-      ? floor.workCompany?.id
-      : floor.company?.id;
-
     if (!evaluateeCompanyId) return;
 
     setSubmitting(true);
@@ -91,6 +136,9 @@ export function EvaluateClient({ initialOrder, orderId }: Props) {
         reliability,
         comment: comment || undefined,
       });
+      // 即時公開: 最新の評価状態を取り直して表示を更新
+      const updated = await getOrderDetail(orderId);
+      setOrder(updated);
       setSuccessMessage("評価を送信しました");
     } catch (e) {
       alert(e instanceof Error ? e.message : "エラーが発生しました");
@@ -99,19 +147,20 @@ export function EvaluateClient({ initialOrder, orderId }: Props) {
     }
   }
 
-  if (!order) {
-    return <div className="p-4 text-center text-knock-text-muted">取引が見つかりません</div>;
+  if (!evaluateeCompanyId || !targetName) {
+    return (
+      <div className="p-4 text-center text-knock-text-muted">
+        評価対象の企業情報が取得できませんでした
+      </div>
+    );
   }
-
-  const floor = order.factoryFloor;
-  const targetName = isOrderer ? floor.workCompany?.name : floor.company?.name;
 
   return (
     <div className="flex flex-col bg-[#F5F5F5]">
       <header className="sticky top-0 z-40 bg-white shadow-[0_1px_0_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between px-4 py-3">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push(`/orders/${orderId}`)}
             className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -131,67 +180,123 @@ export function EvaluateClient({ initialOrder, orderId }: Props) {
           <p className="text-[14px] text-knock-text">
             {floor.name}の取引が完了しました
           </p>
-          <p className="mt-1 text-[15px] font-bold text-knock-text">
-            {targetName} 様を評価してください
-          </p>
+          {!myEvaluation && (
+            <p className="mt-1 text-[15px] font-bold text-knock-text">
+              {targetName} 様を評価してください
+            </p>
+          )}
         </div>
 
-        {/* 技術力 */}
-        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-          <h3 className="mb-1 text-[14px] font-bold text-knock-text">技術力</h3>
-          <p className="mb-2 text-[12px] text-knock-text-secondary">仕上がりの品質</p>
-          <StarRating value={technicalSkill} onChange={setTechnicalSkill} color={accentColor} />
+        {/* 自分の評価（未提出ならフォーム / 提出済みなら確認表示） */}
+        {myEvaluation ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-bold text-knock-text">あなたの評価</span>
+              <span className="text-[12px] text-knock-text-secondary">（{targetName} 様へ）</span>
+            </div>
+            <ScoreCard label={labels.technical} value={myEvaluation.technicalSkill} color={accentColor} />
+            <ScoreCard label={labels.communication} value={myEvaluation.communication} color={accentColor} />
+            <ScoreCard label={labels.reliability} value={myEvaluation.reliability} color={accentColor} />
+            {myEvaluation.comment && (
+              <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+                <h3 className="mb-1 text-[13px] font-bold text-knock-text">コメント</h3>
+                <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-knock-text-secondary">
+                  {myEvaluation.comment}
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* 技術力 / 対応・段取り */}
+            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <h3 className="mb-1 text-[14px] font-bold text-knock-text">{labels.technical.title}</h3>
+              <p className="mb-2 text-[12px] text-knock-text-secondary">{labels.technical.desc}</p>
+              <StarRating value={technicalSkill} onChange={setTechnicalSkill} color={accentColor} />
+            </div>
+
+            {/* コミュニケーション */}
+            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <h3 className="mb-1 text-[14px] font-bold text-knock-text">{labels.communication.title}</h3>
+              <p className="mb-2 text-[12px] text-knock-text-secondary">{labels.communication.desc}</p>
+              <StarRating value={communication} onChange={setCommunication} color={accentColor} />
+            </div>
+
+            {/* 信頼性 */}
+            <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <h3 className="mb-1 text-[14px] font-bold text-knock-text">{labels.reliability.title}</h3>
+              <p className="mb-2 text-[12px] text-knock-text-secondary">{labels.reliability.desc}</p>
+              <StarRating value={reliability} onChange={setReliability} color={accentColor} />
+            </div>
+
+            {/* コメント */}
+            <div>
+              <label className="mb-1 block text-[13px] font-bold text-knock-text">
+                コメント（任意）
+              </label>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
+                placeholder="取引の感想をお書きください"
+                className="w-full rounded-xl bg-[#F0F0F0] border-none px-4 py-3 text-[14px]"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                if (technicalSkill === 0 || communication === 0 || reliability === 0) {
+                  alert("すべての項目を評価してください");
+                  return;
+                }
+                if (!evaluateeCompanyId) {
+                  alert("評価対象が取得できませんでした");
+                  return;
+                }
+                setShowConfirm(true);
+              }}
+              disabled={submitting}
+              className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
+            >
+              {submitting ? "送信中..." : "評価を送信する"}
+            </button>
+
+            <button
+              onClick={() => router.push("/")}
+              className="text-center text-[13px] text-knock-text-secondary"
+            >
+              あとで評価する
+            </button>
+          </>
+        )}
+
+        {/* 相手からの評価（すぐ公開） */}
+        <div className="mt-2 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-bold text-knock-text">相手からの評価</span>
+            <span className="text-[12px] text-knock-text-secondary">（{targetName} 様より）</span>
+          </div>
+          {receivedEvaluation ? (
+            <>
+              <ScoreCard label={receivedLabels.technical} value={receivedEvaluation.technicalSkill} color={accentColor} />
+              <ScoreCard label={receivedLabels.communication} value={receivedEvaluation.communication} color={accentColor} />
+              <ScoreCard label={receivedLabels.reliability} value={receivedEvaluation.reliability} color={accentColor} />
+              {receivedEvaluation.comment && (
+                <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+                  <h3 className="mb-1 text-[13px] font-bold text-knock-text">コメント</h3>
+                  <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-knock-text-secondary">
+                    {receivedEvaluation.comment}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="rounded-2xl bg-white p-4 text-center text-[13px] text-knock-text-secondary shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              まだ相手からの評価はありません
+            </div>
+          )}
         </div>
-
-        {/* コミュニケーション */}
-        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-          <h3 className="mb-1 text-[14px] font-bold text-knock-text">コミュニケーション</h3>
-          <p className="mb-2 text-[12px] text-knock-text-secondary">連絡のスムーズさ</p>
-          <StarRating value={communication} onChange={setCommunication} color={accentColor} />
-        </div>
-
-        {/* 信頼性 */}
-        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-          <h3 className="mb-1 text-[14px] font-bold text-knock-text">信頼性</h3>
-          <p className="mb-2 text-[12px] text-knock-text-secondary">時間や約束を守るか</p>
-          <StarRating value={reliability} onChange={setReliability} color={accentColor} />
-        </div>
-
-        {/* コメント */}
-        <div>
-          <label className="mb-1 block text-[13px] font-bold text-knock-text">
-            コメント（任意）
-          </label>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            rows={3}
-            placeholder="取引の感想をお書きください"
-            className="w-full rounded-xl bg-[#F0F0F0] border-none px-4 py-3 text-[14px]"
-          />
-        </div>
-
-        <button
-          onClick={() => {
-            if (technicalSkill === 0 || communication === 0 || reliability === 0) {
-              alert("すべての項目を評価してください");
-              return;
-            }
-            setShowConfirm(true);
-          }}
-          disabled={submitting}
-          className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-          style={{ backgroundColor: accentColor }}
-        >
-          {submitting ? "送信中..." : "評価を送信する"}
-        </button>
-
-        <button
-          onClick={() => router.push("/")}
-          className="text-center text-[13px] text-knock-text-secondary"
-        >
-          あとで評価する
-        </button>
       </div>
 
       <ConfirmDialog
@@ -199,17 +304,39 @@ export function EvaluateClient({ initialOrder, orderId }: Props) {
         onClose={() => setShowConfirm(false)}
         onConfirm={handleSubmit}
         title="評価の送信"
-        message="評価を送信しますか？"
+        message="評価を送信しますか？送信後は変更できません。"
         confirmLabel={submitting ? "送信中..." : "はい"}
         cancelLabel="いいえ"
         variant="primary"
       />
       <AlertDialog
         open={!!successMessage}
-        onClose={() => router.replace("/")}
+        onClose={() => setSuccessMessage("")}
         title="完了"
         message={successMessage}
       />
+    </div>
+  );
+}
+
+function ScoreCard({
+  label,
+  value,
+  color,
+}: {
+  label: { title: string; desc: string };
+  value: number;
+  color: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-[14px] font-bold text-knock-text">{label.title}</h3>
+          {label.desc && <p className="text-[12px] text-knock-text-secondary">{label.desc}</p>}
+        </div>
+        <StarRating value={value} color={color} readonly />
+      </div>
     </div>
   );
 }

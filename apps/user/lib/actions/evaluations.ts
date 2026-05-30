@@ -67,15 +67,15 @@ export async function submitEvaluation(data: {
           userId: u.id,
           title: "評価を受けました",
           content: "取引相手から評価が届きました",
-          type: 23,
-          targetId: evaluation.id,
+          type: 36,
+          targetId: data.factoryFloorOrderId,
         })),
       });
       void sendPushToUsers({
         userIds: evaluateeUsers.map((u) => u.id),
         title: "評価を受けました",
         body: "取引相手から評価が届きました",
-        url: `/orders/${evaluation.id}`,
+        url: `/orders/${data.factoryFloorOrderId}/evaluate`,
       });
     }
 
