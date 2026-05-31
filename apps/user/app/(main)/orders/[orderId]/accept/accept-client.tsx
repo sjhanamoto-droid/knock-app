@@ -9,6 +9,7 @@ import { checkBankInfo, updateCompany } from "@/lib/actions/profile";
 import { getNegotiationRoomId } from "@/lib/actions/chat";
 import { formatCurrency } from "@knock/utils";
 import { ConfirmDialog, AlertDialog, Dialog, useToast } from "@knock/ui";
+import { InvoiceNumberInput, toInvoiceDigits } from "@/components/invoice-number-input";
 
 function WavyUnderline({ color }: { color: string }) {
   return (
@@ -62,7 +63,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
       const info = await checkBankInfo();
       if (!info.complete) {
         setBankData({
-          invoiceNumber: (info.invoiceNumber ?? "").replace(/^T/i, "").replace(/\D/g, "").slice(0, 13),
+          invoiceNumber: toInvoiceDigits(info.invoiceNumber),
           bankName: info.bankName ?? "",
           bankBranchName: info.bankBranchName ?? "",
           bankAccountType: (info.bankAccountType as "ORDINARY" | "CURRENT") ?? "ORDINARY",
@@ -311,25 +312,10 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
             <div className="flex flex-col gap-3">
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700">インボイス番号</label>
-                <div className="flex items-center rounded-xl bg-[#F0F0F0] px-4">
-                  <span className="select-none text-[14px] font-bold text-knock-text">T</span>
-                  <input
-                    inputMode="numeric"
-                    value={bankData.invoiceNumber}
-                    onChange={(e) =>
-                      setBankData((p) => ({
-                        ...p,
-                        invoiceNumber: e.target.value.replace(/\D/g, "").slice(0, 13),
-                      }))
-                    }
-                    placeholder="1234567890123"
-                    maxLength={13}
-                    className="w-full bg-transparent px-2 py-3 text-[14px] outline-none"
-                  />
-                </div>
-                <p className="mt-1 text-[11px] text-knock-text-secondary">
-                  先頭のTを除く13桁の数字（{bankData.invoiceNumber.length}/13）
-                </p>
+                <InvoiceNumberInput
+                  value={bankData.invoiceNumber}
+                  onChange={(d) => setBankData((p) => ({ ...p, invoiceNumber: d }))}
+                />
               </div>
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700">銀行名</label>

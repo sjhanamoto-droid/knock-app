@@ -12,6 +12,7 @@ import { useMode } from "@/lib/hooks/use-mode";
 import {
   saveCompanyOccupations,
 } from "@/lib/actions/occupations";
+import { InvoiceNumberInput, toInvoiceDigits } from "@/components/invoice-number-input";
 import OccupationSelector from "@/components/occupation-selector";
 import { getAddressFromPostalCode } from "@knock/utils";
 
@@ -95,7 +96,7 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
     streetAddress: c?.streetAddress ?? "",
     building: c?.building ?? "",
     hpUrl: c?.hpUrl ?? "",
-    invoiceNumber: c?.invoiceNumber ?? "",
+    invoiceNumber: toInvoiceDigits(c?.invoiceNumber),
     bankName: c?.bankName ?? "",
     bankBranchName: c?.bankBranchName ?? "",
     bankAccountType: c?.bankAccountType ?? "",
@@ -152,6 +153,11 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
     setSaving(true);
     setError("");
     setSuccess("");
+    if (formData.invoiceNumber && formData.invoiceNumber.length !== 13) {
+      setError("インボイス番号はTを除く13桁の数字で入力してください");
+      setSaving(false);
+      return;
+    }
     try {
       await updateCompany({
         name: formData.name || undefined,
@@ -164,7 +170,7 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
         streetAddress: formData.streetAddress || undefined,
         building: formData.building || undefined,
         hpUrl: formData.hpUrl || undefined,
-        invoiceNumber: formData.invoiceNumber || undefined,
+        invoiceNumber: formData.invoiceNumber ? `T${formData.invoiceNumber}` : undefined,
         bankName: formData.bankName || undefined,
         bankBranchName: formData.bankBranchName || undefined,
         bankAccountType: (formData.bankAccountType as "ORDINARY" | "CURRENT") || undefined,
@@ -290,7 +296,7 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
               </div>
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-gray-700">適格請求書番号</label>
-                <input value={formData.invoiceNumber} onChange={(e) => set("invoiceNumber", e.target.value)} className={inputCls} placeholder="T1234567890123" />
+                <InvoiceNumberInput value={formData.invoiceNumber} onChange={(d) => set("invoiceNumber", d)} />
               </div>
             </div>
           </div>

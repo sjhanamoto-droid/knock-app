@@ -6,6 +6,7 @@ import {
   saveContractorRequirements,
   type RequirementCheck,
 } from "@/lib/actions/contractor-requirements";
+import { InvoiceNumberInput, toInvoiceDigits } from "@/components/invoice-number-input";
 
 const inputStyle = {
   backgroundColor: "#F0F0F0",
@@ -59,7 +60,7 @@ export function RequirementsClient({ initialCheck }: Props) {
   const [workersCompInsurance, setWorkersCompInsurance] = useState<string>(
     d.workersCompInsurance != null ? (d.workersCompInsurance ? "true" : "false") : ""
   );
-  const [invoiceNumber, setInvoiceNumber] = useState(d.invoiceNumber ?? "");
+  const [invoiceNumber, setInvoiceNumber] = useState(toInvoiceDigits(d.invoiceNumber));
   const [constructionPermit, setConstructionPermit] = useState(d.constructionPermit ?? "");
   const [socialInsurance, setSocialInsurance] = useState<string>(
     d.socialInsurance != null ? (d.socialInsurance ? "true" : "false") : ""
@@ -75,7 +76,7 @@ export function RequirementsClient({ initialCheck }: Props) {
     // バリデーション
     if (!workEligibility) return alert("就労資格を選択してください");
     if (workersCompInsurance === "") return alert("労災保険の加入状況を選択してください");
-    if (!invoiceNumber) return alert("インボイス番号を入力してください");
+    if (invoiceNumber.length !== 13) return alert("インボイス番号はTを除く13桁の数字で入力してください");
     if (!constructionPermit) return alert("建設業許可証の状況を選択してください");
     if (socialInsurance === "") return alert("社会保険の加入状況を選択してください");
     if (!bankName || !bankBranchName || !bankAccountType || !bankAccountNumber || !bankAccountName) {
@@ -87,7 +88,7 @@ export function RequirementsClient({ initialCheck }: Props) {
       await saveContractorRequirements({
         workEligibility,
         workersCompInsurance: workersCompInsurance === "true",
-        invoiceNumber,
+        invoiceNumber: `T${invoiceNumber}`,
         constructionPermit,
         socialInsurance: socialInsurance === "true",
         bankName,
@@ -182,14 +183,7 @@ export function RequirementsClient({ initialCheck }: Props) {
         {/* インボイス番号 */}
         <div className={cardClass}>
           <label className={labelClass}>インボイス番号 <span className="text-red-500">*</span></label>
-          <input
-            type="text"
-            value={invoiceNumber}
-            onChange={(e) => setInvoiceNumber(e.target.value)}
-            placeholder="T1234567890123"
-            className={inputClass}
-            style={inputStyle}
-          />
+          <InvoiceNumberInput value={invoiceNumber} onChange={setInvoiceNumber} />
         </div>
 
         {/* 建設業許可証 */}

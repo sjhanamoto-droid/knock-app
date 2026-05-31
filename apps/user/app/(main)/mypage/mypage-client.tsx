@@ -47,12 +47,6 @@ const constructionPermitLabels: Record<string, string> = {
   GOVERNOR_SPECIAL: "都道府県知事許可 特定",
 };
 
-const invoiceRegistrationLabels: Record<string, string> = {
-  NOT_ENTERED: "未入力",
-  NOT_REGISTERED: "未登録",
-  REGISTERED: "登録済み",
-};
-
 const bankAccountTypeLabels: Record<string, string> = {
   ORDINARY: "普通",
   CURRENT: "当座",
@@ -353,7 +347,7 @@ export function MyPageClient({ profile, trustScoreValue }: MyPageClientProps) {
             </SectionCard>
 
             <SectionCard title="許可証・保険・その他" editHref="/mypage/company?section=license">
-              <FieldRow label="インボイス登録" value={profile.company?.invoiceRegistration ? invoiceRegistrationLabels[profile.company.invoiceRegistration] : null} />
+              <FieldRow label="インボイス番号" value={profile.company?.invoiceNumber || null} />
               <FieldRow label="建設業許可証" value={profile.company?.constructionPermit ? constructionPermitLabels[profile.company.constructionPermit] : null} />
               <FieldRow label="社会保険" value={profile.company?.socialInsurance === true ? "加入している" : profile.company?.socialInsurance === false ? "加入していない" : null} />
               <FieldRow label="その他保険" value={profile.company?.insurances && profile.company.insurances.length > 0 ? profile.company.insurances.map((i) => i.type).join(", ") : null} />
