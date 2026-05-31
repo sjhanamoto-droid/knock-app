@@ -127,7 +127,6 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
   const [bizSaved, setBizSaved] = useState(false);
 
   // 許可証・保険・その他 state
-  const [invoiceRegistration, setInvoiceRegistration] = useState(c?.invoiceRegistration ?? "");
   const [constructionPermit, setConstructionPermit] = useState(c?.constructionPermit ?? "");
   const [socialInsurance, setSocialInsurance] = useState(
     c?.socialInsurance === true ? "true" : c?.socialInsurance === false ? "false" : ""
@@ -153,11 +152,6 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
     setSaving(true);
     setError("");
     setSuccess("");
-    if (formData.invoiceNumber && formData.invoiceNumber.length !== 13) {
-      setError("インボイス番号はTを除く13桁の数字で入力してください");
-      setSaving(false);
-      return;
-    }
     try {
       await updateCompany({
         name: formData.name || undefined,
@@ -170,7 +164,6 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
         streetAddress: formData.streetAddress || undefined,
         building: formData.building || undefined,
         hpUrl: formData.hpUrl || undefined,
-        invoiceNumber: formData.invoiceNumber ? `T${formData.invoiceNumber}` : undefined,
         bankName: formData.bankName || undefined,
         bankBranchName: formData.bankBranchName || undefined,
         bankAccountType: (formData.bankAccountType as "ORDINARY" | "CURRENT") || undefined,
@@ -293,10 +286,6 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
               <div>
                 <label className="mb-1.5 block text-[13px] font-medium text-gray-700">HP URL</label>
                 <input value={formData.hpUrl} onChange={(e) => set("hpUrl", e.target.value)} className={inputCls} placeholder="https://" />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-[13px] font-medium text-gray-700">適格請求書番号</label>
-                <InvoiceNumberInput value={formData.invoiceNumber} onChange={(d) => set("invoiceNumber", d)} />
               </div>
             </div>
           </div>
@@ -507,17 +496,8 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
           </h3>
           <div className="flex flex-col gap-4">
             <div>
-              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">インボイス登録</label>
-              <select
-                value={invoiceRegistration}
-                onChange={(e) => setInvoiceRegistration(e.target.value)}
-                className={inputCls}
-              >
-                <option value="">未選択</option>
-                <option value="NOT_ENTERED">未入力</option>
-                <option value="NOT_REGISTERED">未登録</option>
-                <option value="REGISTERED">登録済み</option>
-              </select>
+              <label className="mb-1.5 block text-[13px] font-medium text-gray-700">インボイス番号</label>
+              <InvoiceNumberInput value={formData.invoiceNumber} onChange={(d) => set("invoiceNumber", d)} />
             </div>
             <div>
               <label className="mb-1.5 block text-[13px] font-medium text-gray-700">建設業許可証</label>
@@ -572,13 +552,16 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
           <button
             type="button"
             onClick={async () => {
+              if (formData.invoiceNumber && formData.invoiceNumber.length !== 13) {
+                setError("インボイス番号はTを除く13桁の数字で入力してください");
+                return;
+              }
               setSavingLicense(true);
               setLicenseSaved(false);
               try {
                 await Promise.all([
                   updateCompany({
-                    invoiceRegistration:
-                      (invoiceRegistration as "NOT_ENTERED" | "NOT_REGISTERED" | "REGISTERED") || null,
+                    invoiceNumber: formData.invoiceNumber ? `T${formData.invoiceNumber}` : undefined,
                     constructionPermit:
                       (constructionPermit as
                         | "NONE"
