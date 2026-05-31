@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* monorepo の workspace パッケージ(@knock/ui, @knock/utils)内で使われる
+   Tailwindクラスも生成対象に含める。Tailwind v4 は node_modules を自動走査しない
+   ため、これが無いと z-[9999](Dialog) やステータスバッジ色が生成されない。 */
+@source "../../../packages/ui/src/**/*.{ts,tsx}";
+@source "../../../packages/utils/src/**/*.{ts,tsx}";
+
 @theme {
   --color-knock-orange: #E8960C;
   --color-knock-orange-light: #F5B84D;
