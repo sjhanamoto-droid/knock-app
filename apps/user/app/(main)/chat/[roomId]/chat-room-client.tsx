@@ -24,10 +24,8 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
   const [showDocuments, setShowDocuments] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    const currentMember = initialData.room.members.find((m) => m.userId);
-    return currentMember ? currentMember.userId : "";
-  });
+  // 自分のメッセージ判定用（ログインユーザーの実ID）
+  const currentUserId = initialData.myUserId;
   const [uploading, setUploading] = useState(false);
 
   // Mark as read on mount

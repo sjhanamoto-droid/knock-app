@@ -119,7 +119,7 @@ export async function getChatRoom(roomId: string) {
     },
   });
 
-  return { room, messages, myCompanyId: user.companyId, myCompanyType: user.companyType };
+  return { room, messages, myUserId: user.id, myCompanyId: user.companyId, myCompanyType: user.companyType };
 }
 
 export async function sendMessage(roomId: string, message: string) {
