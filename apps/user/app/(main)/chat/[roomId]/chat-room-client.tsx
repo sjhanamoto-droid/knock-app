@@ -424,19 +424,6 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
                         追加工事
                       </button>
                     )}
-                    {/* 共通: 写真・ファイル共有 */}
-                    <button
-                      onClick={() => { fileInputRef.current?.click(); setShowMenu(false); }}
-                      disabled={uploading}
-                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50 disabled:opacity-40"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                        <rect x="1.5" y="3" width="13" height="10" rx="1" stroke="#666" strokeWidth="1.2" fill="none"/>
-                        <circle cx="6" cy="7" r="1.5" stroke="#666" strokeWidth="1" fill="none"/>
-                        <path d="M1.5 11L5 8.5L7.5 10.5L10.5 7L14.5 10.5" stroke="#666" strokeWidth="1"/>
-                      </svg>
-                      {uploading ? "アップロード中..." : "写真・ファイル共有"}
-                    </button>
                   </div>
                 </>
               )}
@@ -490,7 +477,7 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="メッセージを入力..."
-            className="flex-1 rounded-full bg-[#F0F0F0] px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-knock-orange/40"
+            className="min-w-0 flex-1 rounded-full bg-[#F0F0F0] px-4 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-knock-orange/40"
           />
           <button
             type="submit"
@@ -507,8 +494,8 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
       {/* Document Panel (Bottom Sheet) */}
       {showDocuments && (
         <>
-          <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowDocuments(false)} />
-          <div className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom,16px)]">
+          <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowDocuments(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-[430px] max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom,16px)]">
             <div className="sticky top-0 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3">
               <h2 className="text-[16px] font-bold text-knock-text">帳票一覧</h2>
               <button
