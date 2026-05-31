@@ -387,7 +387,7 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
                       </button>
                     )}
                     {/* 現場ルーム: 受注者 完了報告 */}
-                    {isSiteInfo && firstOrder && !isOrderer && firstOrder.status === "CONFIRMED" && (
+                    {isSiteInfo && firstOrder && !isOrderer && firstOrder.status === "CONFIRMED" && !firstOrder.completionReport && (
                       <button
                         onClick={() => { router.push(`/orders/${firstOrder.id}/completion-report`); setShowMenu(false); }}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"

@@ -83,6 +83,7 @@ export async function getChatRoom(roomId: string) {
             select: {
               id: true,
               status: true,
+              completionReport: { select: { id: true } },
               documents: {
                 where: { deletedAt: null },
                 orderBy: { createdAt: "desc" },

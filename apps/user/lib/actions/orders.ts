@@ -81,6 +81,8 @@ export async function getOrder(id: string) {
       evaluations: {
         select: { evaluatorCompanyId: true },
       },
+      // 完了報告CTAの出し分け用（報告済みなら非表示）
+      completionReport: { select: { id: true } },
     },
   });
 

@@ -276,7 +276,7 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
         )}
 
         {/* アクション: 受注者 - 完了報告 */}
-        {!isOrderer && order.status === "CONFIRMED" && (
+        {!isOrderer && order.status === "CONFIRMED" && !order.completionReport && (
           <Link
             href={`/orders/${order.id}/completion-report`}
             className="rounded-xl bg-green-500 py-3.5 text-center text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
