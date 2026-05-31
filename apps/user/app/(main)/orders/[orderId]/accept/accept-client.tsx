@@ -8,7 +8,7 @@ import { getOrderDetail, acceptOrder, rejectOrder } from "@/lib/actions/orders";
 import { checkBankInfo, updateCompany } from "@/lib/actions/profile";
 import { getNegotiationRoomId } from "@/lib/actions/chat";
 import { formatCurrency } from "@knock/utils";
-import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
+import { ConfirmDialog, AlertDialog, Dialog, useToast } from "@knock/ui";
 
 function WavyUnderline({ color }: { color: string }) {
   return (
@@ -44,6 +44,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
 
   // 銀行口座情報
   const [showBankForm, setShowBankForm] = useState(false);
+  const [showBankConfirm, setShowBankConfirm] = useState(false);
   const [bankSaving, setBankSaving] = useState(false);
   const [bankError, setBankError] = useState("");
   const [bankData, setBankData] = useState({
@@ -61,7 +62,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
       const info = await checkBankInfo();
       if (!info.complete) {
         setBankData({
-          invoiceNumber: info.invoiceNumber ?? "",
+          invoiceNumber: (info.invoiceNumber ?? "").replace(/^T/i, "").replace(/\D/g, "").slice(0, 13),
           bankName: info.bankName ?? "",
           bankBranchName: info.bankBranchName ?? "",
           bankAccountType: (info.bankAccountType as "ORDINARY" | "CURRENT") ?? "ORDINARY",
@@ -80,18 +81,32 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
     }
   }
 
-  async function handleBankSaveAndAccept() {
+  function handleBankSaveAndAccept() {
     setBankError("");
-    if (!bankData.invoiceNumber || !bankData.bankName || !bankData.bankBranchName || !bankData.bankAccountNumber || !bankData.bankAccountName) {
+    if (bankData.invoiceNumber.length !== 13) {
+      setBankError("インボイス番号はTを除く13桁の数字で入力してください");
+      return;
+    }
+    if (!bankData.bankName || !bankData.bankBranchName || !bankData.bankAccountNumber || !bankData.bankAccountName) {
       setBankError("すべての項目を入力してください");
       return;
     }
+    // 入力内容の確認アラートを表示
+    setShowBankConfirm(true);
+  }
+
+  async function handleBankConfirmedSave() {
     setBankSaving(true);
+    setBankError("");
     try {
-      await updateCompany(bankData);
+      await updateCompany({ ...bankData, invoiceNumber: `T${bankData.invoiceNumber}` });
+      await acceptOrder(orderId);
+      setShowBankConfirm(false);
       setShowBankForm(false);
-      setShowAcceptDialog(true);
+      setRedirectPath(`/sites/${order?.factoryFloor?.id}`);
+      setSuccessMessage("受注を確定しました");
     } catch (e) {
+      setShowBankConfirm(false);
       setBankError(e instanceof Error ? e.message : "保存に失敗しました");
     } finally {
       setBankSaving(false);
@@ -296,12 +311,25 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
             <div className="flex flex-col gap-3">
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700">インボイス番号</label>
-                <input
-                  value={bankData.invoiceNumber}
-                  onChange={(e) => setBankData((p) => ({ ...p, invoiceNumber: e.target.value }))}
-                  placeholder="T1234567890123"
-                  className="w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] outline-none"
-                />
+                <div className="flex items-center rounded-xl bg-[#F0F0F0] px-4">
+                  <span className="select-none text-[14px] font-bold text-knock-text">T</span>
+                  <input
+                    inputMode="numeric"
+                    value={bankData.invoiceNumber}
+                    onChange={(e) =>
+                      setBankData((p) => ({
+                        ...p,
+                        invoiceNumber: e.target.value.replace(/\D/g, "").slice(0, 13),
+                      }))
+                    }
+                    placeholder="1234567890123"
+                    maxLength={13}
+                    className="w-full bg-transparent px-2 py-3 text-[14px] outline-none"
+                  />
+                </div>
+                <p className="mt-1 text-[11px] text-knock-text-secondary">
+                  先頭のTを除く13桁の数字（{bankData.invoiceNumber.length}/13）
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700">銀行名</label>
@@ -377,6 +405,54 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
           </div>
         </div>
       )}
+
+      {/* 入力内容の確認アラート */}
+      <Dialog
+        open={showBankConfirm}
+        onClose={() => {
+          if (!bankSaving) setShowBankConfirm(false);
+        }}
+        title="入力内容の確認"
+      >
+        <p className="mb-3 text-[13px] text-gray-600">
+          以下の内容で保存して受注します。お間違いないですか？
+        </p>
+        <div className="mb-5 flex flex-col gap-2 rounded-xl bg-[#F7F7F7] p-3.5 text-[13px]">
+          {([
+            ["インボイス番号", `T${bankData.invoiceNumber}`],
+            ["銀行名", bankData.bankName],
+            ["支店名", bankData.bankBranchName],
+            ["口座種別", bankData.bankAccountType === "ORDINARY" ? "普通" : "当座"],
+            ["口座番号", bankData.bankAccountNumber],
+            ["口座名義", bankData.bankAccountName],
+          ] as [string, string][]).map(([label, value]) => (
+            <div key={label} className="flex justify-between gap-3">
+              <span className="shrink-0 text-knock-text-secondary">{label}</span>
+              <span className="break-all text-right font-semibold text-knock-text">{value}</span>
+            </div>
+          ))}
+        </div>
+        {bankError && (
+          <div className="mb-3 rounded-xl bg-red-50 px-4 py-2.5 text-[13px] text-red-600">{bankError}</div>
+        )}
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowBankConfirm(false)}
+            disabled={bankSaving}
+            className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-[14px] font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+          >
+            修正する
+          </button>
+          <button
+            onClick={handleBankConfirmedSave}
+            disabled={bankSaving}
+            className="flex-1 rounded-lg px-4 py-2.5 text-[14px] font-bold text-white transition-opacity active:opacity-80 disabled:opacity-50"
+            style={{ backgroundColor: accentColor }}
+          >
+            {bankSaving ? "処理中..." : "保存して受注する"}
+          </button>
+        </div>
+      </Dialog>
 
       {/* 受注確認ダイアログ */}
       <ConfirmDialog
