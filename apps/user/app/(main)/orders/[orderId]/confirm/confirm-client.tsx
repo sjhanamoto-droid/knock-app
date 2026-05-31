@@ -98,6 +98,26 @@ export function ConfirmClient({ initialOrder, orderId }: Props) {
   const tax = Math.floor(subtotal * 0.1);
   const total = subtotal + tax;
 
+  // 発注を確定できるのは受注者了承後(APPROVED)のみ。確定済み(CONFIRMED)等では
+  // ボタンを出さず状態表示にする（二重確定を防ぐ）
+  const isConfirmable = order.status === "APPROVED";
+  const statusTitle =
+    order.status === "CONFIRMED"
+      ? "この発注は確定済みです"
+      : order.status === "PENDING"
+      ? "受注者の了承待ちです"
+      : order.status === "REJECTED"
+      ? "この発注は辞退されました"
+      : order.status === "CANCELLED"
+      ? "この発注はキャンセルされました"
+      : "この発注は確定できない状態です";
+  const statusNote =
+    order.status === "CONFIRMED"
+      ? "注文書は発行済みです。現場で進捗を確認できます。"
+      : order.status === "PENDING"
+      ? "受注者が了承すると確定できるようになります。"
+      : "現場の詳細から状況を確認できます。";
+
   // 注文書プレビュー表示
   if (step === "preview") {
     return (
@@ -244,22 +264,38 @@ export function ConfirmClient({ initialOrder, orderId }: Props) {
           </Link>
         </div>
 
-        <button
-          onClick={() => setStep("preview")}
-          disabled={submitting}
-          className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-          style={{ backgroundColor: accentColor }}
-        >
-          発注を確定する
-        </button>
+        {isConfirmable ? (
+          <>
+            <button
+              onClick={() => setStep("preview")}
+              disabled={submitting}
+              className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
+            >
+              発注を確定する
+            </button>
 
-        <button
-          onClick={() => setShowCancelDialog(true)}
-          disabled={submitting}
-          className="w-full rounded-xl border-2 border-gray-300 py-3.5 text-[15px] font-bold text-knock-text-secondary transition-all active:scale-[0.97] disabled:opacity-50"
-        >
-          発注をキャンセルする
-        </button>
+            <button
+              onClick={() => setShowCancelDialog(true)}
+              disabled={submitting}
+              className="w-full rounded-xl border-2 border-gray-300 py-3.5 text-[15px] font-bold text-knock-text-secondary transition-all active:scale-[0.97] disabled:opacity-50"
+            >
+              発注をキャンセルする
+            </button>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+            <p className="text-[15px] font-bold text-knock-text">{statusTitle}</p>
+            <p className="mt-1.5 text-[13px] text-knock-text-secondary">{statusNote}</p>
+            <Link
+              href={`/sites/${floor.id}`}
+              className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-[14px] font-bold text-white transition-all active:scale-[0.97]"
+              style={{ backgroundColor: accentColor }}
+            >
+              現場を確認する
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* 発注キャンセルの確認ダイアログ */}
