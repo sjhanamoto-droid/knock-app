@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail, submitCompletionReport } from "@/lib/actions/orders";
@@ -101,6 +102,9 @@ export function CompletionReportClient({ initialOrder, orderId }: Props) {
   }
 
   const floor = order.factoryFloor;
+  // 完了報告は order.status を変えず completionReport が作成され factoryFloor が
+  // INSPECTION になる（再依頼時は report 削除で再提出可）。よって「報告がまだ無い」で判定。
+  const isActionable = order.status === "CONFIRMED" && !order.completionReport;
 
   return (
     <div className="flex flex-col">
@@ -199,20 +203,36 @@ export function CompletionReportClient({ initialOrder, orderId }: Props) {
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            if (photos.length === 0) {
-              alert("施工写真を1枚以上添付してください");
-              return;
-            }
-            setShowConfirm(true);
-          }}
-          disabled={submitting}
-          className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-          style={{ backgroundColor: accentColor }}
-        >
-          {submitting ? "送信中..." : "完了報告を送信"}
-        </button>
+        {isActionable ? (
+          <button
+            onClick={() => {
+              if (photos.length === 0) {
+                alert("施工写真を1枚以上添付してください");
+                return;
+              }
+              setShowConfirm(true);
+            }}
+            disabled={submitting}
+            className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+            style={{ backgroundColor: accentColor }}
+          >
+            {submitting ? "送信中..." : "完了報告を送信"}
+          </button>
+        ) : (
+          <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+            <p className="text-[15px] font-bold text-knock-text">完了報告は送信済みです</p>
+            <p className="mt-1.5 text-[13px] text-knock-text-secondary">
+              この発注の完了報告は受付済みです。検収状況は現場画面でご確認ください。
+            </p>
+            <Link
+              href={`/sites/${floor.id}`}
+              className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-[14px] font-bold text-white transition-all active:scale-[0.97]"
+              style={{ backgroundColor: accentColor }}
+            >
+              現場を確認する
+            </Link>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

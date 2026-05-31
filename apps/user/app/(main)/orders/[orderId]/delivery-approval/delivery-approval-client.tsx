@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail, approveDelivery } from "@/lib/actions/orders";
 import { formatCurrency } from "@knock/utils";
@@ -55,6 +56,24 @@ export function DeliveryApprovalClient({ initialOrder, orderId }: Props) {
     : 0;
   const inspectionData = order.inspectionData as Record<string, unknown> | null;
   const deliveryDate = inspectionData?.deliveryDate as string | undefined;
+
+  // 納品承認できるのは検収完了(COMPLETED)のみ。承認済み(DELIVERY_APPROVED)等では
+  // ボタンを出さず状態表示にする（二重承認を防ぐ）
+  const isActionable = floor.status === "COMPLETED";
+  const statusTitle =
+    floor.status === "DELIVERY_APPROVED"
+      ? "納品は承認済みです"
+      : floor.status === "INVOICED"
+      ? "請求済みです"
+      : floor.status === "DEAL_COMPLETED"
+      ? "取引は完了しています"
+      : "納品を承認できる状態ではありません";
+  const statusNote =
+    floor.status === "DELIVERY_APPROVED" ||
+    floor.status === "INVOICED" ||
+    floor.status === "DEAL_COMPLETED"
+      ? "納品書は発行済みです。現場で状況を確認できます。"
+      : "現場の詳細から状況を確認できます。";
 
   return (
     <div className="flex flex-col">
@@ -127,17 +146,33 @@ export function DeliveryApprovalClient({ initialOrder, orderId }: Props) {
           内訳を確認して問題なければ承認してください
         </p>
 
-        <button
-          onClick={() => setShowConfirm(true)}
-          disabled={submitting}
-          className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-          style={{ backgroundColor: accentColor }}
-        >
-          {submitting ? "処理中..." : "内容を承認する"}
-        </button>
-        <p className="text-center text-[11px] text-knock-text-secondary">
-          → 承認すると納品書が自動生成されます
-        </p>
+        {isActionable ? (
+          <>
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={submitting}
+              className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
+            >
+              {submitting ? "処理中..." : "内容を承認する"}
+            </button>
+            <p className="text-center text-[11px] text-knock-text-secondary">
+              → 承認すると納品書が自動生成されます
+            </p>
+          </>
+        ) : (
+          <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+            <p className="text-[15px] font-bold text-knock-text">{statusTitle}</p>
+            <p className="mt-1.5 text-[13px] text-knock-text-secondary">{statusNote}</p>
+            <Link
+              href={`/sites/${floor.id}`}
+              className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-[14px] font-bold text-white transition-all active:scale-[0.97]"
+              style={{ backgroundColor: accentColor }}
+            >
+              現場を確認する
+            </Link>
+          </div>
+        )}
 
         <button
           onClick={() => router.push(`/chat?siteId=${floor.id}`)}

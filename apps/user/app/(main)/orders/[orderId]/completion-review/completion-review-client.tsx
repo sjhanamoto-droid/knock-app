@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail, requestRevision } from "@/lib/actions/orders";
 import { ConfirmDialog, AlertDialog } from "@knock/ui";
@@ -48,6 +49,7 @@ export function CompletionReviewClient({ initialOrder, orderId }: Props) {
 
   const floor = order.factoryFloor;
   const report = order.completionReport;
+  const isActionable = floor.status === "INSPECTION";
 
   return (
     <div className="flex flex-col">
@@ -135,23 +137,39 @@ export function CompletionReviewClient({ initialOrder, orderId }: Props) {
         )}
 
         {/* アクションボタン */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowRevisionConfirm(true)}
-            disabled={submitting}
-            className="flex-1 rounded-xl border-2 border-red-500 py-3.5 text-[15px] font-bold text-red-500 transition-all active:scale-[0.97] disabled:opacity-50"
-          >
-            再依頼
-          </button>
-          <button
-            onClick={() => router.push(`/orders/${orderId}/inspection`)}
-            disabled={submitting}
-            className="flex-1 rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-            style={{ backgroundColor: accentColor }}
-          >
-            承認
-          </button>
-        </div>
+        {isActionable ? (
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowRevisionConfirm(true)}
+              disabled={submitting}
+              className="flex-1 rounded-xl border-2 border-red-500 py-3.5 text-[15px] font-bold text-red-500 transition-all active:scale-[0.97] disabled:opacity-50"
+            >
+              再依頼
+            </button>
+            <button
+              onClick={() => router.push(`/orders/${orderId}/inspection`)}
+              disabled={submitting}
+              className="flex-1 rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
+            >
+              承認
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+            <p className="text-[15px] font-bold text-knock-text">この完了報告は確認済みです</p>
+            <p className="mt-1.5 text-[13px] text-knock-text-secondary">
+              すでに承認または再依頼の対応が完了しています。現場の最新状況をご確認ください。
+            </p>
+            <Link
+              href={`/sites/${floor.id}`}
+              className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-[14px] font-bold text-white transition-all active:scale-[0.97]"
+              style={{ backgroundColor: accentColor }}
+            >
+              現場を確認する
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* 再依頼確認ダイアログ */}

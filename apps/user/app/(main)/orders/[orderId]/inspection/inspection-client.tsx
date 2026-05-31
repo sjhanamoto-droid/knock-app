@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail, submitInspection, approveDelivery, rejectInspection } from "@/lib/actions/orders";
@@ -101,6 +102,22 @@ function ContractorView({
   const [approvedForEval, setApprovedForEval] = useState(false);
 
   const floor = order.factoryFloor;
+
+  // approveDelivery / rejectInspection guards both require factoryFloor.status === "COMPLETED"
+  // (orders.ts:980 approveDelivery, orders.ts:857 rejectInspection)
+  const isActionable = floor.status === "COMPLETED";
+  const statusTitle =
+    floor.status === "DELIVERY_APPROVED" || floor.status === "INVOICED" || floor.status === "DEAL_COMPLETED"
+      ? "この納品金額は承認済みです"
+      : floor.status === "CONFIRMED"
+        ? "この納品金額は差し戻し済みです"
+        : "現在この操作はできません";
+  const statusNote =
+    floor.status === "DELIVERY_APPROVED" || floor.status === "INVOICED" || floor.status === "DEAL_COMPLETED"
+      ? "納品書は発行済みです。現場から内容をご確認いただけます。"
+      : floor.status === "CONFIRMED"
+        ? "発注者に差し戻し済みです。発注者の再依頼をお待ちください。"
+        : "納品金額の確認待ちの状態ではありません。現場から状況をご確認ください。";
 
   const inspection = (order.inspectionData as InspectionData | null) ?? {};
   const additionalItems = inspection.additionalItems ?? [];
@@ -336,31 +353,39 @@ function ContractorView({
           />
         </div>
 
-        <div className="flex flex-col gap-3 pt-2">
-          <button
-            onClick={() => setConfirmAction("approve")}
-            disabled={submitting}
-            className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-            style={{ backgroundColor: accentColor }}
-          >
-            {submitting ? "処理中..." : "内容を承認する"}
-          </button>
-          <p className="text-center text-[11px] text-knock-text-secondary">
-            承認すると納品書が自動生成されます
-          </p>
+        {isActionable ? (
+          <div className="flex flex-col gap-3 pt-2">
+            <button
+              onClick={() => setConfirmAction("approve")}
+              disabled={submitting}
+              className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
+            >
+              {submitting ? "処理中..." : "内容を承認する"}
+            </button>
+            <p className="text-center text-[11px] text-knock-text-secondary">
+              承認すると納品書が自動生成されます
+            </p>
 
-          <button
-            onClick={() => setConfirmAction("reject")}
-            disabled={submitting}
-            className="w-full rounded-xl border-2 py-3.5 text-[15px] font-bold transition-all active:scale-[0.97] disabled:opacity-50"
-            style={{ borderColor: accentColor, color: accentColor }}
-          >
-            差し戻す
-          </button>
-          <p className="text-center text-[11px] text-knock-text-secondary">
-            金額に問題がある場合、発注者に差し戻します
-          </p>
-        </div>
+            <button
+              onClick={() => setConfirmAction("reject")}
+              disabled={submitting}
+              className="w-full rounded-xl border-2 py-3.5 text-[15px] font-bold transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ borderColor: accentColor, color: accentColor }}
+            >
+              差し戻す
+            </button>
+            <p className="text-center text-[11px] text-knock-text-secondary">
+              金額に問題がある場合、発注者に差し戻します
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+            <p className="text-[15px] font-bold text-knock-text">{statusTitle}</p>
+            <p className="mt-1.5 text-[13px] text-knock-text-secondary">{statusNote}</p>
+            <Link href={`/sites/${floor.id}`} className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-[14px] font-bold text-white transition-all active:scale-[0.97]" style={{ backgroundColor: accentColor }}>現場を確認する</Link>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog
@@ -474,6 +499,21 @@ export function InspectionClient({ initialOrder, initialUnits, orderId }: Props)
   // ─── 以下、発注者用の編集画面 ───
 
   const floor = order.factoryFloor;
+
+  // submitInspection guard requires factoryFloor.status === "INSPECTION" (orders.ts:770)
+  const isActionable = floor.status === "INSPECTION";
+  const statusTitle =
+    floor.status === "COMPLETED"
+      ? "納品内容確認依頼は送信済みです"
+      : floor.status === "DELIVERY_APPROVED" || floor.status === "INVOICED" || floor.status === "DEAL_COMPLETED"
+        ? "この納品は承認済みです"
+        : "現在この操作はできません";
+  const statusNote =
+    floor.status === "COMPLETED"
+      ? "受注者の確認をお待ちください。現場から状況をご確認いただけます。"
+      : floor.status === "DELIVERY_APPROVED" || floor.status === "INVOICED" || floor.status === "DEAL_COMPLETED"
+        ? "納品書は発行済みです。現場から内容をご確認いただけます。"
+        : "検収を実行できる状態ではありません。現場から状況をご確認ください。";
 
   const priceDetailsSubtotal = floor.priceDetails.reduce(
     (sum, d) => sum + Math.ceil(d.quantity * Number(d.priceUnit)), 0
@@ -778,16 +818,24 @@ export function InspectionClient({ initialOrder, initialUnits, orderId }: Props)
           />
         </div>
 
-        <div className="pt-2">
-          <button
-            onClick={() => setShowConfirm(true)}
-            disabled={submitting}
-            className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-            style={{ backgroundColor: accentColor }}
-          >
-            {submitting ? "処理中..." : "納品内容確認依頼"}
-          </button>
-        </div>
+        {isActionable ? (
+          <div className="pt-2">
+            <button
+              onClick={() => setShowConfirm(true)}
+              disabled={submitting}
+              className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
+            >
+              {submitting ? "処理中..." : "納品内容確認依頼"}
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+            <p className="text-[15px] font-bold text-knock-text">{statusTitle}</p>
+            <p className="mt-1.5 text-[13px] text-knock-text-secondary">{statusNote}</p>
+            <Link href={`/sites/${floor.id}`} className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-xl px-6 py-2.5 text-[14px] font-bold text-white transition-all active:scale-[0.97]" style={{ backgroundColor: accentColor }}>現場を確認する</Link>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog
