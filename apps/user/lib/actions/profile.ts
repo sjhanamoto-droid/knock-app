@@ -198,6 +198,7 @@ export async function checkBankInfo(): Promise<{
   bankAccountType: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
+  invoiceNumber: string | null;
 }> {
   const user = await requireSession();
   const company = await prisma.company.findUnique({
@@ -208,16 +209,19 @@ export async function checkBankInfo(): Promise<{
       bankAccountType: true,
       bankAccountNumber: true,
       bankAccountName: true,
+      invoiceNumber: true,
     },
   });
   if (!company) throw new Error("会社情報が見つかりません");
 
+  // 受注には振込先口座とインボイス番号の両方が必要
   const complete = !!(
     company.bankName &&
     company.bankBranchName &&
     company.bankAccountType &&
     company.bankAccountNumber &&
-    company.bankAccountName
+    company.bankAccountName &&
+    company.invoiceNumber
   );
 
   return {
@@ -227,6 +231,7 @@ export async function checkBankInfo(): Promise<{
     bankAccountType: company.bankAccountType,
     bankAccountNumber: company.bankAccountNumber,
     bankAccountName: company.bankAccountName,
+    invoiceNumber: company.invoiceNumber,
   };
 }
 

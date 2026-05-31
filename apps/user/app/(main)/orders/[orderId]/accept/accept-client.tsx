@@ -47,6 +47,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
   const [bankSaving, setBankSaving] = useState(false);
   const [bankError, setBankError] = useState("");
   const [bankData, setBankData] = useState({
+    invoiceNumber: "",
     bankName: "",
     bankBranchName: "",
     bankAccountType: "ORDINARY" as "ORDINARY" | "CURRENT",
@@ -60,6 +61,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
       const info = await checkBankInfo();
       if (!info.complete) {
         setBankData({
+          invoiceNumber: info.invoiceNumber ?? "",
           bankName: info.bankName ?? "",
           bankBranchName: info.bankBranchName ?? "",
           bankAccountType: (info.bankAccountType as "ORDINARY" | "CURRENT") ?? "ORDINARY",
@@ -80,7 +82,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
 
   async function handleBankSaveAndAccept() {
     setBankError("");
-    if (!bankData.bankName || !bankData.bankBranchName || !bankData.bankAccountNumber || !bankData.bankAccountName) {
+    if (!bankData.invoiceNumber || !bankData.bankName || !bankData.bankBranchName || !bankData.bankAccountNumber || !bankData.bankAccountName) {
       setBankError("すべての項目を入力してください");
       return;
     }
@@ -273,10 +275,10 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
 
       {/* 銀行口座情報入力フォーム */}
       {showBankForm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
-          <div className="w-full max-w-[430px] rounded-t-2xl bg-white p-5 pb-8 animate-in slide-in-from-bottom">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40">
+          <div className="max-h-[90vh] w-full max-w-[430px] overflow-y-auto rounded-t-2xl bg-white p-5 pb-[calc(2rem+env(safe-area-inset-bottom))] animate-in slide-in-from-bottom">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[17px] font-bold text-knock-text">振込先口座の登録</h2>
+              <h2 className="text-[17px] font-bold text-knock-text">受注に必要な情報の登録</h2>
               <button onClick={() => setShowBankForm(false)} className="p-1">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M5 5L15 15M15 5L5 15" stroke="#6B6B6B" strokeWidth="2" strokeLinecap="round" />
@@ -284,7 +286,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
               </button>
             </div>
             <p className="mb-4 text-[13px] text-knock-text-secondary">
-              受注するには振込先口座の登録が必要です。請求書や支払いに使用されます。
+              受注するには各種情報の登録が必要です。インボイス番号は適格請求書に、振込先口座は請求・支払いに使用されます。
             </p>
 
             {bankError && (
@@ -292,6 +294,15 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
             )}
 
             <div className="flex flex-col gap-3">
+              <div>
+                <label className="mb-1 block text-[13px] font-medium text-gray-700">インボイス番号</label>
+                <input
+                  value={bankData.invoiceNumber}
+                  onChange={(e) => setBankData((p) => ({ ...p, invoiceNumber: e.target.value }))}
+                  placeholder="T1234567890123"
+                  className="w-full rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] outline-none"
+                />
+              </div>
               <div>
                 <label className="mb-1 block text-[13px] font-medium text-gray-700">銀行名</label>
                 <input
