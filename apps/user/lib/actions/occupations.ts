@@ -43,11 +43,8 @@ export async function getCompanyOccupations() {
 export async function saveCompanyOccupations(
   selections: { occupationSubItemId: string; note?: string }[]
 ) {
+  // 自社プロフィールの編集は updateCompany（住所・口座等）と同様に全メンバー可
   const user = await requireSession();
-
-  if (user.role !== "REPRESENTATIVE" && user.role !== "MANAGER") {
-    throw new Error("権限がありません");
-  }
 
   // Delete existing and re-create
   await prisma.companyOccupation.deleteMany({

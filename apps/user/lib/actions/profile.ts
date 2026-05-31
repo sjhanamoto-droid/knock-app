@@ -362,11 +362,8 @@ export async function saveUserQualifications(qualificationIds: string[]) {
 }
 
 export async function saveCompanyAreas(areaIds: string[]) {
+  // 自社プロフィールの編集は updateCompany（住所・口座等）と同様に全メンバー可
   const user = await requireSession();
-
-  if (user.role !== "REPRESENTATIVE" && user.role !== "MANAGER") {
-    throw new Error("権限がありません");
-  }
 
   await prisma.$transaction([
     prisma.companyArea.deleteMany({ where: { companyId: user.companyId } }),
@@ -381,11 +378,8 @@ export async function saveCompanyAreas(areaIds: string[]) {
 }
 
 export async function saveCompanyInsurances(types: string[]) {
+  // 自社プロフィールの編集は updateCompany（住所・口座等）と同様に全メンバー可
   const user = await requireSession();
-
-  if (user.role !== "REPRESENTATIVE" && user.role !== "MANAGER") {
-    throw new Error("権限がありません");
-  }
 
   // 全置換: 既存を削除して新規作成
   await prisma.$transaction([
