@@ -97,7 +97,11 @@ export function NotificationsClient({ initialNotifications }: Props) {
                       </svg>
                     </div>
                     <span className="text-[12px] text-gray-500">
-                      {notification.title?.includes("(株)") ? notification.title : "(株)職人インテリア"}
+                      {notification.type === 100
+                        ? "運営からのお知らせ"
+                        : notification.title?.includes("(株)")
+                        ? notification.title
+                        : "(株)職人インテリア"}
                     </span>
                   </div>
                 </div>

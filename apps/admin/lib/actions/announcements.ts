@@ -3,6 +3,7 @@
 import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/session";
+import { sendPushToUsers } from "@/lib/push";
 
 export type AnnouncementTarget = "ALL" | "ORDERER" | "CONTRACTOR";
 
@@ -61,6 +62,14 @@ export async function broadcastAnnouncement(data: {
       type: ANNOUNCEMENT_TYPE,
       seenFlag: false,
     })),
+  });
+
+  // アプリ内通知に加えてWebプッシュも送信（端末登録済みユーザーのみ届く）
+  await sendPushToUsers({
+    userIds: users.map((u) => u.id),
+    title,
+    body: content,
+    url: "/notifications",
   });
 
   return { success: true, count: users.length };
