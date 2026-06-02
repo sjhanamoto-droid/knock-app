@@ -163,6 +163,7 @@ export async function registerStep1(
           lastName: "",
           firstName: "",
           companyId: company.id,
+          role: "REPRESENTATIVE", // 会社の一人目（初期登録者）は代表者
           isActive: true, // Level 1: 即ログイン可能
         },
       });
