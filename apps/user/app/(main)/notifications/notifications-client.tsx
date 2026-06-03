@@ -88,22 +88,20 @@ export function NotificationsClient({ initialNotifications }: Props) {
                     {notification.content}
                   </p>
 
-                  {/* Company info */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <rect x="2" y="4" width="10" height="8" rx="1" stroke="#9CA3AF" strokeWidth="1" />
-                        <path d="M5 4V2.5H9V4" stroke="#9CA3AF" strokeWidth="1" strokeLinecap="round" />
-                      </svg>
+                  {/* 発信者（相手会社名 / 運営）。導出できない場合は非表示 */}
+                  {(notification.type === 100 || notification.senderName) && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-gray-100">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                          <rect x="2" y="4" width="10" height="8" rx="1" stroke="#9CA3AF" strokeWidth="1" />
+                          <path d="M5 4V2.5H9V4" stroke="#9CA3AF" strokeWidth="1" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                      <span className="text-[12px] text-gray-500">
+                        {notification.type === 100 ? "運営からのお知らせ" : notification.senderName}
+                      </span>
                     </div>
-                    <span className="text-[12px] text-gray-500">
-                      {notification.type === 100
-                        ? "運営からのお知らせ"
-                        : notification.title?.includes("(株)")
-                        ? notification.title
-                        : "(株)職人インテリア"}
-                    </span>
-                  </div>
+                  )}
                 </div>
 
                 {/* Chevron */}
