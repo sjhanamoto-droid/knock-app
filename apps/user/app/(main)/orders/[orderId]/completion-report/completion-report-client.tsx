@@ -9,6 +9,35 @@ import { ConfirmDialog, AlertDialog } from "@knock/ui";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+/**
+ * 画像をクライアント側でリサイズ・JPEG圧縮する。base64化後のサーバーアクション
+ * ボディが肥大して413になるのを防ぐ。失敗時(非画像/デコード不可)は null を返し、
+ * 呼び出し側で元ファイルを使う。
+ */
+async function compressImage(file: File, maxDim = 1600, quality = 0.8): Promise<Blob | null> {
+  if (!file.type.startsWith("image/")) return null;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality)
+    );
+    // 圧縮後が元より大きい場合は圧縮しない
+    return blob && blob.size < file.size ? blob : null;
+  } catch {
+    return null;
+  }
+}
+
 type OrderDetail = Awaited<ReturnType<typeof getOrderDetail>>;
 
 function WavyUnderline({ color }: { color: string }) {
@@ -77,7 +106,15 @@ export function CompletionReportClient({ initialOrder, orderId }: Props) {
     setUploading(true);
     try {
       const formData = new FormData();
-      Array.from(files).forEach(f => formData.append("files", f));
+      for (const f of Array.from(files)) {
+        const compressed = await compressImage(f);
+        if (compressed) {
+          const name = (f.name || "photo").replace(/\.[^.]+$/, "") + ".jpg";
+          formData.append("files", compressed, name);
+        } else {
+          formData.append("files", f);
+        }
+      }
 
       const res = await fetch("/api/upload", { method: "POST", body: formData });
       if (!res.ok) throw new Error("アップロードに失敗しました");
