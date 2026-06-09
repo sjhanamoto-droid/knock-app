@@ -43,8 +43,8 @@ export async function submitEvaluation(data: {
   });
   if (existing) throw new Error("既に評価済みです");
 
-  return prisma.$transaction(async (tx) => {
-    const evaluation = await tx.evaluation.create({
+  const evaluation = await prisma.$transaction(async (tx) => {
+    const ev = await tx.evaluation.create({
       data: {
         factoryFloorOrderId: data.factoryFloorOrderId,
         evaluatorCompanyId: user.companyId,
@@ -79,11 +79,15 @@ export async function submitEvaluation(data: {
       });
     }
 
-    // 信用スコアを再計算
-    await recalculateTrustScore(data.evaluateeCompanyId);
-
-    return evaluation;
+    return ev;
   });
+
+  // 信用スコアを再計算する。トランザクションの「コミット後」に実行すること。
+  // tx 内で呼ぶと、作成した評価がグローバル prisma のクエリから見えず（未コミット）、
+  // 平均が直前の状態で算出されスコアが 0 になる。
+  await recalculateTrustScore(data.evaluateeCompanyId);
+
+  return evaluation;
 }
 
 /**
