@@ -135,6 +135,32 @@ export function DocumentDetailClient({ initialDoc }: Props) {
           style={{ borderLeftColor: accentColor }}
         >
           <h3 className="mb-2 text-[12px] font-bold text-knock-text-secondary">金額</h3>
+          {doc.lineItems.length > 0 && (
+            <div className="mb-3 flex flex-col gap-2 border-b border-gray-100 pb-3">
+              {doc.lineItems.map((item, i) => (
+                <div key={i} className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-knock-text">
+                      {item.additional && (
+                        <span className="mr-1 rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-600">
+                          追加
+                        </span>
+                      )}
+                      {item.name || "（名称なし）"}
+                    </p>
+                    {(item.quantity > 0 || item.unit) && (
+                      <p className="mt-0.5 text-[11px] text-knock-text-muted">
+                        {item.quantity}{item.unit ? ` ${item.unit}` : ""} × {formatCurrency(item.priceUnit)}
+                      </p>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-[13px] font-semibold text-knock-text">
+                    {formatCurrency(Math.ceil(item.quantity * item.priceUnit))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex flex-col gap-1 text-[14px]">
             {doc.subtotal != null && (
               <div className="flex justify-between">

@@ -136,11 +136,34 @@ export async function getDocumentDetail(documentId: string) {
 
   if (!document) throw new Error("帳票が見つかりません");
 
+  // プレビュー画面の金額欄に表示する明細。
+  // 新しい帳票は metadata.lineItems(PDF本文と同じ明細)を使用し、
+  // 旧帳票は現場の明細(priceDetails)にフォールバックする。
+  type MetaLineItem = { name?: string; quantity?: number; unit?: string; priceUnit?: number; additional?: boolean };
+  const meta = (document.metadata as { lineItems?: MetaLineItem[] } | null) ?? {};
+  const lineItems =
+    meta.lineItems && meta.lineItems.length > 0
+      ? meta.lineItems.map((p) => ({
+          name: p.name ?? "",
+          quantity: Number(p.quantity ?? 0),
+          unit: p.unit ?? "",
+          priceUnit: Number(p.priceUnit ?? 0),
+          additional: !!p.additional,
+        }))
+      : (document.factoryFloorOrder?.factoryFloor?.priceDetails ?? []).map((p) => ({
+          name: p.name ?? "",
+          quantity: Number(p.quantity ?? 0),
+          unit: p.unit?.name ?? "",
+          priceUnit: Number(p.priceUnit ?? 0),
+          additional: false,
+        }));
+
   return {
     ...document,
     subtotal: document.subtotal ? Number(document.subtotal) : null,
     taxAmount: document.taxAmount ? Number(document.taxAmount) : null,
     totalAmount: document.totalAmount ? Number(document.totalAmount) : null,
+    lineItems,
   };
 }
 

@@ -243,6 +243,13 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
           unit: p.unit?.name ?? "",
           priceUnit: Number(p.priceUnit),
         })),
+        // プレビュー画面の金額欄用: PDF本文と同じ明細(追加工事の場合は追加明細)
+        lineItems: pdfPriceDetails.map((p) => ({
+          name: p.name,
+          quantity: p.quantity,
+          unit: p.unit,
+          priceUnit: p.priceUnit,
+        })),
       },
     },
   });
@@ -451,6 +458,23 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
       metadata: {
         siteName: fullSiteNameDN,
         finalAmount: paymentAmount,
+        // プレビュー画面の金額欄用: PDF本文と同じ明細(元工事＋追加工事)
+        lineItems: [
+          ...pdfData.priceDetails.map((p) => ({
+            name: p.name,
+            quantity: p.quantity,
+            unit: p.unit,
+            priceUnit: p.priceUnit,
+            additional: false,
+          })),
+          ...pdfAdditionalItems.map((p) => ({
+            name: p.name,
+            quantity: p.quantity,
+            unit: p.unit,
+            priceUnit: p.priceUnit,
+            additional: true,
+          })),
+        ],
       },
     },
   });
