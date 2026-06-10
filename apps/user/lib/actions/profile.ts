@@ -283,6 +283,10 @@ export async function updateCompany(data: {
   });
 
   const updateData: Record<string, unknown> = { ...data };
+  // 締め日は 1〜28 にクランプ（null = 月末）。不正値が請求期間計算を壊さないようにする。
+  if (data.billingClosingDay != null) {
+    updateData.billingClosingDay = Math.min(28, Math.max(1, Math.trunc(data.billingClosingDay)));
+  }
   if (company?.registrationStep === 1) {
     updateData.registrationStep = 2;
   }

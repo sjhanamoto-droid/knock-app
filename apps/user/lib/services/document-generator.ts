@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderSheetPdf, type OrderSheetPdfData } from "./order-sheet-pdf";
 import { generateDeliveryNotePdf, type DeliveryNotePdfData } from "./delivery-note-pdf";
 import { generateInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
+import { getBillingPeriod } from "@/lib/helpers/billing-period";
 
 /**
  * 帳票番号の自動採番
@@ -490,12 +491,17 @@ export async function generateInvoice(
   orderCompanyId: string,
   yearMonth: string, // YYYYMM
 ): Promise<string> {
-  const year = parseInt(yearMonth.substring(0, 4));
-  const month = parseInt(yearMonth.substring(4, 6));
-  const startOfMonth = new Date(year, month - 1, 1);
-  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+  // 発注者の締め日に基づく請求期間で集計（締め日 null は月末締め）
+  const orderCompanyForPeriod = await prisma.company.findUnique({
+    where: { id: orderCompanyId },
+    select: { billingClosingDay: true },
+  });
+  const { start: startOfMonth, end: endOfMonth } = getBillingPeriod(
+    yearMonth,
+    orderCompanyForPeriod?.billingClosingDay ?? null
+  );
 
-  // 対象月の納品承認済みの取引を集計
+  // 対象期間の納品承認済みの取引を集計
   const deliveryNotes = await prisma.document.findMany({
     where: {
       type: "DELIVERY_NOTE",

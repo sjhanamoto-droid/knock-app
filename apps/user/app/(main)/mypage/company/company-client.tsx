@@ -609,10 +609,9 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
                 className={inputCls}
               >
                 <option value="">月末</option>
-                <option value="25">25日</option>
-                <option value="20">20日</option>
-                <option value="15">15日</option>
-                <option value="10">10日</option>
+                {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}日</option>
+                ))}
               </select>
             </div>
             <div>

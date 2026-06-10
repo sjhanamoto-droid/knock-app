@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { generateInvoice, generateInvoiceFromNotes } from "@/lib/services/document-generator";
+import { getBillingPeriod, getBillingMonth } from "@/lib/helpers/billing-period";
 
 /**
  * 請求書候補を取得
@@ -14,20 +15,23 @@ export async function getInvoiceCandidates(yearMonth: string) {
 
   const year = parseInt(yearMonth.substring(0, 4));
   const month = parseInt(yearMonth.substring(4, 6));
-  const startOfMonth = new Date(year, month - 1, 1);
-  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+  // 締め日は発注者ごとに異なるため、生窓を広め(前月1日〜当月末日)に取り、
+  // 各納品書を発注者の締め日で締め月に振り分けてから絞り込む。
+  const rawStart = new Date(year, month - 2, 1, 0, 0, 0, 0);
+  const rawEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
-  // 対象月の ISSUED/CONFIRMED 納品書を取得（自社が受注者）
+  // 対象期間の ISSUED/CONFIRMED 納品書を取得（自社が受注者）
   const deliveryNotes = await prisma.document.findMany({
     where: {
       type: "DELIVERY_NOTE",
       status: { in: ["ISSUED", "CONFIRMED"] },
       workerCompanyId: user.companyId,
-      issuedAt: { gte: startOfMonth, lte: endOfMonth },
+      issuedAt: { gte: rawStart, lte: rawEnd },
       deletedAt: null,
     },
     select: {
       id: true,
+      issuedAt: true,
       workerCompanyId: true,
       orderCompanyId: true,
       totalAmount: true,
@@ -37,6 +41,16 @@ export async function getInvoiceCandidates(yearMonth: string) {
   });
 
   if (deliveryNotes.length === 0) return [];
+
+  // 各発注者の締め日を取得し、締め月の判定に使う
+  const candidateOrdererIds = [...new Set(deliveryNotes.map((n) => n.orderCompanyId))];
+  const candidateOrderers = await prisma.company.findMany({
+    where: { id: { in: candidateOrdererIds } },
+    select: { id: true, billingClosingDay: true },
+  });
+  const candidateClosingByOrderer = new Map(
+    candidateOrderers.map((o) => [o.id, o.billingClosingDay])
+  );
 
   // 既存の請求書（同月）を取得
   const existingInvoices = await prisma.document.findMany({
@@ -67,6 +81,13 @@ export async function getInvoiceCandidates(yearMonth: string) {
   >();
 
   for (const note of deliveryNotes) {
+    // 締め日に基づく締め月が対象月と一致しない納品書は除外
+    if (
+      !note.issuedAt ||
+      getBillingMonth(note.issuedAt, candidateClosingByOrderer.get(note.orderCompanyId) ?? null) !== yearMonth
+    ) {
+      continue;
+    }
     const key = `${note.workerCompanyId}::${note.orderCompanyId}`;
     if (invoicedPairs.has(key)) continue;
 
@@ -123,8 +144,11 @@ export async function generateDraftInvoices(companyId: string) {
   // 対象月の納品書（DELIVERY_APPROVED状態）を受注者ごとに集計
   const year = parseInt(yearMonth.substring(0, 4));
   const month = parseInt(yearMonth.substring(4, 6));
-  const startOfMonth = new Date(year, month - 1, 1);
-  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+  // 発注者の締め日に基づく請求期間で集計（締め日 null は月末締め）
+  const { start: startOfMonth, end: endOfMonth } = getBillingPeriod(
+    yearMonth,
+    company.billingClosingDay
+  );
 
   const deliveryNotes = await prisma.document.findMany({
     where: {
@@ -539,10 +563,12 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
 
   const year = parseInt(yearMonth.substring(0, 4));
   const month = parseInt(yearMonth.substring(4, 6));
-  const startOfMonth = new Date(year, month - 1, 1);
-  const endOfMonth = new Date(year, month, 0, 23, 59, 59, 999);
+  // 締め日は発注者ごとに異なるため、生窓を広め(前月1日〜当月末日)に取り、
+  // 各納品書を発注者の締め日で締め月に振り分けてから絞り込む。
+  const rawStart = new Date(year, month - 2, 1, 0, 0, 0, 0);
+  const rawEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
-  // 対象月の納品書を取得（自社が発注者または受注者）
+  // 対象期間の納品書を取得（自社が発注者または受注者）
   const deliveryNotes = await prisma.document.findMany({
     where: {
       type: "DELIVERY_NOTE",
@@ -551,7 +577,7 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
         { orderCompanyId: user.companyId },
         { workerCompanyId: user.companyId },
       ],
-      issuedAt: { gte: startOfMonth, lte: endOfMonth },
+      issuedAt: { gte: rawStart, lte: rawEnd },
       deletedAt: null,
     },
     select: {
@@ -569,6 +595,16 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
   });
 
   if (deliveryNotes.length === 0) return [];
+
+  // 各発注者の締め日を取得（納品書の締め月判定に使用）
+  const availOrdererIds = [...new Set(deliveryNotes.map((n) => n.orderCompanyId))];
+  const availOrderers = await prisma.company.findMany({
+    where: { id: { in: availOrdererIds } },
+    select: { id: true, billingClosingDay: true },
+  });
+  const availClosingByOrderer = new Map(
+    availOrderers.map((o) => [o.id, o.billingClosingDay])
+  );
 
   // 既存の請求書に含まれている納品書IDを収集
   const existingInvoices = await prisma.document.findMany({
@@ -593,9 +629,14 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
     }
   }
 
-  // 未請求の納品書のみ返却
+  // 未請求かつ締め月が対象月の納品書のみ返却
   return deliveryNotes
-    .filter((n) => !invoicedNoteIds.has(n.id))
+    .filter(
+      (n) =>
+        !invoicedNoteIds.has(n.id) &&
+        !!n.issuedAt &&
+        getBillingMonth(n.issuedAt, availClosingByOrderer.get(n.orderCompanyId) ?? null) === yearMonth
+    )
     .map((n) => ({
       id: n.id,
       documentNumber: n.documentNumber,
