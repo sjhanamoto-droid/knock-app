@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { NumberInputGuard } from "@/components/number-input-guard";
 
 export const metadata: Metadata = {
   title: "Knock Admin",
@@ -25,7 +26,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <NumberInputGuard />
+        {children}
+      </body>
     </html>
   );
 }

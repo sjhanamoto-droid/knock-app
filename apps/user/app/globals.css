@@ -71,4 +71,16 @@
     color: var(--color-knock-text);
     overscroll-behavior: none;
   }
+
+  /* 数値入力(type="number")のスピナー(増減矢印)を非表示にし、
+     クリックやスクロールによる 1〜2円のズレを防ぐ。入力値はそのまま反映される。 */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
 }
