@@ -24,7 +24,7 @@ const MENU_SECTIONS: MenuSection[] = [
     items: [
       { href: "/documents?type=ORDER_SHEET", label: "注文書", icon: "order" },
       { href: "/documents?type=DELIVERY_NOTE", label: "納品書", icon: "delivery" },
-      { href: "/documents?type=INVOICE", label: "請求書", icon: "invoice" },
+      { href: "/billing", label: "請求書", icon: "invoice" },
     ],
   },
   {

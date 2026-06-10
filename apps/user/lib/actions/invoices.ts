@@ -649,5 +649,20 @@ export async function createManualInvoice(
   const date = new Date(billingDate + "T00:00:00");
   const docId = await generateInvoiceFromNotes(deliveryNoteIds, date);
 
+  // 発注者の支払期日タイプから支払期日を自動設定（自動生成の請求書と挙動を揃える）。
+  // generateInvoiceFromNotes 成功時点で全納品書は同一発注者なので notes[0] を使用。
+  const orderCompany = await prisma.company.findUnique({
+    where: { id: notes[0].orderCompanyId },
+    select: { paymentDueType: true },
+  });
+  const dueDate = calculateDueDate(
+    orderCompany?.paymentDueType ?? null,
+    date.getFullYear(),
+    date.getMonth() + 1
+  );
+  if (dueDate) {
+    await prisma.document.update({ where: { id: docId }, data: { dueDate } });
+  }
+
   return { id: docId };
 }
