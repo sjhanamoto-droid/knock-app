@@ -740,94 +740,143 @@ export async function deleteSite(id: string) {
 export async function duplicateSite(id: string) {
   const user = await requireSession();
 
+  // 工事一覧(子現場)も含めて取得。明細・図面などはそのまま複製する。
+  const childRelationInclude = {
+    occupations: true,
+    priceDetails: { where: { deletedAt: null } },
+    images: { where: { deletedAt: null } },
+    pdfs: { where: { deletedAt: null } },
+  } as const;
+
   const original = await prisma.factoryFloor.findFirst({
     where: { id, companyId: user.companyId, deletedAt: null },
     include: {
-      occupations: true,
-      priceDetails: { where: { deletedAt: null } },
-      images: { where: { deletedAt: null } },
-      pdfs: { where: { deletedAt: null } },
+      ...childRelationInclude,
+      children: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "asc" },
+        include: childRelationInclude,
+      },
     },
   });
   if (!original) throw new Error("現場が見つかりません");
 
-  const result = await prisma.$transaction(async (tx) => {
-    const site = await tx.factoryFloor.create({
-      data: {
-        createdUserId: user.id,
-        companyId: user.companyId,
-        status: "NOT_ORDERED",
-        name: original.name ? `${original.name}（コピー）` : null,
-        code: null,
-        contentRequest: original.contentRequest,
-        remarks: original.remarks,
-        address: original.address,
-        deliveryDest: original.deliveryDest,
-        startDayRequest: original.startDayRequest,
-        endDayRequest: original.endDayRequest,
-        totalAmount: original.totalAmount,
-        totalAdvancePayment: original.totalAdvancePayment,
-        expenses: original.expenses,
-        paymentType: original.paymentType,
-        paymentLatterMonth: original.paymentLatterMonth,
-        paymentLatterDay: original.paymentLatterDay,
-        latitude: original.latitude,
-        longitude: original.longitude,
-      },
-    });
+  const result = await prisma.$transaction(
+    async (tx) => {
+      // 1つの現場の付随データ(工種/明細/画像/PDF)をコピーし、作成者をメンバーに追加する。
+      // 発注に紐づく情報(FactoryFloorOrder, PDFのfactoryFloorOrderId 等)は引き継がない。
+      const copyFloorRelations = async (
+        source: typeof original | (typeof original.children)[number],
+        targetId: string
+      ) => {
+        if (source.occupations.length > 0) {
+          await tx.factoryFloorOccupation.createMany({
+            data: source.occupations.map((o) => ({
+              factoryFloorId: targetId,
+              occupationSubItemId: o.occupationSubItemId,
+            })),
+          });
+        }
+        if (source.priceDetails.length > 0) {
+          await tx.priceOrderDetail.createMany({
+            data: source.priceDetails.map((d) => ({
+              factoryFloorId: targetId,
+              name: d.name,
+              quantity: d.quantity,
+              unitId: d.unitId,
+              priceUnit: d.priceUnit,
+              specifications: d.specifications,
+            })),
+          });
+        }
+        if (source.images.length > 0) {
+          await tx.factoryFloorImage.createMany({
+            data: source.images.map((img) => ({
+              factoryFloorId: targetId,
+              url: img.url,
+              type: img.type,
+            })),
+          });
+        }
+        if (source.pdfs.length > 0) {
+          await tx.factoryFloorPdf.createMany({
+            // factoryFloorOrderId は複製しない(複製先には発注が存在しないため)
+            data: source.pdfs.map((pdf) => ({
+              factoryFloorId: targetId,
+              url: pdf.url,
+              type: pdf.type,
+            })),
+          });
+        }
+        await tx.factoryFloorMember.create({
+          data: { factoryFloorId: targetId, userId: user.id, type: 1 },
+        });
+      };
 
-    if (original.occupations.length > 0) {
-      await tx.factoryFloorOccupation.createMany({
-        data: original.occupations.map((o) => ({
-          factoryFloorId: site.id,
-          occupationSubItemId: o.occupationSubItemId,
-        })),
+      // 親(または単体現場)を複製。発注済みでも未発注・業者未選択にリセットする。
+      const site = await tx.factoryFloor.create({
+        data: {
+          createdUserId: user.id,
+          companyId: user.companyId,
+          status: "NOT_ORDERED",
+          workCompanyId: null,
+          name: original.name ? `${original.name}（コピー）` : null,
+          code: null,
+          contentRequest: original.contentRequest,
+          remarks: original.remarks,
+          address: original.address,
+          deliveryDest: original.deliveryDest,
+          startDayRequest: original.startDayRequest,
+          endDayRequest: original.endDayRequest,
+          totalAmount: original.totalAmount,
+          totalAdvancePayment: original.totalAdvancePayment,
+          expenses: original.expenses,
+          paymentType: original.paymentType,
+          paymentLatterMonth: original.paymentLatterMonth,
+          paymentLatterDay: original.paymentLatterDay,
+          budget: original.budget,
+          latitude: original.latitude,
+          longitude: original.longitude,
+        },
       });
-    }
 
-    if (original.priceDetails.length > 0) {
-      await tx.priceOrderDetail.createMany({
-        data: original.priceDetails.map((d) => ({
-          factoryFloorId: site.id,
-          name: d.name,
-          quantity: d.quantity,
-          unitId: d.unitId,
-          priceUnit: d.priceUnit,
-          specifications: d.specifications,
-        })),
-      });
-    }
+      await copyFloorRelations(original, site.id);
 
-    if (original.images.length > 0) {
-      await tx.factoryFloorImage.createMany({
-        data: original.images.map((img) => ({
-          factoryFloorId: site.id,
-          url: img.url,
-          type: img.type,
-        })),
-      });
-    }
+      // 工事一覧(子現場)もすべて複製する。各工事は未発注・業者未選択にリセットし、
+      // 明細・金額・図面・工種などはそのまま引き継ぐ(発注情報のみリセット)。
+      for (const child of original.children) {
+        const childCopy = await tx.factoryFloor.create({
+          data: {
+            createdUserId: user.id,
+            companyId: user.companyId,
+            status: "NOT_ORDERED",
+            workCompanyId: null,
+            parentId: site.id,
+            name: child.name,
+            code: null,
+            contentRequest: child.contentRequest,
+            remarks: child.remarks,
+            address: child.address,
+            deliveryDest: child.deliveryDest,
+            startDayRequest: child.startDayRequest,
+            endDayRequest: child.endDayRequest,
+            totalAmount: child.totalAmount,
+            totalAdvancePayment: child.totalAdvancePayment,
+            expenses: child.expenses,
+            paymentType: child.paymentType,
+            paymentLatterMonth: child.paymentLatterMonth,
+            paymentLatterDay: child.paymentLatterDay,
+            latitude: child.latitude,
+            longitude: child.longitude,
+          },
+        });
+        await copyFloorRelations(child, childCopy.id);
+      }
 
-    if (original.pdfs.length > 0) {
-      await tx.factoryFloorPdf.createMany({
-        data: original.pdfs.map((pdf) => ({
-          factoryFloorId: site.id,
-          url: pdf.url,
-          type: pdf.type,
-        })),
-      });
-    }
-
-    await tx.factoryFloorMember.create({
-      data: {
-        factoryFloorId: site.id,
-        userId: user.id,
-        type: 1,
-      },
-    });
-
-    return site;
-  });
+      return site;
+    },
+    { timeout: 30000 }
+  );
 
   return serializeBigInt(result);
 }
