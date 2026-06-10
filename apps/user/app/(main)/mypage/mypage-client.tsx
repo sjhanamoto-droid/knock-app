@@ -187,16 +187,6 @@ export function MyPageClient({ profile, trustScoreValue }: MyPageClientProps) {
         </div>
       </header>
 
-      {/* ─── Cover Photo + Avatar ─── */}
-      <div className="relative">
-        <div className="h-[200px] w-full bg-gray-300 overflow-hidden">
-          <div className="h-full w-full bg-gradient-to-br from-gray-400 to-gray-500" />
-        </div>
-        <button className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white">
-          <CameraIcon size={16} />
-        </button>
-      </div>
-
       {/* ─── Profile Summary ─── */}
       <div className="flex items-center gap-3 px-4 py-3 bg-gray-50">
         <div className="relative shrink-0">
