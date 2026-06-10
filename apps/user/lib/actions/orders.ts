@@ -1117,6 +1117,7 @@ export async function getOrderDetail(orderId: string) {
 export async function createAdditionalOrder(
   factoryFloorId: string,
   items: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[],
+  attachments?: { estimatePdfUrls?: string[]; imageUrls?: string[] },
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const user = await requireSession();
@@ -1129,8 +1130,8 @@ export async function createAdditionalOrder(
     });
     if (!floor) return { success: false, error: "現場が見つかりません" };
     if (floor.companyId !== user.companyId) return { success: false, error: "発注者のみ追加工事を登録できます" };
-    if (floor.status !== "IN_PROGRESS" && floor.status !== "CONFIRMED") {
-      return { success: false, error: "施工中の現場のみ追加工事を登録できます" };
+    if (floor.status !== "ORDERED" && floor.status !== "IN_PROGRESS") {
+      return { success: false, error: "発注済み・施工中の現場のみ追加工事を登録できます" };
     }
     if (!floor.workCompanyId) return { success: false, error: "受注者が設定されていません" };
 
@@ -1143,6 +1144,8 @@ export async function createAdditionalOrder(
         inspectionData: {
           type: "ADDITIONAL_ORDER",
           priceDetails: items,
+          estimatePdfUrls: attachments?.estimatePdfUrls ?? [],
+          imageUrls: attachments?.imageUrls ?? [],
         },
       },
     });
@@ -1466,10 +1469,12 @@ export async function getAdditionalOrderDetail(orderId: string) {
 
   if (!order) return null;
 
-  // inspectionData から追加工事明細を取得
+  // inspectionData から追加工事明細・添付(見積書PDF/画像)を取得
   type AdditionalOrderData = {
     type?: string;
     priceDetails?: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[];
+    estimatePdfUrls?: string[];
+    imageUrls?: string[];
   };
   const additionalData = order.inspectionData as AdditionalOrderData | null;
   const items = additionalData?.priceDetails ?? [];
@@ -1489,6 +1494,8 @@ export async function getAdditionalOrderDetail(orderId: string) {
   return {
     ...order,
     additionalItems: resolvedItems,
+    estimatePdfUrls: additionalData?.estimatePdfUrls ?? [],
+    imageUrls: additionalData?.imageUrls ?? [],
     isOrderer: order.factoryFloor.companyId === user.companyId,
   };
 }

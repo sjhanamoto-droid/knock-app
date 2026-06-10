@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAdditionalOrder } from "@/lib/actions/orders";
 import { formatCurrency } from "@knock/utils";
-import { ConfirmDialog, useToast } from "@knock/ui";
+import { ConfirmDialog, useToast, FileUpload } from "@knock/ui";
 
 type Unit = { id: string; name: string };
 type Item = {
@@ -21,16 +21,19 @@ function emptyItem(): Item {
 
 interface Props {
   factoryFloorId: string | null;
+  siteName: string | null;
   initialUnits: Unit[];
   roomId: string;
 }
 
-export function AdditionalOrderClient({ factoryFloorId, initialUnits, roomId }: Props) {
+export function AdditionalOrderClient({ factoryFloorId, siteName, initialUnits, roomId }: Props) {
   const router = useRouter();
   const { toast } = useToast();
 
   const [units] = useState<Unit[]>(initialUnits);
   const [items, setItems] = useState<Item[]>([emptyItem()]);
+  const [estimateFiles, setEstimateFiles] = useState<File[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState<Record<number, string>>({});
@@ -72,9 +75,23 @@ export function AdditionalOrderClient({ factoryFloorId, initialUnits, roomId }: 
   const tax = Math.floor(subtotal * 0.1);
   const total = subtotal + tax;
 
+  async function uploadFiles(files: File[]): Promise<string[]> {
+    if (files.length === 0) return [];
+    const formData = new FormData();
+    files.forEach((f) => formData.append("files", f));
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    if (!res.ok) throw new Error("ファイルのアップロードに失敗しました");
+    const json = await res.json();
+    return json.urls as string[];
+  }
+
   async function handleSubmit() {
     setSubmitting(true);
     try {
+      const [estimatePdfUrls, imageUrls] = await Promise.all([
+        uploadFiles(estimateFiles),
+        uploadFiles(imageFiles),
+      ]);
       const result = await createAdditionalOrder(
         factoryFloorId!,
         items.map((item) => ({
@@ -84,6 +101,10 @@ export function AdditionalOrderClient({ factoryFloorId, initialUnits, roomId }: 
           priceUnit: item.priceUnit,
           specifications: item.specifications.trim() || undefined,
         })),
+        {
+          estimatePdfUrls: estimatePdfUrls.length > 0 ? estimatePdfUrls : undefined,
+          imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+        },
       );
       if (!result.success) {
         setShowConfirm(false);
@@ -126,6 +147,12 @@ export function AdditionalOrderClient({ factoryFloorId, initialUnits, roomId }: 
 
       {/* Content */}
       <div className="flex flex-col gap-4 px-4 pt-4 pb-8">
+        {/* 現場名 */}
+        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
+          <p className="text-[12px] font-bold text-knock-text-secondary">現場名</p>
+          <p className="mt-1 text-[15px] font-bold text-knock-text">{siteName ?? "—"}</p>
+        </div>
+
         {/* Items */}
         {items.map((item, index) => (
           <div
@@ -238,6 +265,30 @@ export function AdditionalOrderClient({ factoryFloorId, initialUnits, roomId }: 
           </svg>
           行を追加
         </button>
+
+        {/* 見積書（PDF） */}
+        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
+          <p className="mb-2 text-[13px] font-bold text-knock-text-secondary">見積書（PDF）</p>
+          <FileUpload
+            accept=".pdf"
+            multiple
+            maxFiles={5}
+            label="見積書を追加"
+            onChange={setEstimateFiles}
+          />
+        </div>
+
+        {/* 画像 */}
+        <div className="rounded-2xl bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
+          <p className="mb-2 text-[13px] font-bold text-knock-text-secondary">画像</p>
+          <FileUpload
+            accept="image/*"
+            multiple
+            maxFiles={10}
+            label="画像を追加"
+            onChange={setImageFiles}
+          />
+        </div>
 
         {/* 合計 */}
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">

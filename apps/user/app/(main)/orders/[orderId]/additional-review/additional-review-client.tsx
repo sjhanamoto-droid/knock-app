@@ -207,6 +207,47 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
           </div>
         </div>
 
+        {/* 添付資料（見積書PDF・画像） */}
+        {(order.estimatePdfUrls.length > 0 || order.imageUrls.length > 0) && (
+          <div className="rounded-2xl bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
+            <h2 className="mb-3 text-[13px] font-bold text-knock-text-secondary">添付資料</h2>
+            {order.estimatePdfUrls.length > 0 && (
+              <div className="mb-3 flex flex-col gap-2">
+                {order.estimatePdfUrls.map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-[13px] font-semibold text-knock-text active:bg-gray-50"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M9 1.5H4C3.45 1.5 3 1.95 3 2.5V13.5C3 14.05 3.45 14.5 4 14.5H12C12.55 14.5 13 14.05 13 13.5V5.5L9 1.5Z" stroke="#EA580C" strokeWidth="1.2" strokeLinejoin="round" />
+                      <path d="M9 1.5V5.5H13" stroke="#EA580C" strokeWidth="1.2" strokeLinejoin="round" />
+                    </svg>
+                    見積書{order.estimatePdfUrls.length > 1 ? ` ${i + 1}` : ""}を開く
+                  </a>
+                ))}
+              </div>
+            )}
+            {order.imageUrls.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {order.imageUrls.map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block overflow-hidden rounded-lg border border-gray-200"
+                  >
+                    <img src={url} alt={`追加工事画像${i + 1}`} className="h-24 w-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action buttons */}
         {/* 受注者: PENDING → 承諾 / 辞退 */}
         {!order.isOrderer && order.status === "PENDING" && (
