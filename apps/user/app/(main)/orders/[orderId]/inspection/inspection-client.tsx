@@ -593,6 +593,21 @@ export function InspectionClient({ initialOrder, initialUnits, orderId }: Props)
       </header>
 
       <div className="flex flex-col gap-4 px-4 pt-4 pb-8">
+        <div className="rounded-xl border border-knock-accent/30 bg-knock-accent/5 p-3">
+          <p className="mb-1 text-[13px] font-bold text-knock-text">
+            納品書の日付
+            <span className="ml-1 text-[11px] font-normal text-knock-text-secondary">
+              （納品書に記載される日付です）
+            </span>
+          </p>
+          <input
+            type="date"
+            value={deliveryDate}
+            onChange={(e) => setDeliveryDate(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-[14px] text-knock-text outline-none focus:border-knock-accent focus:ring-1 focus:ring-knock-accent"
+          />
+        </div>
+
         <ReadOnlyField
           label="注文No"
           value={floor.orderNumber ? String(floor.orderNumber).padStart(5, "0") : "—"}
@@ -786,21 +801,6 @@ export function InspectionClient({ initialOrder, initialUnits, orderId }: Props)
         <div className="rounded-xl border-2 border-red-400 py-4 text-center">
           <p className="text-[12px] font-bold text-red-500">支払金額</p>
           <p className="mt-1 text-[24px] font-bold text-knock-text">{formatYen(paymentAmount)}</p>
-        </div>
-
-        <div>
-          <p className="mb-1 text-[13px] font-bold text-knock-text">
-            納品日
-            <span className="ml-1 text-[11px] font-normal text-knock-text-secondary">
-              （納品書に記載される日付です）
-            </span>
-          </p>
-          <input
-            type="date"
-            value={deliveryDate}
-            onChange={(e) => setDeliveryDate(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 bg-[#F5F5F5] px-3 py-2.5 text-[14px] text-knock-text outline-none focus:border-knock-accent focus:ring-1 focus:ring-knock-accent"
-          />
         </div>
 
         <div>
