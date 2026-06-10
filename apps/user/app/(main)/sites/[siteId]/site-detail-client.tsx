@@ -467,7 +467,7 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                 {(() => {
                   const budget = projectSummary.budget;
                   const panels = [
-                    { key: "planned", label: "発注予定", sub: "未発注の工事合計", value: projectSummary.plannedTotal, color: "#9CA3AF" },
+                    { key: "planned", label: "発注予定", sub: "全工事の予定合計", value: projectSummary.plannedTotal, color: "#9CA3AF" },
                     { key: "ordered", label: "発注", sub: "発注済みの合計", value: projectSummary.orderedTotal, color: accentColor },
                     { key: "actual", label: "実績", sub: "実際の金額", value: projectSummary.actualTotal, color: "#16A34A" },
                   ];

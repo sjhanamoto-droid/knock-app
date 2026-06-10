@@ -890,19 +890,19 @@ export async function getProjectSummary(parentId: string) {
     },
   });
 
-  // 発注予定（まだ発注していない工事 = DRAFT / NOT_ORDERED）と発注済みに分けて集計（税込）
+  // 発注予定 = 予算組みした全工事(未発注＋発注済み以降すべて)の合計。
+  // 発注 = 発注済み(DRAFT/NOT_ORDERED 以外)のみの合計。いずれも税込。
   const PLANNED_STATUSES = new Set(["DRAFT", "NOT_ORDERED"]);
-  let plannedSubtotal = 0;
+  let allSubtotal = 0;
   let orderedSubtotal = 0;
   for (const c of children) {
     const amt = c.totalAmount ? Number(c.totalAmount) : 0;
-    if (!c.status || PLANNED_STATUSES.has(c.status)) {
-      plannedSubtotal += amt;
-    } else {
+    allSubtotal += amt;
+    if (c.status && !PLANNED_STATUSES.has(c.status)) {
       orderedSubtotal += amt;
     }
   }
-  const plannedTotal = Math.floor(plannedSubtotal * 1.1);
+  const plannedTotal = Math.floor(allSubtotal * 1.1);
   const orderedTotal = Math.floor(orderedSubtotal * 1.1);
 
   // 実績合計（完了済みオーダーの actualAmount 合計 × 1.1 = 税込）
