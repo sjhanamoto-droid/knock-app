@@ -136,27 +136,51 @@ export async function getDocumentDetail(documentId: string) {
 
   if (!document) throw new Error("帳票が見つかりません");
 
-  // プレビュー画面の金額欄に表示する明細。
-  // 新しい帳票は metadata.lineItems(PDF本文と同じ明細)を使用し、
-  // 旧帳票は現場の明細(priceDetails)にフォールバックする。
+  // プレビュー画面の金額欄に表示する明細。小計・合計と必ず一致させる。
+  // 1) 新しい帳票は metadata.lineItems(PDF本文と同じ明細)を使用。
+  // 2) 旧・追加注文書は追加工事の明細(inspectionData)を使用(元工事ではなく追加分のみ)。
+  // 3) それ以外(旧・通常注文書)は現場の明細にフォールバック。
   type MetaLineItem = { name?: string; quantity?: number; unit?: string; priceUnit?: number; additional?: boolean };
+  type InspectionLineData = {
+    type?: string;
+    priceDetails?: { name: string; quantity: number; unitId?: string; priceUnit: number; specifications?: string }[];
+  };
   const meta = (document.metadata as { lineItems?: MetaLineItem[] } | null) ?? {};
-  const lineItems =
-    meta.lineItems && meta.lineItems.length > 0
-      ? meta.lineItems.map((p) => ({
-          name: p.name ?? "",
-          quantity: Number(p.quantity ?? 0),
-          unit: p.unit ?? "",
-          priceUnit: Number(p.priceUnit ?? 0),
-          additional: !!p.additional,
-        }))
-      : (document.factoryFloorOrder?.factoryFloor?.priceDetails ?? []).map((p) => ({
-          name: p.name ?? "",
-          quantity: Number(p.quantity ?? 0),
-          unit: p.unit?.name ?? "",
-          priceUnit: Number(p.priceUnit ?? 0),
-          additional: false,
-        }));
+  const inspection = document.factoryFloorOrder?.inspectionData as InspectionLineData | null;
+  const isAdditionalOrder = inspection?.type === "ADDITIONAL_ORDER";
+
+  let lineItems: { name: string; quantity: number; unit: string; priceUnit: number; additional: boolean }[];
+  if (meta.lineItems && meta.lineItems.length > 0) {
+    lineItems = meta.lineItems.map((p) => ({
+      name: p.name ?? "",
+      quantity: Number(p.quantity ?? 0),
+      unit: p.unit ?? "",
+      priceUnit: Number(p.priceUnit ?? 0),
+      additional: !!p.additional,
+    }));
+  } else if (isAdditionalOrder && inspection?.priceDetails?.length) {
+    // 単位名を解決
+    const unitIds = inspection.priceDetails.map((p) => p.unitId).filter(Boolean) as string[];
+    const units = unitIds.length > 0
+      ? await prisma.unit.findMany({ where: { id: { in: unitIds } } })
+      : [];
+    const unitMap = new Map(units.map((u) => [u.id, u.name]));
+    lineItems = inspection.priceDetails.map((p) => ({
+      name: p.name ?? "",
+      quantity: Number(p.quantity ?? 0),
+      unit: p.unitId ? (unitMap.get(p.unitId) ?? "") : "",
+      priceUnit: Number(p.priceUnit ?? 0),
+      additional: true,
+    }));
+  } else {
+    lineItems = (document.factoryFloorOrder?.factoryFloor?.priceDetails ?? []).map((p) => ({
+      name: p.name ?? "",
+      quantity: Number(p.quantity ?? 0),
+      unit: p.unit?.name ?? "",
+      priceUnit: Number(p.priceUnit ?? 0),
+      additional: false,
+    }));
+  }
 
   return {
     ...document,
