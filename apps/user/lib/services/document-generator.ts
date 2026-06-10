@@ -467,7 +467,7 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
             priceUnit: p.priceUnit,
             additional: false,
           })),
-          ...pdfAdditionalItems.map((p) => ({
+          ...(pdfAdditionalItems ?? []).map((p) => ({
             name: p.name,
             quantity: p.quantity,
             unit: p.unit,
