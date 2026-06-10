@@ -100,8 +100,10 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
   });
 
   const floor = order.factoryFloor;
+  // 工事名は「親工事名_工事名」の形式（例: 練馬ビル改修工事_電気工事）。
+  // 親がない単体現場は工事名のみ。
   const fullSiteName = floor.parent?.name
-    ? `${floor.parent.name} ${floor.name ?? ""}`
+    ? [floor.parent.name, floor.name].filter(Boolean).join("_")
     : (floor.name ?? "");
   const documentNumber = await generateDocumentNumber("ORDER_SHEET");
   const issuedAt = new Date();
@@ -268,8 +270,10 @@ export async function generateDeliveryNote(orderId: string): Promise<string> {
   });
 
   const floor = order.factoryFloor;
+  // 工事名は「親工事名_工事名」の形式（例: 練馬ビル改修工事_電気工事）。
+  // 親がない単体現場は工事名のみ。
   const fullSiteNameDN = floor.parent?.name
-    ? `${floor.parent.name} ${floor.name ?? ""}`
+    ? [floor.parent.name, floor.name].filter(Boolean).join("_")
     : (floor.name ?? "");
   const documentNumber = await generateDocumentNumber("DELIVERY_NOTE");
 
