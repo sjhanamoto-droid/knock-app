@@ -890,10 +890,19 @@ export async function getProjectSummary(parentId: string) {
     },
   });
 
-  // 発注合計（子現場の totalAmount 合計 × 1.1 = 税込）
-  const orderedSubtotal = children.reduce((sum, c) => {
-    return sum + (c.totalAmount ? Number(c.totalAmount) : 0);
-  }, 0);
+  // 発注予定（まだ発注していない工事 = DRAFT / NOT_ORDERED）と発注済みに分けて集計（税込）
+  const PLANNED_STATUSES = new Set(["DRAFT", "NOT_ORDERED"]);
+  let plannedSubtotal = 0;
+  let orderedSubtotal = 0;
+  for (const c of children) {
+    const amt = c.totalAmount ? Number(c.totalAmount) : 0;
+    if (!c.status || PLANNED_STATUSES.has(c.status)) {
+      plannedSubtotal += amt;
+    } else {
+      orderedSubtotal += amt;
+    }
+  }
+  const plannedTotal = Math.floor(plannedSubtotal * 1.1);
   const orderedTotal = Math.floor(orderedSubtotal * 1.1);
 
   // 実績合計（完了済みオーダーの actualAmount 合計 × 1.1 = 税込）
@@ -908,6 +917,7 @@ export async function getProjectSummary(parentId: string) {
 
   return {
     budget,
+    plannedTotal,
     orderedTotal,
     actualTotal,
     diff: budget - orderedTotal,

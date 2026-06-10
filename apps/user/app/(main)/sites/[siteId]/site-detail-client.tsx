@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getSite, deleteSite, duplicateSite, getProjectSummary } from "@/lib/actions/sites";
@@ -75,6 +75,9 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [projectSummary] = useState<ProjectSummary | null>(initialProjectSummary);
   const [showOrderAlert, setShowOrderAlert] = useState<string | null>(null); // child site id
+  // 予算管理: 発注予定/発注/実績 の横スワイプ切替
+  const budgetScrollRef = useRef<HTMLDivElement>(null);
+  const [budgetPanel, setBudgetPanel] = useState(0);
 
   async function handleDuplicate() {
     setDuplicating(true);
@@ -454,53 +457,104 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
               </div>
               <div className="px-4 pb-4">
                 <div className={dividerClass} />
+                {/* 全体予算（固定） */}
                 <div className="flex items-center justify-between">
                   <p className={labelClass}>全体予算（税込）</p>
                   <p className="text-[15px] font-bold text-knock-text">{fmtAmount(projectSummary.budget)}</p>
                 </div>
-                <div className={dividerClass} />
-                <div className="flex items-center justify-between">
-                  <p className={labelClass}>発注合計（税込）</p>
-                  <p className={valueClass}>{fmtAmount(projectSummary.orderedTotal)}</p>
-                </div>
-                <div className={dividerClass} />
-                <div className="flex items-center justify-between">
-                  <p className={labelClass}>実績合計（税込）</p>
-                  <p className={valueClass}>{fmtAmount(projectSummary.actualTotal)}</p>
-                </div>
-                <div className={dividerClass} />
-                <div className="flex items-center justify-between">
-                  <p className={labelClass}>差額（予算 − 発注）</p>
-                  <p className={`text-[15px] font-bold ${projectSummary.diff >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {projectSummary.diff >= 0 ? "+" : ""}{fmtAmount(projectSummary.diff)}
-                  </p>
-                </div>
-                {/* 消化率プログレスバー */}
-                {projectSummary.budget > 0 && (
-                  <>
-                    <div className={dividerClass} />
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <p className="text-[11px] text-gray-500">予算消化率</p>
-                        <p className="text-[11px] font-bold text-knock-text">
-                          {Math.min(100, Math.round((projectSummary.orderedTotal / projectSummary.budget) * 100))}%
-                        </p>
+
+                {/* 発注予定 / 発注 / 実績 を切り替え（タブ＋横スワイプ） */}
+                {(() => {
+                  const budget = projectSummary.budget;
+                  const panels = [
+                    { key: "planned", label: "発注予定", sub: "未発注の工事合計", value: projectSummary.plannedTotal, color: "#9CA3AF" },
+                    { key: "ordered", label: "発注", sub: "発注済みの合計", value: projectSummary.orderedTotal, color: accentColor },
+                    { key: "actual", label: "実績", sub: "実際の金額", value: projectSummary.actualTotal, color: "#16A34A" },
+                  ];
+                  const scrollTo = (i: number) => {
+                    const el = budgetScrollRef.current;
+                    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+                  };
+                  return (
+                    <div className="mt-3">
+                      <div className="mb-3 flex gap-1 rounded-xl bg-gray-100 p-1">
+                        {panels.map((p, i) => (
+                          <button
+                            key={p.key}
+                            type="button"
+                            onClick={() => scrollTo(i)}
+                            className={`flex-1 rounded-lg py-1.5 text-[12px] font-bold transition-colors ${
+                              budgetPanel === i ? "bg-white text-knock-text shadow-sm" : "text-gray-400"
+                            }`}
+                          >
+                            {p.label}
+                          </button>
+                        ))}
                       </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            projectSummary.orderedTotal / projectSummary.budget > 1
-                              ? "bg-red-500"
-                              : "bg-green-500"
-                          }`}
-                          style={{
-                            width: `${Math.min(100, Math.round((projectSummary.orderedTotal / projectSummary.budget) * 100))}%`,
-                          }}
-                        />
+                      <div
+                        ref={budgetScrollRef}
+                        onScroll={(e) => {
+                          const w = e.currentTarget.clientWidth;
+                          if (w) setBudgetPanel(Math.round(e.currentTarget.scrollLeft / w));
+                        }}
+                        className="flex snap-x snap-mandatory overflow-x-auto [&::-webkit-scrollbar]:hidden"
+                        style={{ scrollbarWidth: "none" }}
+                      >
+                        {panels.map((p) => {
+                          const pct = budget > 0 ? Math.round((p.value / budget) * 100) : 0;
+                          const remaining = budget - p.value;
+                          return (
+                            <div key={p.key} className="w-full shrink-0 snap-center">
+                              <div className="flex items-end justify-between">
+                                <div>
+                                  <p className="text-[13px] font-bold text-knock-text">{p.label}（税込）</p>
+                                  <p className="text-[10px] text-gray-400">{p.sub}</p>
+                                </div>
+                                <p className="text-[20px] font-bold" style={{ color: p.color }}>
+                                  {fmtAmount(p.value)}
+                                </p>
+                              </div>
+                              {budget > 0 && (
+                                <div className="mt-2">
+                                  <div className="mb-1 flex items-center justify-between text-[11px]">
+                                    <span className="text-gray-500">予算に対して {pct}%</span>
+                                    <span className={remaining >= 0 ? "font-bold text-green-600" : "font-bold text-red-600"}>
+                                      残り {remaining >= 0 ? "" : "-"}{fmtAmount(Math.abs(remaining))}
+                                    </span>
+                                  </div>
+                                  <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                                    <div
+                                      className="h-full rounded-full transition-all"
+                                      style={{
+                                        width: `${Math.min(100, pct)}%`,
+                                        backgroundColor: pct > 100 ? "#EF4444" : p.color,
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-3 flex justify-center gap-1.5">
+                        {panels.map((p, i) => (
+                          <button
+                            key={p.key}
+                            type="button"
+                            aria-label={p.label}
+                            onClick={() => scrollTo(i)}
+                            className="h-1.5 rounded-full transition-all"
+                            style={{
+                              width: budgetPanel === i ? 18 : 6,
+                              backgroundColor: budgetPanel === i ? accentColor : "#D1D5DB",
+                            }}
+                          />
+                        ))}
                       </div>
                     </div>
-                  </>
-                )}
+                  );
+                })()}
               </div>
             </div>
           )}
