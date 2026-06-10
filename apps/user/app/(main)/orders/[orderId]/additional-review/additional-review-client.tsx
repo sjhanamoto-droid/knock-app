@@ -11,6 +11,33 @@ import {
 import { formatCurrency } from "@knock/utils";
 import { ConfirmDialog, useToast } from "@knock/ui";
 
+// base64 の data URL はブラウザが新規タブで直接開けない(ブロックされる)ため、
+// Blob に変換して object URL として開く。ポップアップブロック時はダウンロードにフォールバック。
+function openDataUrl(dataUrl: string, filename: string) {
+  try {
+    const base64 = dataUrl.split(",")[1] ?? "";
+    const mime = dataUrl.split(",")[0]?.split(":")[1]?.split(";")[0] ?? "application/octet-stream";
+    const byteString = atob(base64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const opened = window.open(url, "_blank");
+    if (!opened) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch {
+    window.open(dataUrl, "_blank");
+  }
+}
+
 type OrderDetail = NonNullable<Awaited<ReturnType<typeof getAdditionalOrderDetail>>>;
 
 interface Props {
@@ -214,34 +241,32 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
             {order.estimatePdfUrls.length > 0 && (
               <div className="mb-3 flex flex-col gap-2">
                 {order.estimatePdfUrls.map((url, i) => (
-                  <a
+                  <button
                     key={i}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-[13px] font-semibold text-knock-text active:bg-gray-50"
+                    type="button"
+                    onClick={() => openDataUrl(url, `見積書_${i + 1}.pdf`)}
+                    className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 text-left text-[13px] font-semibold text-knock-text active:bg-gray-50"
                   >
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                       <path d="M9 1.5H4C3.45 1.5 3 1.95 3 2.5V13.5C3 14.05 3.45 14.5 4 14.5H12C12.55 14.5 13 14.05 13 13.5V5.5L9 1.5Z" stroke="#EA580C" strokeWidth="1.2" strokeLinejoin="round" />
                       <path d="M9 1.5V5.5H13" stroke="#EA580C" strokeWidth="1.2" strokeLinejoin="round" />
                     </svg>
                     見積書{order.estimatePdfUrls.length > 1 ? ` ${i + 1}` : ""}を開く
-                  </a>
+                  </button>
                 ))}
               </div>
             )}
             {order.imageUrls.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {order.imageUrls.map((url, i) => (
-                  <a
+                  <button
                     key={i}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    type="button"
+                    onClick={() => openDataUrl(url, `追加工事画像_${i + 1}`)}
                     className="block overflow-hidden rounded-lg border border-gray-200"
                   >
                     <img src={url} alt={`追加工事画像${i + 1}`} className="h-24 w-full object-cover" />
-                  </a>
+                  </button>
                 ))}
               </div>
             )}
