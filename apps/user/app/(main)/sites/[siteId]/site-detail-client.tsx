@@ -221,7 +221,7 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                           </svg>
                           {duplicating ? "複製中..." : "複製"}
                         </button>
-                        {["DRAFT", "NOT_ORDERED", "ORDERED", "ORDER_REQUESTED"].includes(site.status) && (
+                        {["DRAFT", "NOT_ORDERED"].includes(site.status) && (
                           <Link
                             href={`/sites/${site.id}/edit`}
                             onClick={() => setShowActionMenu(false)}

@@ -493,6 +493,12 @@ export async function updateSite(
   });
   if (!existing) throw new Error("現場が見つかりません");
 
+  // 発注依頼(ORDER_REQUESTED)以降のステータスでは編集を禁止する。
+  // 依頼後に内容が変わることを防ぐため、編集は未発注(NOT_ORDERED/DRAFT)時のみ許可。
+  if (!["NOT_ORDERED", "DRAFT"].includes(existing.status)) {
+    throw new Error("発注依頼後の現場は編集できません");
+  }
+
   // 住所が変更された場合はジオコーディング（トランザクション外で実行）
   const geoUpdate = data.address && data.address !== existing.address
     ? await geocodeAddress(data.address)
