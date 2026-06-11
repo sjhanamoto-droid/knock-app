@@ -258,10 +258,13 @@ function drawLineItemsTable(doc: jsPDF, data: InvoicePdfData, y: number): number
  */
 function drawSummaryRows(doc: jsPDF, data: InvoicePdfData, y: number): number {
   // 金額列と税率列の幅を使う
-  const labelX = ML + COL_W[0] + COL_W[1] + COL_W[2]; // No.+日付+工事名の後
-  const labelW = COL_W[3]; // 金額列幅
+  // 集計ボックスは表の右端に合わせ、金額が枠線に重ならないよう横幅を広げる
+  const tableRightX = ML + COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3] + COL_W[4];
+  const boxW = 70; // 集計ボックス全体の横幅（従来 55 → 70 に拡大）
+  const labelW = 32; // ラベル列（小計/消費税/合計）
+  const amountW = boxW - labelW; // 金額列（= 38、従来 20）
+  const labelX = tableRightX - boxW;
   const amountX = labelX + labelW;
-  const amountW = COL_W[4]; // 税率列幅
   const rowH = 9;
 
   y += 2;
