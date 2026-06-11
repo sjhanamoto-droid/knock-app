@@ -13,6 +13,37 @@ import { getDocumentDetail } from "@/lib/actions/documents";
 
 type DocDetail = Awaited<ReturnType<typeof getDocumentDetail>>;
 
+// base64 の data URL はブラウザが新規タブで直接開けない(ブロックされる)ため、
+// Blob に変換して object URL として開く。通常URLはそのまま開く。
+function openPdf(url: string) {
+  if (!url.startsWith("data:")) {
+    window.open(url, "_blank");
+    return;
+  }
+  try {
+    const base64 = url.split(",")[1] ?? "";
+    const mime = url.split(",")[0]?.split(":")[1]?.split(";")[0] ?? "application/pdf";
+    const byteString = atob(base64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: mime });
+    const objectUrl = URL.createObjectURL(blob);
+    const opened = window.open(objectUrl, "_blank");
+    if (!opened) {
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = "請求書.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
 const statusLabels: Record<string, string> = {
   DRAFT: "確認待ち",
   ISSUED: "確定済み",
@@ -213,18 +244,17 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
 
         {/* PDF表示 */}
         {doc.pdfUrl && (
-          <a
-            href={doc.pdfUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 text-[13px] font-bold text-gray-600 transition-all active:scale-[0.98]"
+          <button
+            type="button"
+            onClick={() => openPdf(doc.pdfUrl!)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-3 text-[13px] font-bold text-gray-600 transition-all active:scale-[0.98]"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M4 12L8 8L12 12M8 8V2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" transform="rotate(180 8 7)" />
               <path d="M2 14H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
             PDFを表示
-          </a>
+          </button>
         )}
 
         {/* アクションボタン */}

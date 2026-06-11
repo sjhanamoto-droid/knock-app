@@ -15,6 +15,37 @@ type SiteDetail = NonNullable<Awaited<ReturnType<typeof getSite>>>;
 type ActiveTab = "detail" | "images" | "children";
 type ProjectSummary = Awaited<ReturnType<typeof getProjectSummary>>;
 
+// base64 の data URL はブラウザが新規タブで直接開けない(ブロックされる)ため、
+// Blob に変換して object URL として開く。通常URLはそのまま開く。
+function openPdf(url: string) {
+  if (!url.startsWith("data:")) {
+    window.open(url, "_blank");
+    return;
+  }
+  try {
+    const base64 = url.split(",")[1] ?? "";
+    const mime = url.split(",")[0]?.split(":")[1]?.split(";")[0] ?? "application/pdf";
+    const byteString = atob(base64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: mime });
+    const objectUrl = URL.createObjectURL(blob);
+    const opened = window.open(objectUrl, "_blank");
+    if (!opened) {
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = "見積書.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
 function fmtDate(d: string | Date | null | undefined): string {
   if (!d) return "未設定";
   const date = typeof d === "string" ? new Date(d) : d;
@@ -852,12 +883,11 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                 <div className={dividerClass} />
                 <div className="flex flex-col gap-2">
                   {invoicePdfs.map((pdf, i) => (
-                    <a
+                    <button
                       key={pdf.id}
-                      href={pdf.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 transition-colors active:bg-gray-100"
+                      type="button"
+                      onClick={() => openPdf(pdf.url)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-left transition-colors active:bg-gray-100"
                     >
                       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                         <path
@@ -874,7 +904,7 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                         <path d="M4 12L12 4M12 4H6M12 4V10" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
