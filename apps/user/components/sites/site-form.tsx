@@ -15,6 +15,33 @@ import { FileUpload } from "@knock/ui";
 import OccupationSelector from "@/components/occupation-selector";
 import type { ChildSiteInput } from "@/lib/actions/sites";
 
+/**
+ * 画像をクライアント側でリサイズ・JPEG圧縮する。base64化後のサーバーアクション
+ * ボディが肥大して登録に失敗するのを防ぐ。非画像/失敗時は null を返し元ファイルを使う。
+ */
+async function compressImage(file: File, maxDim = 1600, quality = 0.8): Promise<Blob | null> {
+  if (!file.type.startsWith("image/")) return null;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality)
+    );
+    return blob && blob.size < file.size ? blob : null;
+  } catch {
+    return null;
+  }
+}
+
 // 子現場フォーム用ローカル型（File オブジェクトを含む）
 type ChildFormEntry = {
   name: string;
@@ -266,7 +293,16 @@ export default function SiteForm({
   async function uploadFiles(files: File[]): Promise<string[]> {
     if (files.length === 0) return [];
     const formData = new FormData();
-    files.forEach((f) => formData.append("files", f));
+    // 画像はアップロード前に圧縮してボディサイズ超過を防ぐ（PDF等はそのまま）
+    for (const f of files) {
+      const compressed = await compressImage(f);
+      if (compressed) {
+        const name = f.name.replace(/\.[^.]+$/, "") + ".jpg";
+        formData.append("files", new File([compressed], name, { type: "image/jpeg" }));
+      } else {
+        formData.append("files", f);
+      }
+    }
     const res = await fetch("/api/upload", { method: "POST", body: formData });
     if (!res.ok) throw new Error("ファイルのアップロードに失敗しました");
     const json = await res.json();
