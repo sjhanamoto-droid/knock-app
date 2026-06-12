@@ -2,12 +2,12 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
-import { generateInvoice, generateInvoiceFromNotes } from "@/lib/services/document-generator";
+import { generateInvoice, generateInvoiceFromOrders } from "@/lib/services/document-generator";
 import { getBillingPeriod, getBillingMonth } from "@/lib/helpers/billing-period";
 
 /**
  * 請求書候補を取得
- * 対象月に ISSUED/CONFIRMED の納品書があるが、まだ請求書が存在しない
+ * 対象月に締切(CLOSED)された発注があるが、まだ請求書が存在しない
  * (workerCompanyId, orderCompanyId) のペアを返す
  */
 export async function getInvoiceCandidates(yearMonth: string) {
@@ -16,34 +16,38 @@ export async function getInvoiceCandidates(yearMonth: string) {
   const year = parseInt(yearMonth.substring(0, 4));
   const month = parseInt(yearMonth.substring(4, 6));
   // 締め日は発注者ごとに異なるため、生窓を広め(前月1日〜当月末日)に取り、
-  // 各納品書を発注者の締め日で締め月に振り分けてから絞り込む。
+  // 各発注を発注者の締め日で締め月に振り分けてから絞り込む。
   const rawStart = new Date(year, month - 2, 1, 0, 0, 0, 0);
   const rawEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
-  // 対象期間の ISSUED/CONFIRMED 納品書を取得（自社が受注者）
-  const deliveryNotes = await prisma.document.findMany({
+  // 対象期間に締切(CLOSED)された発注を取得（自社が受注者）
+  const orders = await prisma.factoryFloorOrder.findMany({
     where: {
-      type: "DELIVERY_NOTE",
-      status: { in: ["ISSUED", "CONFIRMED"] },
-      workerCompanyId: user.companyId,
-      issuedAt: { gte: rawStart, lte: rawEnd },
       deletedAt: null,
+      status: "CONFIRMED",
+      completionStatus: "CLOSED",
+      workCompanyId: user.companyId,
+      completedDay: { gte: rawStart, lte: rawEnd },
+      factoryFloor: { deletedAt: null },
     },
     select: {
       id: true,
-      issuedAt: true,
-      workerCompanyId: true,
-      orderCompanyId: true,
-      totalAmount: true,
-      orderCompany: { select: { id: true, name: true } },
-      workerCompany: { select: { id: true, name: true } },
+      completedDay: true,
+      workCompanyId: true,
+      factoryFloor: {
+        select: { id: true, companyId: true, company: { select: { id: true, name: true } } },
+      },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        select: { id: true, subtotal: true, taxAmount: true, totalAmount: true },
+      },
     },
   });
 
-  if (deliveryNotes.length === 0) return [];
+  if (orders.length === 0) return [];
 
   // 各発注者の締め日を取得し、締め月の判定に使う
-  const candidateOrdererIds = [...new Set(deliveryNotes.map((n) => n.orderCompanyId))];
+  const candidateOrdererIds = [...new Set(orders.map((o) => o.factoryFloor.companyId))];
   const candidateOrderers = await prisma.company.findMany({
     where: { id: { in: candidateOrdererIds } },
     select: { id: true, billingClosingDay: true },
@@ -51,6 +55,14 @@ export async function getInvoiceCandidates(yearMonth: string) {
   const candidateClosingByOrderer = new Map(
     candidateOrderers.map((o) => [o.id, o.billingClosingDay])
   );
+
+  // 受注者(自社)名を取得（FactoryFloorOrder には workCompany リレーションが無いため別途取得）
+  const candidateWorkerIds = [...new Set(orders.map((o) => o.workCompanyId))];
+  const candidateWorkers = await prisma.company.findMany({
+    where: { id: { in: candidateWorkerIds } },
+    select: { id: true, name: true },
+  });
+  const candidateWorkerNameById = new Map(candidateWorkers.map((c) => [c.id, c.name]));
 
   // 既存の請求書（同月）を取得
   const existingInvoices = await prisma.document.findMany({
@@ -80,29 +92,36 @@ export async function getInvoiceCandidates(yearMonth: string) {
     }
   >();
 
-  for (const note of deliveryNotes) {
-    // 締め日に基づく締め月が対象月と一致しない納品書は除外
+  for (const order of orders) {
+    // 注文書(ORDER_SHEET)が無い発注は請求対象外
+    if (order.documents.length === 0) continue;
+
+    const orderCompanyId = order.factoryFloor.companyId;
+    // 締め日に基づく締め月が対象月と一致しない発注は除外
     if (
-      !note.issuedAt ||
-      getBillingMonth(note.issuedAt, candidateClosingByOrderer.get(note.orderCompanyId) ?? null) !== yearMonth
+      !order.completedDay ||
+      getBillingMonth(order.completedDay, candidateClosingByOrderer.get(orderCompanyId) ?? null) !== yearMonth
     ) {
       continue;
     }
-    const key = `${note.workerCompanyId}::${note.orderCompanyId}`;
+    const key = `${order.workCompanyId}::${orderCompanyId}`;
     if (invoicedPairs.has(key)) continue;
+
+    // 発注の注文書(通常1件)の totalAmount を合算
+    const orderTotal = order.documents.reduce((sum, d) => sum + Number(d.totalAmount ?? 0), 0);
 
     const existing = pairMap.get(key);
     if (existing) {
       existing.deliveryNoteCount += 1;
-      existing.totalAmount += Number(note.totalAmount ?? 0);
+      existing.totalAmount += orderTotal;
     } else {
       pairMap.set(key, {
-        workerCompanyId: note.workerCompanyId,
-        orderCompanyId: note.orderCompanyId,
-        workerCompanyName: note.workerCompany.name ?? "",
-        orderCompanyName: note.orderCompany.name ?? "",
+        workerCompanyId: order.workCompanyId,
+        orderCompanyId,
+        workerCompanyName: candidateWorkerNameById.get(order.workCompanyId) ?? "",
+        orderCompanyName: order.factoryFloor.company?.name ?? "",
         deliveryNoteCount: 1,
-        totalAmount: Number(note.totalAmount ?? 0),
+        totalAmount: orderTotal,
       });
     }
   }
@@ -141,7 +160,7 @@ export async function generateDraftInvoices(companyId: string) {
   const now = new Date();
   const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  // 対象月の納品書（DELIVERY_APPROVED状態）を受注者ごとに集計
+  // 対象月の締切(CLOSED)発注を受注者ごとに集計
   const year = parseInt(yearMonth.substring(0, 4));
   const month = parseInt(yearMonth.substring(4, 6));
   // 発注者の締め日に基づく請求期間で集計（締め日 null は月末締め）
@@ -150,21 +169,20 @@ export async function generateDraftInvoices(companyId: string) {
     company.billingClosingDay
   );
 
-  const deliveryNotes = await prisma.document.findMany({
+  const orders = await prisma.factoryFloorOrder.findMany({
     where: {
-      type: "DELIVERY_NOTE",
-      status: { in: ["ISSUED", "CONFIRMED"] },
-      orderCompanyId: companyId,
-      issuedAt: { gte: startOfMonth, lte: endOfMonth },
       deletedAt: null,
+      status: "CONFIRMED",
+      completionStatus: "CLOSED",
+      factoryFloor: { companyId, deletedAt: null },
+      completedDay: { gte: startOfMonth, lte: endOfMonth },
     },
     select: {
-      workerCompanyId: true,
-      orderCompanyId: true,
+      workCompanyId: true,
     },
   });
 
-  if (deliveryNotes.length === 0) return [];
+  if (orders.length === 0) return [];
 
   // 既存のドラフト請求書を確認
   const existingInvoices = await prisma.document.findMany({
@@ -180,7 +198,7 @@ export async function generateDraftInvoices(companyId: string) {
   const invoicedWorkers = new Set(existingInvoices.map((i) => i.workerCompanyId));
 
   // 受注者ごとにユニークなIDを集める
-  const workerIds = [...new Set(deliveryNotes.map((n) => n.workerCompanyId))].filter(
+  const workerIds = [...new Set(orders.map((o) => o.workCompanyId))].filter(
     (id) => !invoicedWorkers.has(id)
   );
 
@@ -201,7 +219,7 @@ export async function generateDraftInvoices(companyId: string) {
       });
       createdIds.push(docId);
     } catch {
-      // 納品書がない場合はスキップ
+      // 請求対象の工事がない場合はスキップ
     }
   }
 
@@ -506,11 +524,23 @@ export async function markInvoicePaid(documentId: string) {
     data: { status: "CONFIRMED" },
   });
 
-  // 関連する納品書のFactoryFloorOrderからFactoryFloorをDEAL_COMPLETEDに更新
+  // 関連する発注の FactoryFloor を DEAL_COMPLETED に更新。
+  // 新方式: metadata.orderIds（発注ID）/ 旧方式: metadata.deliveryNoteIds（納品書ID）
   const metadata = doc.metadata as Record<string, unknown> | null;
+  const metaOrderIds = (metadata?.orderIds as string[]) ?? [];
   const deliveryNoteIds = (metadata?.deliveryNoteIds as string[]) ?? [];
 
-  if (deliveryNoteIds.length > 0) {
+  let floorIds: string[] = [];
+
+  if (metaOrderIds.length > 0) {
+    // 新方式: 発注IDから直接 FactoryFloor を解決
+    const orders = await prisma.factoryFloorOrder.findMany({
+      where: { id: { in: metaOrderIds } },
+      select: { factoryFloorId: true },
+    });
+    floorIds = orders.map((o) => o.factoryFloorId);
+  } else if (deliveryNoteIds.length > 0) {
+    // 旧方式: 納品書 → FactoryFloorOrder → FactoryFloor
     const deliveryNotes = await prisma.document.findMany({
       where: { id: { in: deliveryNoteIds } },
       select: { factoryFloorOrderId: true },
@@ -521,17 +551,17 @@ export async function markInvoicePaid(documentId: string) {
       where: { id: { in: orderIds } },
       select: { factoryFloorId: true },
     });
+    floorIds = orders.map((o) => o.factoryFloorId);
+  }
 
-    const floorIds = orders.map((o) => o.factoryFloorId);
-    if (floorIds.length > 0) {
-      await prisma.factoryFloor.updateMany({
-        where: {
-          id: { in: floorIds },
-          status: { in: ["DELIVERY_APPROVED", "INVOICED"] },
-        },
-        data: { status: "DEAL_COMPLETED" },
-      });
-    }
+  if (floorIds.length > 0) {
+    await prisma.factoryFloor.updateMany({
+      where: {
+        id: { in: floorIds },
+        status: { in: ["DELIVERY_APPROVED", "INVOICED"] },
+      },
+      data: { status: "DEAL_COMPLETED" },
+    });
   }
 
   // 受注者に支払い完了通知
@@ -556,7 +586,7 @@ export async function markInvoicePaid(documentId: string) {
 }
 
 /**
- * 未請求の納品書一覧を取得（月別フィルター）
+ * 未請求の締切(CLOSED)発注一覧を取得（月別フィルター）
  */
 export async function getAvailableDeliveryNotes(yearMonth: string) {
   const user = await requireSession();
@@ -564,40 +594,40 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
   const year = parseInt(yearMonth.substring(0, 4));
   const month = parseInt(yearMonth.substring(4, 6));
   // 締め日は発注者ごとに異なるため、生窓を広め(前月1日〜当月末日)に取り、
-  // 各納品書を発注者の締め日で締め月に振り分けてから絞り込む。
+  // 各発注を発注者の締め日で締め月に振り分けてから絞り込む。
   const rawStart = new Date(year, month - 2, 1, 0, 0, 0, 0);
   const rawEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
-  // 対象期間の納品書を取得（自社が発注者または受注者）
-  const deliveryNotes = await prisma.document.findMany({
+  // 対象期間に締切(CLOSED)された発注を取得（自社が発注者または受注者）
+  const orders = await prisma.factoryFloorOrder.findMany({
     where: {
-      type: "DELIVERY_NOTE",
-      status: { in: ["ISSUED", "CONFIRMED"] },
-      OR: [
-        { orderCompanyId: user.companyId },
-        { workerCompanyId: user.companyId },
-      ],
-      issuedAt: { gte: rawStart, lte: rawEnd },
       deletedAt: null,
+      status: "CONFIRMED",
+      completionStatus: "CLOSED",
+      completedDay: { gte: rawStart, lte: rawEnd },
+      factoryFloor: { deletedAt: null },
+      OR: [
+        { factoryFloor: { companyId: user.companyId } },
+        { workCompanyId: user.companyId },
+      ],
     },
     select: {
       id: true,
-      documentNumber: true,
-      issuedAt: true,
-      totalAmount: true,
-      metadata: true,
-      orderCompanyId: true,
-      workerCompanyId: true,
-      orderCompany: { select: { id: true, name: true } },
-      workerCompany: { select: { id: true, name: true } },
+      completedDay: true,
+      workCompanyId: true,
+      factoryFloor: { select: { name: true, companyId: true } },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        select: { id: true, documentNumber: true, totalAmount: true, metadata: true },
+      },
     },
-    orderBy: { issuedAt: "desc" },
+    orderBy: { completedDay: "desc" },
   });
 
-  if (deliveryNotes.length === 0) return [];
+  if (orders.length === 0) return [];
 
-  // 各発注者の締め日を取得（納品書の締め月判定に使用）
-  const availOrdererIds = [...new Set(deliveryNotes.map((n) => n.orderCompanyId))];
+  // 各発注者の締め日を取得（発注の締め月判定に使用）
+  const availOrdererIds = [...new Set(orders.map((o) => o.factoryFloor.companyId))];
   const availOrderers = await prisma.company.findMany({
     where: { id: { in: availOrdererIds } },
     select: { id: true, billingClosingDay: true },
@@ -606,7 +636,15 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
     availOrderers.map((o) => [o.id, o.billingClosingDay])
   );
 
-  // 既存の請求書に含まれている納品書IDを収集
+  // 受注者名を取得（FactoryFloorOrder には workCompany リレーションが無いため別途取得）
+  const availWorkerIds = [...new Set(orders.map((o) => o.workCompanyId))];
+  const availWorkers = await prisma.company.findMany({
+    where: { id: { in: availWorkerIds } },
+    select: { id: true, name: true },
+  });
+  const availWorkerNameById = new Map(availWorkers.map((c) => [c.id, c.name]));
+
+  // 既存の請求書に含まれている発注IDを収集（新方式 orderIds / 旧方式 deliveryNoteIds）
   const existingInvoices = await prisma.document.findMany({
     where: {
       type: "INVOICE",
@@ -620,36 +658,44 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
     select: { metadata: true },
   });
 
-  const invoicedNoteIds = new Set<string>();
+  const invoicedOrderIds = new Set<string>();
   for (const inv of existingInvoices) {
     const meta = inv.metadata as Record<string, unknown> | null;
-    const ids = (meta?.deliveryNoteIds as string[]) ?? [];
+    const ids = (meta?.orderIds as string[]) ?? [];
     for (const id of ids) {
-      invoicedNoteIds.add(id);
+      invoicedOrderIds.add(id);
     }
   }
 
-  // 未請求かつ締め月が対象月の納品書のみ返却
-  return deliveryNotes
+  // 未請求かつ締め月が対象月で、注文書(ORDER_SHEET)がある発注のみ返却
+  return orders
     .filter(
-      (n) =>
-        !invoicedNoteIds.has(n.id) &&
-        !!n.issuedAt &&
-        getBillingMonth(n.issuedAt, availClosingByOrderer.get(n.orderCompanyId) ?? null) === yearMonth
+      (o) =>
+        o.documents.length > 0 &&
+        !invoicedOrderIds.has(o.id) &&
+        !!o.completedDay &&
+        getBillingMonth(o.completedDay, availClosingByOrderer.get(o.factoryFloor.companyId) ?? null) === yearMonth
     )
-    .map((n) => ({
-      id: n.id,
-      documentNumber: n.documentNumber,
-      issuedAt: n.issuedAt?.toISOString() ?? null,
-      totalAmount: n.totalAmount ? Number(n.totalAmount) : 0,
-      siteName: (n.metadata as Record<string, unknown> | null)?.siteName as string ?? "",
-      workerCompanyId: n.workerCompanyId,
-      workerCompanyName: n.workerCompany?.name ?? "",
-    }));
+    .map((o) => {
+      const sheet = o.documents[0];
+      return {
+        id: o.id,
+        documentNumber: sheet?.documentNumber ?? null,
+        issuedAt: o.completedDay?.toISOString() ?? null,
+        totalAmount: o.documents.reduce((sum, d) => sum + Number(d.totalAmount ?? 0), 0),
+        siteName:
+          o.factoryFloor.name ??
+          ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+          "",
+        workerCompanyId: o.workCompanyId,
+        workerCompanyName: availWorkerNameById.get(o.workCompanyId) ?? "",
+      };
+    });
 }
 
 /**
  * 手動で請求書を作成
+ * 引数 deliveryNoteIds は発注ID(FactoryFloorOrder.id)の配列として扱う（UIの互換のため名前は据え置き）。
  */
 export async function createManualInvoice(
   deliveryNoteIds: string[],
@@ -658,42 +704,49 @@ export async function createManualInvoice(
   const user = await requireSession();
 
   if (deliveryNoteIds.length === 0) {
-    throw new Error("納品書を選択してください");
+    throw new Error("工事を選択してください");
   }
 
-  // 全納品書が自社（発注者 or 受注者）のものであることを検証
-  const notes = await prisma.document.findMany({
+  // 全発注が締切(CLOSED)済みで、自社（発注者 or 受注者）のものであることを検証
+  const orders = await prisma.factoryFloorOrder.findMany({
     where: {
       id: { in: deliveryNoteIds },
-      type: "DELIVERY_NOTE",
       deletedAt: null,
     },
-    select: { id: true, orderCompanyId: true, workerCompanyId: true },
+    select: {
+      id: true,
+      completionStatus: true,
+      workCompanyId: true,
+      factoryFloor: { select: { companyId: true } },
+    },
   });
 
-  if (notes.length !== deliveryNoteIds.length) {
-    throw new Error("一部の納品書が見つかりません");
+  if (orders.length !== deliveryNoteIds.length) {
+    throw new Error("一部の工事が見つかりません");
   }
 
-  for (const note of notes) {
-    if (note.orderCompanyId !== user.companyId && note.workerCompanyId !== user.companyId) {
-      throw new Error("権限のない納品書が含まれています");
+  for (const order of orders) {
+    if (order.completionStatus !== "CLOSED") {
+      throw new Error("締切されていない工事が含まれています");
+    }
+    if (order.factoryFloor.companyId !== user.companyId && order.workCompanyId !== user.companyId) {
+      throw new Error("権限のない工事が含まれています");
     }
   }
 
   // 同一受注者であることを検証
-  const workerIds = new Set(notes.map((n) => n.workerCompanyId));
+  const workerIds = new Set(orders.map((o) => o.workCompanyId));
   if (workerIds.size > 1) {
-    throw new Error("異なる受注者の納品書が混在しています。同一受注者の納品書を選択してください");
+    throw new Error("異なる受注者の工事が混在しています。同一受注者の工事を選択してください");
   }
 
   const date = new Date(billingDate + "T00:00:00");
-  const docId = await generateInvoiceFromNotes(deliveryNoteIds, date);
+  const docId = await generateInvoiceFromOrders(deliveryNoteIds, date);
 
   // 発注者の支払期日タイプから支払期日を自動設定（自動生成の請求書と挙動を揃える）。
-  // generateInvoiceFromNotes 成功時点で全納品書は同一発注者なので notes[0] を使用。
+  // generateInvoiceFromOrders 成功時点で全発注は同一発注者なので orders[0] を使用。
   const orderCompany = await prisma.company.findUnique({
-    where: { id: notes[0].orderCompanyId },
+    where: { id: orders[0].factoryFloor.companyId },
     select: { paymentDueType: true },
   });
   const dueDate = calculateDueDate(

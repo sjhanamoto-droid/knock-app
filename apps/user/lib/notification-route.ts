@@ -18,13 +18,14 @@ export function getNotificationRoute(type: number, targetId: string | null): str
     // V2: 受発注プロセス
     case 20: return `/orders/${targetId}/confirm`;     // 発注依頼
     case 21: return `/orders/${targetId}/accept`;      // 受注依頼
-    case 22: return `/orders/${targetId}/completion-review`; // 完了報告
+    case 22: return `/orders/${targetId}/completion-report`; // 施工報告
     case 23: return `/orders/${targetId}`;             // 完了報告の再依頼 → 取引詳細
     case 35: return `/orders/${targetId}/evaluate`;    // 評価依頼 → 相互評価ページ
     case 36: return `/orders/${targetId}/evaluate`;    // 評価を受けた → 相互評価ページ
     case 24: return `/chat/${targetId}`;               // 注文書発行 → 現場ルームへ
-    case 25: return `/orders/${targetId}/inspection`;  // 検収依頼
-    case 26: return `/orders/${targetId}/delivery-approval`; // 納品承認依頼
+    case 25: return `/orders/${targetId}/completion-report`;  // (旧)検収依頼 → 完了報告へ
+    case 26: return `/orders/${targetId}/completion-report`;  // (旧)納品承認 → 完了報告へ
+    case 37: return `/orders/${targetId}/completion-report`;  // 工事完了(締め)の確認
     // V2: 発注辞退
     case 31: return `/sites/${targetId}`;                  // 発注辞退 → 現場詳細
     // V2: 追加工事

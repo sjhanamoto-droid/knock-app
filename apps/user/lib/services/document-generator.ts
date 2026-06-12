@@ -501,36 +501,55 @@ export async function generateInvoice(
     orderCompanyForPeriod?.billingClosingDay ?? null
   );
 
-  // 対象期間の納品承認済みの取引を集計
-  const deliveryNotes = await prisma.document.findMany({
+  // 対象期間に締切(CLOSED)された発注を集計し、各発注の注文書(ORDER_SHEET)金額を請求対象とする
+  const orders = await prisma.factoryFloorOrder.findMany({
     where: {
-      type: "DELIVERY_NOTE",
-      status: { in: ["ISSUED", "CONFIRMED"] },
-      workerCompanyId,
-      orderCompanyId,
-      issuedAt: { gte: startOfMonth, lte: endOfMonth },
       deletedAt: null,
+      status: "CONFIRMED",
+      completionStatus: "CLOSED",
+      workCompanyId: workerCompanyId,
+      factoryFloor: { companyId: orderCompanyId, deletedAt: null },
+      completedDay: { gte: startOfMonth, lte: endOfMonth },
     },
-    include: {
-      factoryFloorOrder: true,
+    select: {
+      id: true,
+      completedDay: true,
+      factoryFloorId: true,
+      factoryFloor: { select: { name: true } },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        select: {
+          id: true,
+          documentNumber: true,
+          subtotal: true,
+          taxAmount: true,
+          totalAmount: true,
+          metadata: true,
+        },
+      },
     },
   });
 
-  if (deliveryNotes.length === 0) {
-    throw new Error("対象月に請求対象の納品書がありません");
+  // 注文書(ORDER_SHEET)が無い発注は請求対象外
+  const billableOrders = orders.filter((o) => o.documents.length > 0);
+
+  if (billableOrders.length === 0) {
+    throw new Error("対象月に請求対象の工事がありません");
   }
 
   const documentNumber = await generateDocumentNumber("INVOICE");
 
-  // 合算
+  // 合算: 各発注の非VOIDの注文書金額をそのまま合計
   let totalSubtotal = BigInt(0);
   let totalTax = BigInt(0);
   let totalTotal = BigInt(0);
 
-  for (const note of deliveryNotes) {
-    totalSubtotal += note.subtotal ?? BigInt(0);
-    totalTax += note.taxAmount ?? BigInt(0);
-    totalTotal += note.totalAmount ?? BigInt(0);
+  for (const order of billableOrders) {
+    for (const sheet of order.documents) {
+      totalSubtotal += sheet.subtotal ?? BigInt(0);
+      totalTax += sheet.taxAmount ?? BigInt(0);
+      totalTotal += sheet.totalAmount ?? BigInt(0);
+    }
   }
 
   const workerCompany = await prisma.company.findUnique({
@@ -543,13 +562,19 @@ export async function generateInvoice(
 
   const issuedAt = new Date();
 
-  // PDF生成データ
-  const lineItems = deliveryNotes.map((n) => ({
-    documentNumber: n.documentNumber ?? "",
-    date: n.issuedAt,
-    siteName: (n.metadata as Record<string, unknown> | null)?.siteName as string ?? "",
-    amount: Number(n.totalAmount ?? 0),
-  }));
+  // PDF生成データ: 各発注の注文書を明細行に
+  const lineItems = billableOrders.map((order) => {
+    const sheet = order.documents[0];
+    return {
+      documentNumber: sheet?.documentNumber ?? "",
+      date: order.completedDay,
+      siteName:
+        order.factoryFloor.name ??
+        ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+        "",
+      amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+    };
+  });
 
   const pdfData: InvoicePdfData = {
     documentNumber,
@@ -583,7 +608,7 @@ export async function generateInvoice(
       type: "INVOICE",
       status: "ISSUED",
       documentNumber,
-      factoryFloorOrderId: deliveryNotes[0].factoryFloorOrderId, // 代表の取引ID
+      factoryFloorOrderId: billableOrders[0].id, // 代表の発注ID
       orderCompanyId,
       workerCompanyId,
       subtotal: totalSubtotal,
@@ -594,12 +619,18 @@ export async function generateInvoice(
       issuedAt,
       yearMonth,
       metadata: {
-        deliveryNoteIds: deliveryNotes.map((n) => n.id),
-        lineItems: deliveryNotes.map((n) => ({
-          documentNumber: n.documentNumber,
-          siteName: (n.metadata as Record<string, unknown> | null)?.siteName ?? "",
-          amount: Number(n.totalAmount),
-        })),
+        orderIds: billableOrders.map((o) => o.id),
+        lineItems: billableOrders.map((order) => {
+          const sheet = order.documents[0];
+          return {
+            documentNumber: sheet?.documentNumber ?? "",
+            siteName:
+              order.factoryFloor.name ??
+              ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+              "",
+            amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+          };
+        }),
       },
     },
   });
@@ -608,34 +639,52 @@ export async function generateInvoice(
 }
 
 /**
- * 指定された納品書IDから請求書を生成（手動作成用）
+ * 指定された発注IDから請求書を生成（手動作成用）
+ * 各発注の注文書(ORDER_SHEET)金額をそのまま合算する。
  */
-export async function generateInvoiceFromNotes(
-  deliveryNoteIds: string[],
+export async function generateInvoiceFromOrders(
+  orderIds: string[],
   billingDate: Date,
 ): Promise<string> {
-  const deliveryNotes = await prisma.document.findMany({
+  const orders = await prisma.factoryFloorOrder.findMany({
     where: {
-      id: { in: deliveryNoteIds },
-      type: "DELIVERY_NOTE",
-      status: { in: ["ISSUED", "CONFIRMED"] },
+      id: { in: orderIds },
       deletedAt: null,
+      completionStatus: "CLOSED",
     },
-    include: {
-      factoryFloorOrder: true,
+    select: {
+      id: true,
+      completedDay: true,
+      workCompanyId: true,
+      factoryFloorId: true,
+      factoryFloor: { select: { companyId: true, name: true } },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        select: {
+          id: true,
+          documentNumber: true,
+          subtotal: true,
+          taxAmount: true,
+          totalAmount: true,
+          metadata: true,
+        },
+      },
     },
   });
 
-  if (deliveryNotes.length === 0) {
-    throw new Error("請求対象の納品書がありません");
+  // 注文書(ORDER_SHEET)が無い発注は請求対象外
+  const billableOrders = orders.filter((o) => o.documents.length > 0);
+
+  if (billableOrders.length === 0) {
+    throw new Error("請求対象の工事がありません");
   }
 
   // 全て同一の (workerCompanyId, orderCompanyId) であることを検証
-  const workerCompanyId = deliveryNotes[0].workerCompanyId;
-  const orderCompanyId = deliveryNotes[0].orderCompanyId;
-  for (const note of deliveryNotes) {
-    if (note.workerCompanyId !== workerCompanyId || note.orderCompanyId !== orderCompanyId) {
-      throw new Error("異なる取引先の納品書が混在しています");
+  const workerCompanyId = billableOrders[0].workCompanyId;
+  const orderCompanyId = billableOrders[0].factoryFloor.companyId;
+  for (const order of billableOrders) {
+    if (order.workCompanyId !== workerCompanyId || order.factoryFloor.companyId !== orderCompanyId) {
+      throw new Error("異なる取引先の工事が混在しています");
     }
   }
 
@@ -646,10 +695,12 @@ export async function generateInvoiceFromNotes(
   let totalTax = BigInt(0);
   let totalTotal = BigInt(0);
 
-  for (const note of deliveryNotes) {
-    totalSubtotal += note.subtotal ?? BigInt(0);
-    totalTax += note.taxAmount ?? BigInt(0);
-    totalTotal += note.totalAmount ?? BigInt(0);
+  for (const order of billableOrders) {
+    for (const sheet of order.documents) {
+      totalSubtotal += sheet.subtotal ?? BigInt(0);
+      totalTax += sheet.taxAmount ?? BigInt(0);
+      totalTotal += sheet.totalAmount ?? BigInt(0);
+    }
   }
 
   const workerCompany = await prisma.company.findUnique({
@@ -660,12 +711,18 @@ export async function generateInvoiceFromNotes(
     where: { id: orderCompanyId },
   });
 
-  const lineItems = deliveryNotes.map((n) => ({
-    documentNumber: n.documentNumber ?? "",
-    date: n.issuedAt,
-    siteName: (n.metadata as Record<string, unknown> | null)?.siteName as string ?? "",
-    amount: Number(n.totalAmount ?? 0),
-  }));
+  const lineItems = billableOrders.map((order) => {
+    const sheet = order.documents[0];
+    return {
+      documentNumber: sheet?.documentNumber ?? "",
+      date: order.completedDay,
+      siteName:
+        order.factoryFloor.name ??
+        ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+        "",
+      amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+    };
+  });
 
   const pdfData: InvoicePdfData = {
     documentNumber,
@@ -698,7 +755,7 @@ export async function generateInvoiceFromNotes(
       type: "INVOICE",
       status: "ISSUED",
       documentNumber,
-      factoryFloorOrderId: deliveryNotes[0].factoryFloorOrderId,
+      factoryFloorOrderId: billableOrders[0].id,
       orderCompanyId,
       workerCompanyId,
       subtotal: totalSubtotal,
@@ -709,12 +766,18 @@ export async function generateInvoiceFromNotes(
       issuedAt: billingDate,
       yearMonth,
       metadata: {
-        deliveryNoteIds: deliveryNotes.map((n) => n.id),
-        lineItems: deliveryNotes.map((n) => ({
-          documentNumber: n.documentNumber,
-          siteName: (n.metadata as Record<string, unknown> | null)?.siteName ?? "",
-          amount: Number(n.totalAmount),
-        })),
+        orderIds: billableOrders.map((o) => o.id),
+        lineItems: billableOrders.map((order) => {
+          const sheet = order.documents[0];
+          return {
+            documentNumber: sheet?.documentNumber ?? "",
+            siteName:
+              order.factoryFloor.name ??
+              ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+              "",
+            amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+          };
+        }),
       },
     },
   });
