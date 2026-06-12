@@ -686,7 +686,7 @@ export async function submitCompletionReport(data: {
     },
   });
   if (!order) throw new Error("取引が見つかりません");
-  if (order.status !== "CONFIRMED") throw new Error("完了報告を送信できる状態ではありません");
+  if (order.status !== "CONFIRMED") throw new Error("施工報告を送信できる状態ではありません");
 
   return prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
@@ -695,26 +695,22 @@ export async function submitCompletionReport(data: {
       data: { seenFlag: true },
     });
 
-    // 1. 完了報告を作成
-    const report = await tx.completionReport.create({
-      data: {
-        factoryFloorOrderId: data.factoryFloorOrderId,
-        completionDate: new Date(data.completionDate),
-        comment: data.comment,
-        photos: data.photos,
-        hasAdditionalWork: data.hasAdditionalWork ?? false,
-        additionalWorkDescription: data.additionalWorkDescription,
-        additionalWorkAmount: data.additionalWorkAmount ? BigInt(data.additionalWorkAmount) : null,
-      },
+    // 施工報告(任意)を作成/更新。工事完了(締め)状態は変更しない。
+    const reportData = {
+      completionDate: new Date(data.completionDate),
+      comment: data.comment,
+      photos: data.photos,
+      hasAdditionalWork: data.hasAdditionalWork ?? false,
+      additionalWorkDescription: data.additionalWorkDescription,
+      additionalWorkAmount: data.additionalWorkAmount ? BigInt(data.additionalWorkAmount) : null,
+    };
+    const report = await tx.completionReport.upsert({
+      where: { factoryFloorOrderId: data.factoryFloorOrderId },
+      create: { factoryFloorOrderId: data.factoryFloorOrderId, ...reportData },
+      update: reportData,
     });
 
-    // 2. 現場ステータスを「検収中」に更新
-    await tx.factoryFloor.update({
-      where: { id: order.factoryFloor.id },
-      data: { status: "INSPECTION" },
-    });
-
-    // 3. 発注者に通知
+    // 発注者に通知（施工報告あり）
     const ordererUsers = await tx.user.findMany({
       where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
       select: { id: true },
@@ -723,8 +719,8 @@ export async function submitCompletionReport(data: {
       await tx.notification.createMany({
         data: ordererUsers.map((u) => ({
           userId: u.id,
-          title: "完了報告",
-          content: `${order.factoryFloor.name}の完了報告が届きました。確認してください。`,
+          title: "施工報告",
+          content: `${order.factoryFloor.name}の施工報告が届きました。`,
           type: 22,
           factoryFloorId: order.factoryFloor.id,
           targetId: data.factoryFloorOrderId,
@@ -732,13 +728,170 @@ export async function submitCompletionReport(data: {
       });
       void sendPushToUsers({
         userIds: ordererUsers.map((u) => u.id),
-        title: "完了報告",
-        body: `${order.factoryFloor.name}の完了報告が届きました。確認してください。`,
-        url: `/orders/${data.factoryFloorOrderId}/completion-review`,
+        title: "施工報告",
+        body: `${order.factoryFloor.name}の施工報告が届きました。`,
+        url: `/orders/${data.factoryFloorOrderId}/completion-report`,
       });
     }
 
     return report;
+  });
+}
+
+// ============ V2: 工事完了(締め)依頼（受注者） ============
+
+export async function requestClose(orderId: string) {
+  const user = await requireSession();
+
+  const order = await prisma.factoryFloorOrder.findFirst({
+    where: { id: orderId, deletedAt: null, workCompanyId: user.companyId },
+    include: { factoryFloor: { select: { id: true, name: true, companyId: true } } },
+  });
+  if (!order) throw new Error("取引が見つかりません");
+  if (order.status !== "CONFIRMED") throw new Error("締め依頼できる状態ではありません");
+  if (order.completionStatus !== "NONE") throw new Error("既に締め依頼済み、または完了済みです");
+
+  return prisma.$transaction(async (tx) => {
+    await tx.factoryFloorOrder.update({
+      where: { id: orderId },
+      data: { completionStatus: "CLOSE_REQUESTED" },
+    });
+
+    // SITE_INFO ルームにメッセージ
+    const siteRoom = await tx.chatRoom.findFirst({
+      where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
+    });
+    if (siteRoom) {
+      await tx.message.create({
+        data: {
+          roomId: siteRoom.id,
+          userId: user.id,
+          message: "工事の完了(締め)を依頼しました",
+          type: "ACTION",
+          actionType: "ORDER_REQUEST",
+          factoryFloorOrderId: orderId,
+        },
+      });
+      await tx.chatRoom.update({ where: { id: siteRoom.id }, data: { lastMessageTime: new Date() } });
+    }
+
+    // 発注者に通知
+    const ordererUsers = await tx.user.findMany({
+      where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    if (ordererUsers.length > 0) {
+      await tx.notification.createMany({
+        data: ordererUsers.map((u) => ({
+          userId: u.id,
+          title: "工事完了の確認",
+          content: `${order.factoryFloor.name}の工事完了(締め)の確認をお願いします。`,
+          type: 37,
+          factoryFloorId: order.factoryFloor.id,
+          targetId: orderId,
+        })),
+      });
+      void sendPushToUsers({
+        userIds: ordererUsers.map((u) => u.id),
+        title: "工事完了の確認",
+        body: `${order.factoryFloor.name}の工事完了(締め)の確認をお願いします。`,
+        url: `/orders/${orderId}/completion-report`,
+      });
+    }
+
+    return { orderId };
+  });
+}
+
+// ============ V2: 工事完了(締め)承認（発注者）→ 請求対象データ確定 ============
+
+export async function approveClose(orderId: string, completedDay: string) {
+  const user = await requireSession();
+
+  if (!completedDay) throw new Error("工事完了日を入力してください");
+
+  const order = await prisma.factoryFloorOrder.findFirst({
+    where: { id: orderId, deletedAt: null, factoryFloor: { companyId: user.companyId, deletedAt: null } },
+    include: { factoryFloor: { select: { id: true, name: true, finishDay: true, workCompanyId: true } } },
+  });
+  if (!order) throw new Error("取引が見つかりません");
+  if (order.completionStatus !== "CLOSE_REQUESTED") throw new Error("承認できる状態ではありません");
+
+  const completed = new Date(completedDay + "T00:00:00");
+  const floorId = order.factoryFloor.id;
+
+  return prisma.$transaction(async (tx) => {
+    await tx.notification.updateMany({
+      where: { userId: user.id, targetId: orderId, seenFlag: false },
+      data: { seenFlag: true },
+    });
+
+    // 1. 発注書を完了に（この時点で注文書金額が請求対象データになる）
+    await tx.factoryFloorOrder.update({
+      where: { id: orderId },
+      data: { completionStatus: "CLOSED", completedDay: completed },
+    });
+
+    // 2. 現場 finishDay を更新(最大)＋ステータスロールアップ
+    const existingFinish = order.factoryFloor.finishDay;
+    const newFinish = !existingFinish || completed > existingFinish ? completed : existingFinish;
+    const confirmedOrders = await tx.factoryFloorOrder.findMany({
+      where: { factoryFloorId: floorId, deletedAt: null, status: "CONFIRMED" },
+      select: { completionStatus: true },
+    });
+    const allClosed = confirmedOrders.every((o) => o.completionStatus === "CLOSED");
+    await tx.factoryFloor.update({
+      where: { id: floorId },
+      data: { finishDay: newFinish, status: allClosed ? "COMPLETED" : "IN_PROGRESS" },
+    });
+
+    // 3. 受注者に「工事完了」通知
+    const workCompanyId = order.factoryFloor.workCompanyId;
+    if (workCompanyId) {
+      const contractorUsers = await tx.user.findMany({
+        where: { companyId: workCompanyId, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (contractorUsers.length > 0) {
+        await tx.notification.createMany({
+          data: contractorUsers.map((u) => ({
+            userId: u.id,
+            title: "工事完了",
+            content: `${order.factoryFloor.name}の工事が完了しました。`,
+            type: 30,
+            factoryFloorId: floorId,
+            targetId: orderId,
+          })),
+        });
+        void sendPushToUsers({
+          userIds: contractorUsers.map((u) => u.id),
+          title: "工事完了",
+          body: `${order.factoryFloor.name}の工事が完了しました。`,
+          url: `/orders/${orderId}/completion-report`,
+        });
+      }
+    }
+
+    // 4. 双方に相互評価を依頼
+    const evalCompanyIds = [user.companyId, workCompanyId].filter(Boolean) as string[];
+    const evalUsers = await tx.user.findMany({
+      where: { companyId: { in: evalCompanyIds }, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    if (evalUsers.length > 0) {
+      await tx.notification.createMany({
+        data: evalUsers.map((u) => ({
+          userId: u.id,
+          title: "取引相手を評価してください",
+          content: `${order.factoryFloor.name}の取引が完了しました。取引相手の評価をお願いします。`,
+          type: 35,
+          factoryFloorId: floorId,
+          targetId: orderId,
+        })),
+      });
+    }
+
+    return { orderId };
   });
 }
 

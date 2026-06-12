@@ -4,7 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getChatRoom, getNewMessages, sendMessage, markAsRead } from "@/lib/actions/chat";
-import { formatDateTime, formatCurrency, documentTypeLabels } from "@knock/utils";
+import {
+  formatDateTime,
+  formatCurrency,
+  documentTypeLabels,
+  orderCompletionStatusLabels,
+  orderCompletionStatusColors,
+} from "@knock/utils";
 
 type ChatData = Awaited<ReturnType<typeof getChatRoom>>;
 type Message = ChatData["messages"][number];
@@ -22,6 +28,7 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
   const [sending, setSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showDocuments, setShowDocuments] = useState(false);
+  const [showManagementReports, setShowManagementReports] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 自分のメッセージ判定用（ログインユーザーの実ID）
@@ -146,8 +153,9 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
     (order) => order.documents?.map((doc) => ({ ...doc, orderId: order.id })) ?? []
   ) ?? [];
 
-  // Get first order for linking to completion report
-  const firstOrder = data.room.factoryFloor?.orders?.[0];
+  // 管理報告: CONFIRMED の発注書（本体＋追加工事）一覧
+  const confirmedOrders =
+    data.room.factoryFloor?.orders?.filter((order) => order.status === "CONFIRMED") ?? [];
 
   function renderActionMessage(msg: Message) {
     const isOrderRequest = msg.actionType === "ORDER_REQUEST";
@@ -384,30 +392,17 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
                         帳票確認
                       </button>
                     )}
-                    {/* 現場ルーム: 受注者 完了報告 */}
-                    {isSiteInfo && firstOrder && !isOrderer && firstOrder.status === "CONFIRMED" && !firstOrder.completionReport && (
+                    {/* 現場ルーム: 管理報告（発注書ごとの施工報告・工事完了） */}
+                    {isSiteInfo && confirmedOrders.length > 0 && (
                       <button
-                        onClick={() => { router.push(`/orders/${firstOrder.id}/completion-report`); setShowMenu(false); }}
+                        onClick={() => { setShowManagementReports(true); setShowMenu(false); }}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                           <path d="M6 8L7.5 9.5L10 6.5" stroke="#666" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                           <circle cx="8" cy="8" r="6.5" stroke="#666" strokeWidth="1.2" fill="none"/>
                         </svg>
-                        完了報告
-                      </button>
-                    )}
-                    {/* 現場ルーム: 発注者 完了報告を確認 */}
-                    {isSiteInfo && firstOrder && isOrderer && data.room.factoryFloor?.status === "INSPECTION" && (
-                      <button
-                        onClick={() => { router.push(`/orders/${firstOrder.id}/completion-review`); setShowMenu(false); }}
-                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
-                      >
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                          <path d="M6 8L7.5 9.5L10 6.5" stroke="#666" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <circle cx="8" cy="8" r="6.5" stroke="#666" strokeWidth="1.2" fill="none"/>
-                        </svg>
-                        完了報告を確認
+                        管理報告
                       </button>
                     )}
                     {/* 現場ルーム: 発注者 追加工事（発注済み・施工中のみ） */}
@@ -547,6 +542,56 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
                       )}
                     </div>
                   </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 管理報告パネル (Bottom Sheet) */}
+      {showManagementReports && (
+        <>
+          <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowManagementReports(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-[60] mx-auto max-w-[430px] max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white pb-[env(safe-area-inset-bottom,16px)]">
+            <div className="sticky top-0 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3">
+              <h2 className="text-[16px] font-bold text-knock-text">管理報告</h2>
+              <button
+                onClick={() => setShowManagementReports(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full active:bg-gray-100"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M4 4L12 12M12 4L4 12" stroke="#666" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+            <div className="flex flex-col gap-2 p-4">
+              {confirmedOrders.length === 0 ? (
+                <p className="py-8 text-center text-[13px] text-knock-text-muted">
+                  対象の発注書はありません
+                </p>
+              ) : (
+                confirmedOrders.map((order, i) => (
+                  <button
+                    key={order.id}
+                    onClick={() => { setShowManagementReports(false); router.push(`/orders/${order.id}/completion-report`); }}
+                    className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-left transition-colors active:bg-gray-100"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-[13px] font-bold text-blue-600">
+                      {i + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-semibold text-knock-text">
+                        {data.room.factoryFloor?.name ?? "発注書"}（発注書 {i + 1}）
+                      </p>
+                      {order.completionReport && (
+                        <p className="text-[11px] font-medium text-green-600">施工報告あり</p>
+                      )}
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${orderCompletionStatusColors[order.completionStatus] ?? "bg-gray-100 text-gray-600"}`}>
+                      {orderCompletionStatusLabels[order.completionStatus] ?? order.completionStatus}
+                    </span>
+                  </button>
                 ))
               )}
             </div>
