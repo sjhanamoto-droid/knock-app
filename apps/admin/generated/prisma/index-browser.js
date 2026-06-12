@@ -761,6 +761,8 @@ exports.Prisma.FactoryFloorOrderScalarFieldEnum = {
   factoryFloorId: 'factoryFloorId',
   workCompanyId: 'workCompanyId',
   status: 'status',
+  completionStatus: 'completionStatus',
+  completedDay: 'completedDay',
   actualAmount: 'actualAmount',
   inspectionData: 'inspectionData',
   answersTimeExpired: 'answersTimeExpired',
@@ -1042,6 +1044,12 @@ exports.OrderStatus = exports.$Enums.OrderStatus = {
   REJECTED: 'REJECTED',
   CANCELLED: 'CANCELLED',
   CONFIRMED: 'CONFIRMED'
+};
+
+exports.OrderCompletionStatus = exports.$Enums.OrderCompletionStatus = {
+  NONE: 'NONE',
+  CLOSE_REQUESTED: 'CLOSE_REQUESTED',
+  CLOSED: 'CLOSED'
 };
 
 exports.Prisma.ModelName = {

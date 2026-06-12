@@ -79,6 +79,8 @@ model FactoryFloorOrder {
   factoryFloor       FactoryFloor @relation(fields: [factoryFloorId], references: [id])
   workCompanyId      String
   status             OrderStatus?
+  completionStatus   OrderCompletionStatus @default(NONE) // 工事完了(締め)の状態
+  completedDay       DateTime?            // 発注者が入力する工事完了日(請求の基準日)
   actualAmount       BigInt?
   inspectionData     Json?
   answersTimeExpired DateTime?
@@ -99,6 +101,7 @@ model FactoryFloorOrder {
   @@index([factoryFloorId, deletedAt])
   @@index([workCompanyId, deletedAt])
   @@index([status])
+  @@index([completionStatus])
   @@map("factory_floor_orders")
 }
 

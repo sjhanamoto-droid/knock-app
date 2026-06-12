@@ -393,6 +393,14 @@ enum OrderStatus {
   CONFIRMED
 }
 
+// 工事完了(締め)の状態。発注書(FactoryFloorOrder)ごとに進行する。
+// 施工報告(写真)は任意で、この状態は変えない。
+enum OrderCompletionStatus {
+  NONE
+  CLOSE_REQUESTED
+  CLOSED
+}
+
 enum ChatRoomType {
   NEGOTIATION
   SITE_INFO
@@ -1201,17 +1209,19 @@ model FactoryFloorMember {
 }
 
 model FactoryFloorOrder {
-  id                 String       @id @default(cuid())
+  id                 String                @id @default(cuid())
   factoryFloorId     String
-  factoryFloor       FactoryFloor @relation(fields: [factoryFloorId], references: [id])
+  factoryFloor       FactoryFloor          @relation(fields: [factoryFloorId], references: [id])
   workCompanyId      String
   status             OrderStatus?
+  completionStatus   OrderCompletionStatus @default(NONE) // 工事完了(締め)の状態
+  completedDay       DateTime? // 発注者が入力する工事完了日(請求の基準日)
   actualAmount       BigInt?
   inspectionData     Json?
   answersTimeExpired DateTime?
   message            String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
   deletedAt          DateTime?
 
   billingRequests  BillingRequest[]
@@ -1226,6 +1236,7 @@ model FactoryFloorOrder {
   @@index([factoryFloorId, deletedAt])
   @@index([workCompanyId, deletedAt])
   @@index([status])
+  @@index([completionStatus])
   @@map("factory_floor_orders")
 }
 

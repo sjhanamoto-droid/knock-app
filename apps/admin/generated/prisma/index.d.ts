@@ -322,6 +322,15 @@ export const OrderStatus: {
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus]
 
 
+export const OrderCompletionStatus: {
+  NONE: 'NONE',
+  CLOSE_REQUESTED: 'CLOSE_REQUESTED',
+  CLOSED: 'CLOSED'
+};
+
+export type OrderCompletionStatus = (typeof OrderCompletionStatus)[keyof typeof OrderCompletionStatus]
+
+
 export const ChatRoomType: {
   NEGOTIATION: 'NEGOTIATION',
   SITE_INFO: 'SITE_INFO'
@@ -562,6 +571,10 @@ export const FactoryFloorStatus: typeof $Enums.FactoryFloorStatus
 export type OrderStatus = $Enums.OrderStatus
 
 export const OrderStatus: typeof $Enums.OrderStatus
+
+export type OrderCompletionStatus = $Enums.OrderCompletionStatus
+
+export const OrderCompletionStatus: typeof $Enums.OrderCompletionStatus
 
 export type ChatRoomType = $Enums.ChatRoomType
 
@@ -60037,6 +60050,8 @@ export namespace Prisma {
     factoryFloorId: string | null
     workCompanyId: string | null
     status: $Enums.OrderStatus | null
+    completionStatus: $Enums.OrderCompletionStatus | null
+    completedDay: Date | null
     actualAmount: bigint | null
     answersTimeExpired: Date | null
     message: string | null
@@ -60050,6 +60065,8 @@ export namespace Prisma {
     factoryFloorId: string | null
     workCompanyId: string | null
     status: $Enums.OrderStatus | null
+    completionStatus: $Enums.OrderCompletionStatus | null
+    completedDay: Date | null
     actualAmount: bigint | null
     answersTimeExpired: Date | null
     message: string | null
@@ -60063,6 +60080,8 @@ export namespace Prisma {
     factoryFloorId: number
     workCompanyId: number
     status: number
+    completionStatus: number
+    completedDay: number
     actualAmount: number
     inspectionData: number
     answersTimeExpired: number
@@ -60087,6 +60106,8 @@ export namespace Prisma {
     factoryFloorId?: true
     workCompanyId?: true
     status?: true
+    completionStatus?: true
+    completedDay?: true
     actualAmount?: true
     answersTimeExpired?: true
     message?: true
@@ -60100,6 +60121,8 @@ export namespace Prisma {
     factoryFloorId?: true
     workCompanyId?: true
     status?: true
+    completionStatus?: true
+    completedDay?: true
     actualAmount?: true
     answersTimeExpired?: true
     message?: true
@@ -60113,6 +60136,8 @@ export namespace Prisma {
     factoryFloorId?: true
     workCompanyId?: true
     status?: true
+    completionStatus?: true
+    completedDay?: true
     actualAmount?: true
     inspectionData?: true
     answersTimeExpired?: true
@@ -60214,6 +60239,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status: $Enums.OrderStatus | null
+    completionStatus: $Enums.OrderCompletionStatus
+    completedDay: Date | null
     actualAmount: bigint | null
     inspectionData: JsonValue | null
     answersTimeExpired: Date | null
@@ -60247,6 +60274,8 @@ export namespace Prisma {
     factoryFloorId?: boolean
     workCompanyId?: boolean
     status?: boolean
+    completionStatus?: boolean
+    completedDay?: boolean
     actualAmount?: boolean
     inspectionData?: boolean
     answersTimeExpired?: boolean
@@ -60269,6 +60298,8 @@ export namespace Prisma {
     factoryFloorId?: boolean
     workCompanyId?: boolean
     status?: boolean
+    completionStatus?: boolean
+    completedDay?: boolean
     actualAmount?: boolean
     inspectionData?: boolean
     answersTimeExpired?: boolean
@@ -60284,6 +60315,8 @@ export namespace Prisma {
     factoryFloorId?: boolean
     workCompanyId?: boolean
     status?: boolean
+    completionStatus?: boolean
+    completedDay?: boolean
     actualAmount?: boolean
     inspectionData?: boolean
     answersTimeExpired?: boolean
@@ -60299,6 +60332,8 @@ export namespace Prisma {
     factoryFloorId?: boolean
     workCompanyId?: boolean
     status?: boolean
+    completionStatus?: boolean
+    completedDay?: boolean
     actualAmount?: boolean
     inspectionData?: boolean
     answersTimeExpired?: boolean
@@ -60308,7 +60343,7 @@ export namespace Prisma {
     deletedAt?: boolean
   }
 
-  export type FactoryFloorOrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "factoryFloorId" | "workCompanyId" | "status" | "actualAmount" | "inspectionData" | "answersTimeExpired" | "message" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["factoryFloorOrder"]>
+  export type FactoryFloorOrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "factoryFloorId" | "workCompanyId" | "status" | "completionStatus" | "completedDay" | "actualAmount" | "inspectionData" | "answersTimeExpired" | "message" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["factoryFloorOrder"]>
   export type FactoryFloorOrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     factoryFloor?: boolean | FactoryFloorDefaultArgs<ExtArgs>
     billingRequests?: boolean | FactoryFloorOrder$billingRequestsArgs<ExtArgs>
@@ -60342,6 +60377,8 @@ export namespace Prisma {
       factoryFloorId: string
       workCompanyId: string
       status: $Enums.OrderStatus | null
+      completionStatus: $Enums.OrderCompletionStatus
+      completedDay: Date | null
       actualAmount: bigint | null
       inspectionData: Prisma.JsonValue | null
       answersTimeExpired: Date | null
@@ -60783,6 +60820,8 @@ export namespace Prisma {
     readonly factoryFloorId: FieldRef<"FactoryFloorOrder", 'String'>
     readonly workCompanyId: FieldRef<"FactoryFloorOrder", 'String'>
     readonly status: FieldRef<"FactoryFloorOrder", 'OrderStatus'>
+    readonly completionStatus: FieldRef<"FactoryFloorOrder", 'OrderCompletionStatus'>
+    readonly completedDay: FieldRef<"FactoryFloorOrder", 'DateTime'>
     readonly actualAmount: FieldRef<"FactoryFloorOrder", 'BigInt'>
     readonly inspectionData: FieldRef<"FactoryFloorOrder", 'Json'>
     readonly answersTimeExpired: FieldRef<"FactoryFloorOrder", 'DateTime'>
@@ -67815,6 +67854,8 @@ export namespace Prisma {
     factoryFloorId: 'factoryFloorId',
     workCompanyId: 'workCompanyId',
     status: 'status',
+    completionStatus: 'completionStatus',
+    completedDay: 'completedDay',
     actualAmount: 'actualAmount',
     inspectionData: 'inspectionData',
     answersTimeExpired: 'answersTimeExpired',
@@ -68430,6 +68471,20 @@ export namespace Prisma {
    * Reference to a field of type 'OrderStatus[]'
    */
   export type ListEnumOrderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrderStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'OrderCompletionStatus'
+   */
+  export type EnumOrderCompletionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrderCompletionStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'OrderCompletionStatus[]'
+   */
+  export type ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrderCompletionStatus[]'>
     
 
 
@@ -72609,6 +72664,8 @@ export namespace Prisma {
     factoryFloorId?: StringFilter<"FactoryFloorOrder"> | string
     workCompanyId?: StringFilter<"FactoryFloorOrder"> | string
     status?: EnumOrderStatusNullableFilter<"FactoryFloorOrder"> | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFilter<"FactoryFloorOrder"> | $Enums.OrderCompletionStatus
+    completedDay?: DateTimeNullableFilter<"FactoryFloorOrder"> | Date | string | null
     actualAmount?: BigIntNullableFilter<"FactoryFloorOrder"> | bigint | number | null
     inspectionData?: JsonNullableFilter<"FactoryFloorOrder">
     answersTimeExpired?: DateTimeNullableFilter<"FactoryFloorOrder"> | Date | string | null
@@ -72630,6 +72687,8 @@ export namespace Prisma {
     factoryFloorId?: SortOrder
     workCompanyId?: SortOrder
     status?: SortOrderInput | SortOrder
+    completionStatus?: SortOrder
+    completedDay?: SortOrderInput | SortOrder
     actualAmount?: SortOrderInput | SortOrder
     inspectionData?: SortOrderInput | SortOrder
     answersTimeExpired?: SortOrderInput | SortOrder
@@ -72654,6 +72713,8 @@ export namespace Prisma {
     factoryFloorId?: StringFilter<"FactoryFloorOrder"> | string
     workCompanyId?: StringFilter<"FactoryFloorOrder"> | string
     status?: EnumOrderStatusNullableFilter<"FactoryFloorOrder"> | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFilter<"FactoryFloorOrder"> | $Enums.OrderCompletionStatus
+    completedDay?: DateTimeNullableFilter<"FactoryFloorOrder"> | Date | string | null
     actualAmount?: BigIntNullableFilter<"FactoryFloorOrder"> | bigint | number | null
     inspectionData?: JsonNullableFilter<"FactoryFloorOrder">
     answersTimeExpired?: DateTimeNullableFilter<"FactoryFloorOrder"> | Date | string | null
@@ -72675,6 +72736,8 @@ export namespace Prisma {
     factoryFloorId?: SortOrder
     workCompanyId?: SortOrder
     status?: SortOrderInput | SortOrder
+    completionStatus?: SortOrder
+    completedDay?: SortOrderInput | SortOrder
     actualAmount?: SortOrderInput | SortOrder
     inspectionData?: SortOrderInput | SortOrder
     answersTimeExpired?: SortOrderInput | SortOrder
@@ -72697,6 +72760,8 @@ export namespace Prisma {
     factoryFloorId?: StringWithAggregatesFilter<"FactoryFloorOrder"> | string
     workCompanyId?: StringWithAggregatesFilter<"FactoryFloorOrder"> | string
     status?: EnumOrderStatusNullableWithAggregatesFilter<"FactoryFloorOrder"> | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusWithAggregatesFilter<"FactoryFloorOrder"> | $Enums.OrderCompletionStatus
+    completedDay?: DateTimeNullableWithAggregatesFilter<"FactoryFloorOrder"> | Date | string | null
     actualAmount?: BigIntNullableWithAggregatesFilter<"FactoryFloorOrder"> | bigint | number | null
     inspectionData?: JsonNullableWithAggregatesFilter<"FactoryFloorOrder">
     answersTimeExpired?: DateTimeNullableWithAggregatesFilter<"FactoryFloorOrder"> | Date | string | null
@@ -77721,6 +77786,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -77742,6 +77809,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -77761,6 +77830,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77782,6 +77853,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77802,6 +77875,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -77815,6 +77890,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77829,6 +77906,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -81776,6 +81855,13 @@ export namespace Prisma {
     not?: NestedEnumOrderStatusNullableFilter<$PrismaModel> | $Enums.OrderStatus | null
   }
 
+  export type EnumOrderCompletionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrderCompletionStatus | EnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrderCompletionStatusFilter<$PrismaModel> | $Enums.OrderCompletionStatus
+  }
+
   export type CompletionReportNullableScalarRelationFilter = {
     is?: CompletionReportWhereInput | null
     isNot?: CompletionReportWhereInput | null
@@ -81786,6 +81872,8 @@ export namespace Prisma {
     factoryFloorId?: SortOrder
     workCompanyId?: SortOrder
     status?: SortOrder
+    completionStatus?: SortOrder
+    completedDay?: SortOrder
     actualAmount?: SortOrder
     inspectionData?: SortOrder
     answersTimeExpired?: SortOrder
@@ -81804,6 +81892,8 @@ export namespace Prisma {
     factoryFloorId?: SortOrder
     workCompanyId?: SortOrder
     status?: SortOrder
+    completionStatus?: SortOrder
+    completedDay?: SortOrder
     actualAmount?: SortOrder
     answersTimeExpired?: SortOrder
     message?: SortOrder
@@ -81817,6 +81907,8 @@ export namespace Prisma {
     factoryFloorId?: SortOrder
     workCompanyId?: SortOrder
     status?: SortOrder
+    completionStatus?: SortOrder
+    completedDay?: SortOrder
     actualAmount?: SortOrder
     answersTimeExpired?: SortOrder
     message?: SortOrder
@@ -81837,6 +81929,16 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumOrderStatusNullableFilter<$PrismaModel>
     _max?: NestedEnumOrderStatusNullableFilter<$PrismaModel>
+  }
+
+  export type EnumOrderCompletionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrderCompletionStatus | EnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrderCompletionStatusWithAggregatesFilter<$PrismaModel> | $Enums.OrderCompletionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumOrderCompletionStatusFilter<$PrismaModel>
+    _max?: NestedEnumOrderCompletionStatusFilter<$PrismaModel>
   }
 
   export type FactoryFloorImageCountOrderByAggregateInput = {
@@ -86041,6 +86143,10 @@ export namespace Prisma {
     set?: $Enums.OrderStatus | null
   }
 
+  export type EnumOrderCompletionStatusFieldUpdateOperationsInput = {
+    set?: $Enums.OrderCompletionStatus
+  }
+
   export type FactoryFloorUpdateOneRequiredWithoutOrdersNestedInput = {
     create?: XOR<FactoryFloorCreateWithoutOrdersInput, FactoryFloorUncheckedCreateWithoutOrdersInput>
     connectOrCreate?: FactoryFloorCreateOrConnectWithoutOrdersInput
@@ -87162,6 +87268,13 @@ export namespace Prisma {
     not?: NestedEnumOrderStatusNullableFilter<$PrismaModel> | $Enums.OrderStatus | null
   }
 
+  export type NestedEnumOrderCompletionStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrderCompletionStatus | EnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrderCompletionStatusFilter<$PrismaModel> | $Enums.OrderCompletionStatus
+  }
+
   export type NestedEnumOrderStatusNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.OrderStatus | EnumOrderStatusFieldRefInput<$PrismaModel> | null
     in?: $Enums.OrderStatus[] | ListEnumOrderStatusFieldRefInput<$PrismaModel> | null
@@ -87170,6 +87283,16 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedEnumOrderStatusNullableFilter<$PrismaModel>
     _max?: NestedEnumOrderStatusNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumOrderCompletionStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.OrderCompletionStatus | EnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.OrderCompletionStatus[] | ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumOrderCompletionStatusWithAggregatesFilter<$PrismaModel> | $Enums.OrderCompletionStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumOrderCompletionStatusFilter<$PrismaModel>
+    _max?: NestedEnumOrderCompletionStatusFilter<$PrismaModel>
   }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -92167,6 +92290,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -92187,6 +92312,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -92405,6 +92532,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92425,6 +92554,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -92911,6 +93042,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -92931,6 +93064,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -93045,6 +93180,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -93065,6 +93202,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -95213,6 +95352,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -95233,6 +95374,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -95393,6 +95536,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -95413,6 +95558,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -98171,6 +98318,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -98191,6 +98340,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -98551,6 +98702,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -98571,6 +98724,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -98927,6 +99082,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -98947,6 +99104,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -99307,6 +99466,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -99327,6 +99488,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -103729,6 +103892,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -103748,6 +103913,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -104559,6 +104726,8 @@ export namespace Prisma {
     factoryFloorId?: StringFilter<"FactoryFloorOrder"> | string
     workCompanyId?: StringFilter<"FactoryFloorOrder"> | string
     status?: EnumOrderStatusNullableFilter<"FactoryFloorOrder"> | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFilter<"FactoryFloorOrder"> | $Enums.OrderCompletionStatus
+    completedDay?: DateTimeNullableFilter<"FactoryFloorOrder"> | Date | string | null
     actualAmount?: BigIntNullableFilter<"FactoryFloorOrder"> | bigint | number | null
     inspectionData?: JsonNullableFilter<"FactoryFloorOrder">
     answersTimeExpired?: DateTimeNullableFilter<"FactoryFloorOrder"> | Date | string | null
@@ -106441,6 +106610,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -106461,6 +106632,8 @@ export namespace Prisma {
     factoryFloorId: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -106495,6 +106668,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106515,6 +106690,8 @@ export namespace Prisma {
     factoryFloorId?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -109867,6 +110044,8 @@ export namespace Prisma {
     id?: string
     workCompanyId: string
     status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
     actualAmount?: bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: Date | string | null
@@ -110092,6 +110271,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -110111,6 +110292,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -110130,6 +110313,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workCompanyId?: StringFieldUpdateOperationsInput | string
     status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     inspectionData?: NullableJsonNullValueInput | InputJsonValue
     answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

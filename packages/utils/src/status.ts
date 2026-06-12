@@ -166,3 +166,16 @@ export const compensationTypeLabels: Record<string, string> = {
   LUMP_SUM: "一式",
   NEGOTIABLE: "応相談",
 };
+
+// 工事完了(締め)の状態。発注書(order)ごと。
+export const orderCompletionStatusLabels: Record<string, string> = {
+  NONE: "未完了",
+  CLOSE_REQUESTED: "締め依頼中",
+  CLOSED: "完了",
+};
+
+export const orderCompletionStatusColors: Record<string, string> = {
+  NONE: "bg-gray-100 text-gray-600",
+  CLOSE_REQUESTED: "bg-amber-100 text-amber-700",
+  CLOSED: "bg-green-100 text-green-700",
+};

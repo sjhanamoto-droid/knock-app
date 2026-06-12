@@ -65,6 +65,14 @@ enum OrderStatus {
   CONFIRMED
 }
 
+// 工事完了(締め)の状態。発注書(FactoryFloorOrder)ごとに進行する。
+// 施工報告(写真)は任意で、この状態は変えない。
+enum OrderCompletionStatus {
+  NONE
+  CLOSE_REQUESTED
+  CLOSED
+}
+
 enum ChatRoomType {
   NEGOTIATION
   SITE_INFO
