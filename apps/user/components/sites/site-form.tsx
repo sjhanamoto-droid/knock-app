@@ -856,12 +856,12 @@ export default function SiteForm({
           )}
 
           <div>
-            <label className={labelClass}>依頼内容</label>
+            <label className={labelClass}>{isParentSite ? "メモ" : "依頼内容"}</label>
             <textarea
               {...register("contentRequest")}
               rows={3}
               className={inputClass}
-              placeholder="工事内容・依頼内容を入力"
+              placeholder={isParentSite ? "メモを入力" : "工事内容・依頼内容を入力"}
             />
           </div>
 
