@@ -25,7 +25,8 @@ export function getNotificationRoute(type: number, targetId: string | null): str
     case 24: return `/chat/${targetId}`;               // 注文書発行 → 現場ルームへ
     case 25: return `/orders/${targetId}/completion-report`;  // (旧)検収依頼 → 完了報告へ
     case 26: return `/orders/${targetId}/completion-report`;  // (旧)納品承認 → 完了報告へ
-    case 37: return `/orders/${targetId}/completion-report`;  // 工事完了(締め)の確認
+    case 37: return `/work-completion/${targetId}`;  // 工事完了(締め)の確認 → 工事完了画面(現場全体)
+    case 38: return `/work-completion/${targetId}`;  // 工事完了 → 工事完了画面(現場全体)
     // V2: 発注辞退
     case 31: return `/sites/${targetId}`;                  // 発注辞退 → 現場詳細
     // V2: 追加工事

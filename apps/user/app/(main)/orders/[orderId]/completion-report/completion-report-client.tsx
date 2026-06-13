@@ -3,14 +3,9 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
-import {
-  getOrderDetail,
-  submitCompletionReport,
-  requestClose,
-  approveClose,
-} from "@/lib/actions/orders";
+import { getOrderDetail, submitCompletionReport } from "@/lib/actions/orders";
 import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
-import { orderCompletionStatusLabels, orderCompletionStatusColors, formatCurrency } from "@knock/utils";
+import { formatCurrency } from "@knock/utils";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -86,9 +81,6 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
-  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
-  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
-  const [completedDay, setCompletedDay] = useState(new Date().toISOString().split("T")[0]);
   const [successMessage, setSuccessMessage] = useState("");
 
   async function refresh() {
@@ -108,34 +100,6 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
       });
       await refresh();
       setSuccessMessage("施工報告を送信しました");
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "エラーが発生しました");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleRequestClose() {
-    setShowCloseConfirm(false);
-    setSubmitting(true);
-    try {
-      await requestClose(orderId);
-      await refresh();
-      setSuccessMessage("工事完了(締め)を依頼しました");
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "エラーが発生しました");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleApproveClose() {
-    setShowApproveConfirm(false);
-    setSubmitting(true);
-    try {
-      await approveClose(orderId, completedDay);
-      await refresh();
-      setSuccessMessage("工事完了を承認しました");
     } catch (e) {
       toast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -190,14 +154,11 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
 
   const floor = order.factoryFloor;
   const isOrderer = floor.companyId === viewerCompanyId;
-  const completionStatus = order.completionStatus;
   const report = order.completionReport;
   const orderSheet = order.documents?.find((d) => d.type === "ORDER_SHEET");
 
-  // 締め依頼/承認可能かは completionStatus で判定
-  const canRequestClose = completionStatus === "NONE";
   // 施工報告は締め完了(CLOSED)前まで提出/再提出可能
-  const canEditReport = completionStatus !== "CLOSED";
+  const canEditReport = order.completionStatus !== "CLOSED";
 
   return (
     <div className="flex flex-col">
@@ -218,9 +179,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
             </svg>
           </button>
           <div className="flex flex-col items-center gap-0.5">
-            <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
-              {isOrderer ? "工事完了の確認" : "施工報告・工事完了"}
-            </h1>
+            <h1 className="text-[17px] font-bold tracking-wide text-knock-text">施工報告</h1>
             <WavyUnderline color={accentColor} />
           </div>
           <div className="w-10" />
@@ -228,17 +187,12 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
       </header>
 
       <div className="flex flex-col gap-4 bg-[#F5F5F5] px-4 pt-3 pb-8">
-        <div className="flex items-center justify-between">
-          <p className="text-[13px] text-knock-text-secondary">
-            {floor.name ?? ""} / {(isOrderer ? floor.workCompany?.name : floor.company?.name) ?? ""}
-          </p>
-          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${orderCompletionStatusColors[completionStatus] ?? "bg-gray-100 text-gray-600"}`}>
-            {orderCompletionStatusLabels[completionStatus] ?? completionStatus}
-          </span>
-        </div>
+        <p className="text-[13px] text-knock-text-secondary">
+          {floor.name ?? ""} / {(isOrderer ? floor.workCompany?.name : floor.company?.name) ?? ""}
+        </p>
 
         {isOrderer ? (
-          /* ===== 発注者: 施工報告の確認 + 工事完了承認 ===== */
+          /* ===== 発注者: 施工報告の確認（閲覧のみ） ===== */
           <>
             {/* 発注金額（注文書） */}
             {orderSheet && (
@@ -291,46 +245,9 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                 <p className="text-[13px] text-knock-text-secondary">施工報告はまだありません。</p>
               </div>
             )}
-
-            {/* アクション: 工事完了承認 */}
-            {completionStatus === "CLOSE_REQUESTED" ? (
-              <div className={cardClass}>
-                <label className="mb-1 block text-[13px] font-bold text-knock-text">工事完了日</label>
-                <input
-                  type="date"
-                  value={completedDay}
-                  onChange={(e) => setCompletedDay(e.target.value)}
-                  className="mb-4 w-full rounded-xl border-none bg-[#F0F0F0] px-4 py-3 text-[14px]"
-                />
-                <button
-                  onClick={() => setShowApproveConfirm(true)}
-                  disabled={submitting}
-                  className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-                  style={{ backgroundColor: accentColor }}
-                >
-                  {submitting ? "処理中..." : "工事完了を承認"}
-                </button>
-              </div>
-            ) : completionStatus === "CLOSED" ? (
-              <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-                <p className="text-[15px] font-bold text-knock-text">完了</p>
-                {order.completedDay && (
-                  <p className="mt-1.5 text-[13px] text-knock-text-secondary">
-                    工事完了日: {new Date(order.completedDay).toLocaleDateString("ja-JP")}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-                <p className="text-[15px] font-bold text-knock-text">受注者の締め依頼待ち</p>
-                <p className="mt-1.5 text-[13px] text-knock-text-secondary">
-                  受注者が工事完了(締め)を依頼すると、ここで承認できます。
-                </p>
-              </div>
-            )}
           </>
         ) : (
-          /* ===== 受注者: 施工報告（任意） + 工事を締める ===== */
+          /* ===== 受注者: 施工報告（任意） ===== */
           <>
             {canEditReport ? (
               <>
@@ -409,25 +326,6 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                   {submitting ? "送信中..." : report ? "施工報告を更新" : "施工報告を送信"}
                 </button>
               </>
-            ) : null}
-
-            {/* アクション: 工事を締める */}
-            {canRequestClose ? (
-              <button
-                onClick={() => setShowCloseConfirm(true)}
-                disabled={submitting}
-                className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
-                style={{ backgroundColor: accentColor }}
-              >
-                工事を締める
-              </button>
-            ) : completionStatus === "CLOSE_REQUESTED" ? (
-              <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-                <p className="text-[15px] font-bold text-knock-text">発注者の確認待ち</p>
-                <p className="mt-1.5 text-[13px] text-knock-text-secondary">
-                  発注者が工事完了を承認すると締め処理が完了します。
-                </p>
-              </div>
             ) : (
               <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
                 <p className="text-[15px] font-bold text-knock-text">完了</p>
@@ -450,26 +348,6 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
         message="施工報告を送信しますか？"
         confirmLabel={submitting ? "送信中..." : "はい"}
         cancelLabel="いいえ"
-        variant="primary"
-      />
-      <ConfirmDialog
-        open={showCloseConfirm}
-        onClose={() => setShowCloseConfirm(false)}
-        onConfirm={handleRequestClose}
-        title="工事完了(締め)の依頼"
-        message="工事を締めますか？発注者に工事完了の確認を依頼します。"
-        confirmLabel={submitting ? "処理中..." : "締める"}
-        cancelLabel="キャンセル"
-        variant="primary"
-      />
-      <ConfirmDialog
-        open={showApproveConfirm}
-        onClose={() => setShowApproveConfirm(false)}
-        onConfirm={handleApproveClose}
-        title="工事完了の承認"
-        message="工事完了を承認しますか？"
-        confirmLabel={submitting ? "処理中..." : "承認する"}
-        cancelLabel="キャンセル"
         variant="primary"
       />
       <AlertDialog

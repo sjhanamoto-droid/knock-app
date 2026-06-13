@@ -275,20 +275,29 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
           </Link>
         )}
 
-        {/* アクション: 受注者 - 施工報告・工事完了 */}
+        {/* アクション: 受注者 - 施工報告 / 工事完了 */}
         {!isOrderer && order.status === "CONFIRMED" && order.completionStatus !== "CLOSED" && (
-          <Link
-            href={`/orders/${order.id}/completion-report`}
-            className="rounded-xl bg-green-500 py-3.5 text-center text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
-          >
-            施工報告・工事完了
-          </Link>
+          <>
+            <Link
+              href={`/orders/${order.id}/completion-report`}
+              className="rounded-xl bg-green-500 py-3.5 text-center text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
+            >
+              施工報告
+            </Link>
+            <Link
+              href={`/work-completion/${order.factoryFloor.id}`}
+              className="rounded-xl border-2 py-3.5 text-center text-[14px] font-bold transition-all active:scale-[0.98]"
+              style={{ borderColor: accentColor, color: accentColor }}
+            >
+              工事完了
+            </Link>
+          </>
         )}
 
         {/* アクション: 発注者 - 工事完了の確認（締め依頼中） */}
         {isOrderer && order.status === "CONFIRMED" && order.completionStatus === "CLOSE_REQUESTED" && (
           <Link
-            href={`/orders/${order.id}/completion-report`}
+            href={`/work-completion/${order.factoryFloor.id}`}
             className="rounded-xl bg-blue-500 py-3.5 text-center text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
           >
             工事完了の確認
