@@ -983,6 +983,71 @@ export async function approveCloseFloor(factoryFloorId: string, completedDay: st
   });
 }
 
+// ============ V2: 工事完了(締め)の差し戻し（発注者・現場全体） ============
+
+export async function rejectCloseFloor(factoryFloorId: string) {
+  const user = await requireSession();
+
+  const floor = await prisma.factoryFloor.findFirst({
+    where: { id: factoryFloorId, deletedAt: null, companyId: user.companyId },
+    select: {
+      id: true,
+      name: true,
+      workCompanyId: true,
+      orders: {
+        where: { deletedAt: null, status: "CONFIRMED" },
+        select: { id: true, completionStatus: true },
+      },
+    },
+  });
+  if (!floor) throw new Error("現場が見つかりません");
+
+  const toRevert = floor.orders.filter((o) => o.completionStatus === "CLOSE_REQUESTED");
+  if (toRevert.length === 0) throw new Error("差し戻しできる状態ではありません");
+
+  return prisma.$transaction(async (tx) => {
+    await tx.notification.updateMany({
+      where: { userId: user.id, targetId: floor.id, seenFlag: false },
+      data: { seenFlag: true },
+    });
+
+    // 締め依頼中の発注書を未締め(NONE)に戻す
+    await tx.factoryFloorOrder.updateMany({
+      where: { id: { in: toRevert.map((o) => o.id) } },
+      data: { completionStatus: "NONE" },
+    });
+
+    // 受注者に差し戻し通知
+    const workCompanyId = floor.workCompanyId;
+    if (workCompanyId) {
+      const contractorUsers = await tx.user.findMany({
+        where: { companyId: workCompanyId, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (contractorUsers.length > 0) {
+        await tx.notification.createMany({
+          data: contractorUsers.map((u) => ({
+            userId: u.id,
+            title: "工事完了の差し戻し",
+            content: `${floor.name}の工事完了が差し戻されました。内容を確認してください。`,
+            type: 37,
+            factoryFloorId: floor.id,
+            targetId: floor.id,
+          })),
+        });
+        void sendPushToUsers({
+          userIds: contractorUsers.map((u) => u.id),
+          title: "工事完了の差し戻し",
+          body: `${floor.name}の工事完了が差し戻されました。`,
+          url: `/work-completion/${floor.id}`,
+        });
+      }
+    }
+
+    return { factoryFloorId: floor.id };
+  });
+}
+
 // ============ V2: 検収・金額調整（発注者） ============
 
 export async function submitInspection(data: {

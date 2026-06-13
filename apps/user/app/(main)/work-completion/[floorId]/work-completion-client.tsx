@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
-import { getWorkCompletion, requestCloseFloor, approveCloseFloor } from "@/lib/actions/orders";
+import { getWorkCompletion, requestCloseFloor, approveCloseFloor, rejectCloseFloor } from "@/lib/actions/orders";
 import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
 import { orderCompletionStatusLabels, orderCompletionStatusColors } from "@knock/utils";
 
@@ -38,6 +38,7 @@ export function WorkCompletionClient({ data, floorId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [completedDay, setCompletedDay] = useState(new Date().toISOString().split("T")[0]);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -75,6 +76,19 @@ export function WorkCompletionClient({ data, floorId }: Props) {
     try {
       await approveCloseFloor(floorId, completedDay);
       setSuccessMessage("工事完了を承認しました");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRejectClose() {
+    setShowRejectConfirm(false);
+    setSubmitting(true);
+    try {
+      await rejectCloseFloor(floorId);
+      setSuccessMessage("工事完了を差し戻しました");
     } catch (e) {
       toast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -203,6 +217,14 @@ export function WorkCompletionClient({ data, floorId }: Props) {
                 >
                   {submitting ? "処理中..." : "工事完了を承認"}
                 </button>
+                <button
+                  onClick={() => setShowRejectConfirm(true)}
+                  disabled={submitting}
+                  className="mt-3 w-full rounded-xl border-2 py-3.5 text-[15px] font-bold transition-all active:scale-[0.97] disabled:opacity-50"
+                  style={{ borderColor: accentColor, color: accentColor }}
+                >
+                  差し戻す
+                </button>
               </div>
             ) : (
               <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
@@ -267,6 +289,16 @@ export function WorkCompletionClient({ data, floorId }: Props) {
         confirmLabel={submitting ? "処理中..." : "承認する"}
         cancelLabel="キャンセル"
         variant="primary"
+      />
+      <ConfirmDialog
+        open={showRejectConfirm}
+        onClose={() => setShowRejectConfirm(false)}
+        onConfirm={handleRejectClose}
+        title="工事完了の差し戻し"
+        message="工事完了を差し戻しますか？受注者に差し戻されます。"
+        confirmLabel={submitting ? "処理中..." : "差し戻す"}
+        cancelLabel="キャンセル"
+        variant="danger"
       />
       <AlertDialog
         open={!!successMessage}
