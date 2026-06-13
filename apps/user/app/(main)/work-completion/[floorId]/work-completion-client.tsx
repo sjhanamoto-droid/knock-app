@@ -138,11 +138,21 @@ export function WorkCompletionClient({ data, floorId }: Props) {
                       </p>
                     )}
                   </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${orderCompletionStatusColors[order.completionStatus] ?? "bg-gray-100 text-gray-600"}`}
-                  >
-                    {orderCompletionStatusLabels[order.completionStatus] ?? order.completionStatus}
-                  </span>
+                  {(() => {
+                    // 未締め(NONE)でも施工報告済みなら「施工報告済み」を表示する
+                    const reported = order.completionStatus === "NONE" && order.hasReport;
+                    const label = reported
+                      ? "施工報告済み"
+                      : orderCompletionStatusLabels[order.completionStatus] ?? order.completionStatus;
+                    const color = reported
+                      ? "bg-green-100 text-green-700"
+                      : orderCompletionStatusColors[order.completionStatus] ?? "bg-gray-100 text-gray-600";
+                    return (
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${color}`}>
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
                 <div className="flex items-center justify-between">
                   <span
