@@ -182,7 +182,8 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
                   (sum, d) => sum + Math.ceil(d.quantity * Number(d.priceUnit)),
                   0
                 );
-                const detailsTax = Math.floor(detailsSubtotal * 0.1);
+                // 注文書生成(document-generator)と丸めを揃える（切り上げ）
+                const detailsTax = Math.ceil(detailsSubtotal * 0.1);
                 return (
                   <div className="mt-1 flex flex-col gap-0.5 border-t border-gray-200 pt-2">
                     <div className="flex items-center justify-between">
@@ -304,10 +305,13 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
           </Link>
         )}
 
-        {/* アクション: 相互評価（納品完了後・発注者/受注者の両方） */}
-        {["DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(
-          order.factoryFloor.status ?? ""
-        ) &&
+        {/* アクション: 相互評価（取引完了後・発注者/受注者の両方）
+            新フローでは締め完了で order.completionStatus が CLOSED になる。
+            旧フローのステータスも後方互換で許容する。 */}
+        {(order.completionStatus === "CLOSED" ||
+          ["DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(
+            order.factoryFloor.status ?? ""
+          )) &&
           (() => {
             const hasEvaluated =
               order.evaluations?.some(

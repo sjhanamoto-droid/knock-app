@@ -951,7 +951,14 @@ export async function getProjectSummary(parentId: string) {
       totalAmount: true,
       orders: {
         where: { deletedAt: null },
-        select: { actualAmount: true, status: true },
+        select: {
+          status: true,
+          completionStatus: true,
+          documents: {
+            where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+            select: { totalAmount: true },
+          },
+        },
       },
     },
   });
@@ -971,13 +978,13 @@ export async function getProjectSummary(parentId: string) {
   const plannedTotal = Math.floor(allSubtotal * 1.1);
   const orderedTotal = Math.floor(orderedSubtotal * 1.1);
 
-  // 実績合計（完了済みオーダーの actualAmount 合計 × 1.1 = 税込）
-  const actualSubtotal = children.reduce((sum, c) => {
+  // 実績合計 = 締切済み(CLOSED)発注の注文書(ORDER_SHEET)実額（税込）の合計。請求と同じ基準。
+  const actualTotal = children.reduce((sum, c) => {
     return sum + c.orders.reduce((oSum, o) => {
-      return oSum + (o.actualAmount ? Number(o.actualAmount) : 0);
+      if (o.completionStatus !== "CLOSED") return oSum;
+      return oSum + o.documents.reduce((dSum, d) => dSum + Number(d.totalAmount ?? 0), 0);
     }, 0);
   }, 0);
-  const actualTotal = Math.floor(actualSubtotal * 1.1);
 
   const budget = parent.budget ? Number(parent.budget) : 0;
 

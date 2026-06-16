@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session";
 import { requireKyc } from "@/lib/actions/verification";
 import { generateOrderSheet, generateDeliveryNote } from "@/lib/services/document-generator";
 import { sendPushToUsers } from "@/lib/push";
+import { recalculateTrustScore } from "@/lib/services/trust-score";
 
 export async function getOrders(status?: string) {
   const user = await requireSession();
@@ -457,6 +458,16 @@ export async function confirmOrder(orderId: string): Promise<{ success: boolean;
     return { success: false, error: `受注者が了承していない発注は確定できません（現在のステータス: ${order.status}）` };
   }
 
+  // 二重送信対策: APPROVED のものだけを CONFIRMED に原子的に遷移し、確定処理を1リクエストに限定する。
+  // これにより二重クリック/同時実行で注文書(ORDER_SHEET)が重複生成されるのを防ぐ。
+  const claim = await prisma.factoryFloorOrder.updateMany({
+    where: { id: orderId, status: "APPROVED", deletedAt: null },
+    data: { status: "CONFIRMED" },
+  });
+  if (claim.count !== 1) {
+    return { success: false, error: "この発注は既に確定済みです" };
+  }
+
   // 注文書を先に生成（トランザクション外で実行しコネクションプール枯渇を防ぐ）
   const documentId = await generateOrderSheet(orderId);
 
@@ -467,11 +478,7 @@ export async function confirmOrder(orderId: string): Promise<{ success: boolean;
       data: { seenFlag: true },
     });
 
-    // 1. 発注ステータスを確定に更新
-    await tx.factoryFloorOrder.update({
-      where: { id: orderId },
-      data: { status: "CONFIRMED" },
-    });
+    // 1. 発注ステータスは上の原子的クレームで CONFIRMED 済み。
 
     // 2. 現場ステータスを施工中に更新（注文書発行 = 施工開始）
     await tx.factoryFloor.update({
@@ -913,7 +920,7 @@ export async function approveCloseFloor(factoryFloorId: string, completedDay: st
 
   const completed = new Date(completedDay + "T00:00:00");
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await tx.notification.updateMany({
       where: { userId: user.id, targetId: floor.id, seenFlag: false },
       data: { seenFlag: true },
@@ -987,6 +994,15 @@ export async function approveCloseFloor(factoryFloorId: string, completedDay: st
 
     return { factoryFloorId: floor.id };
   });
+
+  // 取引完了で双方の信用スコア（取引回数・金額・納期遵守・リピート率）を再計算する。
+  // コミット後に実行（tx 内だと未コミットの締め状態が集計に反映されない）。
+  await recalculateTrustScore(user.companyId);
+  if (floor.workCompanyId) {
+    await recalculateTrustScore(floor.workCompanyId);
+  }
+
+  return result;
 }
 
 // ============ V2: 工事完了(締め)の差し戻し（発注者・現場全体） ============
@@ -1681,6 +1697,15 @@ export async function confirmAdditionalOrder(orderId: string): Promise<{ success
     if (!order) return { success: false, error: "発注が見つかりません" };
     if (order.status !== "APPROVED") return { success: false, error: "受注者が承諾していない追加工事は確定できません" };
 
+    // 二重送信対策: APPROVED のものだけを原子的に CONFIRMED へ。重複した追加注文書の生成を防ぐ。
+    const claim = await prisma.factoryFloorOrder.updateMany({
+      where: { id: orderId, status: "APPROVED", deletedAt: null },
+      data: { status: "CONFIRMED" },
+    });
+    if (claim.count !== 1) {
+      return { success: false, error: "この追加工事は既に確定済みです" };
+    }
+
     // 注文書を生成（トランザクション外）
     const documentId = await generateOrderSheet(orderId);
 
@@ -1690,10 +1715,7 @@ export async function confirmAdditionalOrder(orderId: string): Promise<{ success
         data: { seenFlag: true },
       });
 
-      await tx.factoryFloorOrder.update({
-        where: { id: orderId },
-        data: { status: "CONFIRMED" },
-      });
+      // 発注ステータスは上の原子的クレームで CONFIRMED 済み。
 
       // SITE_INFO ルームにメッセージ
       const siteRoom = await tx.chatRoom.findFirst({

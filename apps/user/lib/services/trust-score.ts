@@ -49,10 +49,14 @@ export async function recalculateTrustScore(companyId: string): Promise<void> {
       },
     },
     select: {
-      actualAmount: true,
+      completionStatus: true,
+      // 取引金額は請求と同じ基準（締切済み発注の注文書 ORDER_SHEET 実額）で集計する。
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        select: { totalAmount: true },
+      },
       factoryFloor: {
         select: {
-          totalAmount: true,
           companyId: true,
           workCompanyId: true,
           endDayRequest: true,
@@ -67,7 +71,10 @@ export async function recalculateTrustScore(companyId: string): Promise<void> {
   let onTimeCount = 0;
 
   for (const order of completedOrders) {
-    totalAmount += order.actualAmount ?? order.factoryFloor.totalAmount ?? BigInt(0);
+    // 締切済み発注の注文書(ORDER_SHEET)実額を合算（請求金額と同じ基準）。
+    for (const sheet of order.documents) {
+      totalAmount += sheet.totalAmount ?? BigInt(0);
+    }
 
     // 納期遵守チェック
     if (order.factoryFloor.endDayRequest && order.factoryFloor.finishDay) {

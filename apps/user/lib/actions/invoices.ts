@@ -341,13 +341,8 @@ export async function recalculateInvoice(documentId: string) {
   if (!doc) throw new Error("請求書が見つかりません");
   if (!doc.yearMonth) throw new Error("対象月が不明です");
 
-  // 古い請求書を無効化
-  await prisma.document.update({
-    where: { id: documentId },
-    data: { status: "VOID", deletedAt: new Date() },
-  });
-
-  // 再生成
+  // 先に新しい請求書を生成する。請求対象が無い等で generateInvoice が失敗した場合でも
+  // 既存のドラフトを失わないよう、「生成成功後に」旧請求書を無効化する。
   const newDocId = await generateInvoice(doc.workerCompanyId, doc.orderCompanyId, doc.yearMonth);
 
   // ドラフト状態 + 支払期日を引き継ぎ
@@ -357,6 +352,12 @@ export async function recalculateInvoice(documentId: string) {
       status: "DRAFT",
       dueDate: doc.dueDate,
     },
+  });
+
+  // 生成成功後に旧請求書を無効化
+  await prisma.document.update({
+    where: { id: documentId },
+    data: { status: "VOID", deletedAt: new Date() },
   });
 
   return newDocId;
@@ -555,10 +556,12 @@ export async function markInvoicePaid(documentId: string) {
   }
 
   if (floorIds.length > 0) {
+    // 新フローでは締め完了で現場は COMPLETED になる。支払い完了で取引終端(DEAL_COMPLETED)へ。
+    // （旧フローの DELIVERY_APPROVED/INVOICED も後方互換で許容）
     await prisma.factoryFloor.updateMany({
       where: {
         id: { in: floorIds },
-        status: { in: ["DELIVERY_APPROVED", "INVOICED"] },
+        status: { in: ["DELIVERY_APPROVED", "INVOICED", "COMPLETED"] },
       },
       data: { status: "DEAL_COMPLETED" },
     });
@@ -754,9 +757,11 @@ export async function createManualInvoice(
     date.getFullYear(),
     date.getMonth() + 1
   );
-  if (dueDate) {
-    await prisma.document.update({ where: { id: docId }, data: { dueDate } });
-  }
+  // 自動生成のドラフト請求書と挙動を揃える: DRAFT にして確定(confirmInvoice)・再計算を可能にする。
+  await prisma.document.update({
+    where: { id: docId },
+    data: { status: "DRAFT", ...(dueDate ? { dueDate } : {}) },
+  });
 
   return { id: docId };
 }

@@ -91,43 +91,43 @@ export async function getMonthlySummary() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-  // 当月に完了した取引
-  const completedOrders = await prisma.factoryFloorOrder.findMany({
+  // 当月に締切(CLOSED)された発注を集計する。
+  // 請求と同じ基準: 完了日(completedDay) と 注文書(ORDER_SHEET)の実額を用いる。
+  const closedOrders = await prisma.factoryFloorOrder.findMany({
     where: {
       deletedAt: null,
+      status: "CONFIRMED",
+      completionStatus: "CLOSED",
+      completedDay: { gte: startOfMonth, lte: endOfMonth },
       factoryFloor: {
         deletedAt: null,
         OR: [
           { companyId: user.companyId },
           { workCompanyId: user.companyId },
         ],
-        status: { in: ["DEAL_COMPLETED", "COMPLETED", "INVOICED", "DELIVERY_APPROVED"] },
-        updatedAt: { gte: startOfMonth, lte: endOfMonth },
       },
     },
     select: {
-      actualAmount: true,
-      factoryFloor: {
-        select: {
-          totalAmount: true,
-          companyId: true,
-        },
+      factoryFloor: { select: { companyId: true } },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        select: { totalAmount: true },
       },
     },
   });
 
-  const totalCount = completedOrders.length;
+  const totalCount = closedOrders.length;
   let totalAmount = BigInt(0);
-
-  for (const order of completedOrders) {
-    const amount = order.actualAmount ?? order.factoryFloor.totalAmount ?? BigInt(0);
-    totalAmount += amount;
+  for (const order of closedOrders) {
+    for (const sheet of order.documents) {
+      totalAmount += sheet.totalAmount ?? BigInt(0);
+    }
   }
 
   return {
     count: totalCount,
     amount: Number(totalAmount),
-    isOrderer: completedOrders.some((o) => o.factoryFloor.companyId === user.companyId),
+    isOrderer: closedOrders.some((o) => o.factoryFloor.companyId === user.companyId),
   };
 }
 
