@@ -12,6 +12,10 @@ export async function getActiveTransactions() {
   const orders = await prisma.factoryFloorOrder.findMany({
     where: {
       deletedAt: null,
+      // 発注がキャンセル/却下された取引はホームに残さない
+      status: {
+        notIn: ["CANCELLED", "REJECTED"],
+      },
       factoryFloor: {
         deletedAt: null,
         status: {

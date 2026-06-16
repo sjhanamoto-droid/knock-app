@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { SideMenu } from "@/components/side-menu";
 import { useMode } from "@/lib/hooks/use-mode";
 import { ActiveTransactions } from "@/components/home/active-transactions";
 import { MonthlySummary } from "@/components/home/monthly-summary";
-import type { getActiveTransactions, getMonthlySummary, getHomeBadgeCounts } from "@/lib/actions/home";
+import { getHomeBadgeCounts } from "@/lib/actions/home";
+import type { getActiveTransactions, getMonthlySummary } from "@/lib/actions/home";
 
 /* ──────────── Icons ──────────── */
 
@@ -148,7 +149,31 @@ export function HomeClient({ transactions, summary, badgeCounts, kycStep }: Home
   });
   const { accentColor, isOrderer } = useMode();
 
-  const totalBadge = badgeCounts.notifications;
+  // 通知バッジはサーバープロップで初期化し、定期＋フォーカス時に再取得して即時反映
+  const [totalBadge, setTotalBadge] = useState(badgeCounts.notifications);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      if (document.hidden) return;
+      getHomeBadgeCounts()
+        .then((b) => {
+          if (!cancelled) setTotalBadge(b.notifications);
+        })
+        .catch(() => {});
+    };
+
+    const interval = setInterval(refresh, 45_000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, []);
 
   // Filter transactions for selected date
   const selectedDateStr = `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;

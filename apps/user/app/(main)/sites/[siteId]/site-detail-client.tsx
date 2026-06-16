@@ -159,6 +159,9 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
   // 親現場かどうか（parentId がなく発注者の場合）
   const isParentSite = !site.parentId && isOrderer;
 
+  // 受注者向け: 自社宛の未回答(PENDING)発注（「発注依頼に回答」ボタン用）
+  const pendingOrderId = !isOrderer ? site.pendingOrders?.[0]?.id ?? null : null;
+
   // Site type label: child sites show parent name, otherwise プロジェクト/発注現場/受注現場
   const siteTypeLabel = isParentSite
     ? "プロジェクト"
@@ -480,6 +483,16 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
       {activeTab === "detail" && (
         <div className={`flex flex-col gap-3 px-4 pt-3 ${site.status === "NOT_ORDERED" && isOrderer && !isParentSite ? "pb-40" : "pb-8"}`}>
 
+          {/* 発注依頼に回答（受注者・自社宛のPENDING発注がある場合） */}
+          {!isParentSite && pendingOrderId && (
+            <Link
+              href={`/orders/${pendingOrderId}/accept`}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 py-4 text-[15px] font-bold text-white shadow-lg transition-all active:scale-[0.98]"
+            >
+              発注依頼に回答
+            </Link>
+          )}
+
           {/* 予算管理カード（親現場のみ） */}
           {isParentSite && projectSummary && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
@@ -619,7 +632,7 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                 <>
                   <div className={dividerClass} />
                   <div>
-                    <p className={labelClass}>依頼内容</p>
+                    <p className={labelClass}>{isParentSite ? "メモ" : "依頼内容"}</p>
                     <p className={`${valueClass} mt-0.5 whitespace-pre-wrap`}>
                       {site.contentRequest}
                     </p>

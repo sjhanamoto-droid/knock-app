@@ -251,14 +251,25 @@ export async function getSite(id: string) {
 
   if (!site) return null;
 
+  // 受注者向け: 自社宛の未回答(PENDING)発注を抽出（「発注依頼に回答」ボタン用）
+  const pendingOrders = await prisma.factoryFloorOrder.findMany({
+    where: {
+      factoryFloorId: id,
+      workCompanyId: user.companyId,
+      status: "PENDING",
+      deletedAt: null,
+    },
+    select: { id: true, status: true },
+  });
+
   // 親現場の場合、子工事のステータスから実効ステータスを算出
   if (!site.parentId && site.children && site.children.length > 0) {
     const childStatuses = site.children.map((c) => c.status);
     const effectiveStatus = computeEffectiveStatus(site.status, childStatuses);
-    return serializeBigInt({ ...site, status: effectiveStatus });
+    return serializeBigInt({ ...site, status: effectiveStatus, pendingOrders });
   }
 
-  return serializeBigInt(site);
+  return serializeBigInt({ ...site, pendingOrders });
 }
 
 // ============ 新規作成 ============

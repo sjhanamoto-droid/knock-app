@@ -223,6 +223,9 @@ export async function cancelOrder(id: string) {
     throw new Error("この発注は既にキャンセルできない状態です");
   }
 
+  // 追加工事(別発注書)のキャンセルは、現場や他の発注に影響させない
+  const isAdditional = (order.inspectionData as { type?: string } | null)?.type === "ADDITIONAL_ORDER";
+
   return prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
     await tx.notification.updateMany({
@@ -237,13 +240,16 @@ export async function cancelOrder(id: string) {
     });
 
     // 2. 現場ステータスを「未発注」に戻し、施工会社をクリア
-    await tx.factoryFloor.update({
-      where: { id: order.factoryFloor.id },
-      data: {
-        status: "NOT_ORDERED",
-        workCompanyId: null,
-      },
-    });
+    //    （本注文のキャンセルのみ。追加工事のキャンセルでは現場・他の発注を維持）
+    if (!isAdditional) {
+      await tx.factoryFloor.update({
+        where: { id: order.factoryFloor.id },
+        data: {
+          status: "NOT_ORDERED",
+          workCompanyId: null,
+        },
+      });
+    }
 
     // 3. 交渉ルーム（NEGOTIATION）にキャンセル通知
     if (order.factoryFloor.workCompanyId) {

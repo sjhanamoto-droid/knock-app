@@ -97,10 +97,24 @@ function SiteCard({
       ? `${formatDateShort(tx.startDayRequest)}${tx.startDayRequest && tx.endDayRequest ? " 〜 " : ""}${formatDateShort(tx.endDayRequest)}`
       : null;
 
+  // メインCTA（カード下部）の決定
+  let cta: { href: string; label: string } | null = null;
+  if (!isOrderer && tx.orderStatus === "PENDING") {
+    // 受注者: 発注依頼への回答待ち
+    cta = { href: `/orders/${tx.id}/accept`, label: "発注依頼に回答" };
+  } else if (!isOrderer && tx.siteStatus === "IN_PROGRESS") {
+    // 受注者: 施工中 → 工事完了
+    cta = { href: `/work-completion/${tx.siteId}`, label: "工事完了" };
+  } else if (isOrderer && tx.orderStatus === "APPROVED") {
+    // 発注者: 受注者が回答済み → 発注を確定
+    cta = { href: `/orders/${tx.id}/confirm`, label: "発注を確定する" };
+  }
+
   return (
-    <div className="flex items-stretch gap-0 overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+    <div className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+      <div className="flex items-stretch gap-0">
       {/* Left border accent */}
-      <div className="w-1 shrink-0 rounded-l-2xl" style={{ backgroundColor: accentColor }} />
+      <div className="w-1 shrink-0" style={{ backgroundColor: accentColor }} />
 
       {/* Card body */}
       <div className="flex flex-1 items-center gap-2 px-3 py-3">
@@ -190,6 +204,18 @@ function SiteCard({
           </Link>
         </div>
       </div>
+      </div>
+
+      {/* Primary CTA */}
+      {cta && (
+        <Link
+          href={cta.href}
+          className="mx-3 mb-3 rounded-xl py-2.5 text-center text-[13px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
+          style={{ backgroundColor: accentColor }}
+        >
+          {cta.label}
+        </Link>
+      )}
     </div>
   );
 }

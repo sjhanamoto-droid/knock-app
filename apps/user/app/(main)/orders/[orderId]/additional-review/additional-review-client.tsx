@@ -7,6 +7,7 @@ import {
   acceptAdditionalOrder,
   rejectAdditionalOrder,
   confirmAdditionalOrder,
+  cancelOrder,
 } from "@/lib/actions/orders";
 import { formatCurrency } from "@knock/utils";
 import { ConfirmDialog, useToast } from "@knock/ui";
@@ -54,6 +55,7 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
   const [showAcceptDialog, setShowAcceptDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   async function handleAccept() {
     setSubmitting(true);
@@ -117,6 +119,22 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
       setTimeout(() => router.back(), 1000);
     } catch (e) {
       setShowConfirmDialog(false);
+      const msg = e instanceof Error ? e.message : "エラーが発生しました";
+      toast(msg);
+      alert(msg);
+      setSubmitting(false);
+    }
+  }
+
+  async function handleCancel() {
+    setSubmitting(true);
+    try {
+      await cancelOrder(orderId);
+      setShowCancelDialog(false);
+      toast("追加工事をキャンセルしました");
+      setTimeout(() => router.back(), 1000);
+    } catch (e) {
+      setShowCancelDialog(false);
       const msg = e instanceof Error ? e.message : "エラーが発生しました";
       toast(msg);
       alert(msg);
@@ -306,6 +324,17 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
             注文書を作成する
           </button>
         )}
+
+        {/* 発注者: PENDING/APPROVED → 追加工事をキャンセル(他の工事には影響しない) */}
+        {order.isOrderer && (order.status === "PENDING" || order.status === "APPROVED") && (
+          <button
+            onClick={() => setShowCancelDialog(true)}
+            disabled={submitting}
+            className="w-full rounded-xl border-2 border-gray-300 py-3.5 text-[15px] font-bold text-knock-text-secondary transition-all active:scale-[0.97] disabled:opacity-50"
+          >
+            追加工事をキャンセル
+          </button>
+        )}
       </div>
 
       {/* Dialogs */}
@@ -338,6 +367,16 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
         confirmLabel={submitting ? "処理中..." : "作成する"}
         cancelLabel="キャンセル"
         variant="primary"
+      />
+      <ConfirmDialog
+        open={showCancelDialog}
+        onClose={() => setShowCancelDialog(false)}
+        onConfirm={handleCancel}
+        title="追加工事のキャンセル"
+        message="この追加工事をキャンセルしますか？(本工事や他の追加工事には影響しません)"
+        confirmLabel={submitting ? "処理中..." : "キャンセルする"}
+        cancelLabel="戻る"
+        variant="danger"
       />
     </div>
   );

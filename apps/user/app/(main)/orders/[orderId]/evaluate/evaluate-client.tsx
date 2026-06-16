@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail } from "@/lib/actions/orders";
@@ -34,23 +34,77 @@ function StarRating({
   color: string;
   readonly?: boolean;
 }) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  // ポインタのX座標から星の値(1〜5)を算出
+  function valueFromClientX(clientX: number): number {
+    const el = rowRef.current;
+    if (!el) return value;
+    const rect = el.getBoundingClientRect();
+    const ratio = (clientX - rect.left) / rect.width;
+    const star = Math.ceil(ratio * 5);
+    return Math.min(5, Math.max(1, star));
+  }
+
+  if (readonly) {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span key={star} className="text-[28px]">
+            {star <= value ? (
+              <span style={{ color }}>★</span>
+            ) : (
+              <span className="text-gray-300">☆</span>
+            )}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex gap-1">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          disabled={readonly}
-          onClick={() => onChange?.(star)}
-          className={`text-[28px] transition-all ${readonly ? "cursor-default" : "active:scale-110"}`}
-        >
-          {star <= value ? (
-            <span style={{ color }}>★</span>
-          ) : (
-            <span className="text-gray-300">☆</span>
-          )}
-        </button>
-      ))}
+    <div className="flex flex-col gap-2">
+      <div
+        ref={rowRef}
+        className="flex w-max touch-none gap-1 select-none"
+        onPointerDown={(e) => {
+          draggingRef.current = true;
+          e.currentTarget.setPointerCapture(e.pointerId);
+          onChange?.(valueFromClientX(e.clientX));
+        }}
+        onPointerMove={(e) => {
+          if (!draggingRef.current) return;
+          onChange?.(valueFromClientX(e.clientX));
+        }}
+        onPointerUp={() => {
+          draggingRef.current = false;
+        }}
+        onPointerCancel={() => {
+          draggingRef.current = false;
+        }}
+      >
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span key={star} className="pointer-events-none text-[28px] transition-all">
+            {star <= value ? (
+              <span style={{ color }}>★</span>
+            ) : (
+              <span className="text-gray-300">☆</span>
+            )}
+          </span>
+        ))}
+      </div>
+      <input
+        type="range"
+        min={1}
+        max={5}
+        step={1}
+        value={value}
+        onChange={(e) => onChange?.(Number(e.target.value))}
+        className="w-[180px] accent-current"
+        style={{ accentColor: color }}
+        aria-label="評価スライダー"
+      />
     </div>
   );
 }
@@ -73,9 +127,9 @@ export function EvaluateClient({ initialOrder, orderId, viewerCompanyId }: Props
   const [order, setOrder] = useState<OrderDetail | null>(initialOrder);
   const [submitting, setSubmitting] = useState(false);
 
-  const [technicalSkill, setTechnicalSkill] = useState(0);
-  const [communication, setCommunication] = useState(0);
-  const [reliability, setReliability] = useState(0);
+  const [technicalSkill, setTechnicalSkill] = useState(5);
+  const [communication, setCommunication] = useState(5);
+  const [reliability, setReliability] = useState(5);
   const [comment, setComment] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");

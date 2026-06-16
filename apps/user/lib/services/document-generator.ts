@@ -515,7 +515,7 @@ export async function generateInvoice(
       id: true,
       completedDay: true,
       factoryFloorId: true,
-      factoryFloor: { select: { name: true } },
+      factoryFloor: { select: { name: true, code: true } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: {
@@ -572,6 +572,7 @@ export async function generateInvoice(
         order.factoryFloor.name ??
         ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
         "",
+      siteCode: order.factoryFloor.code ?? "",
       amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
     };
   });
@@ -628,6 +629,7 @@ export async function generateInvoice(
               order.factoryFloor.name ??
               ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
               "",
+            siteCode: order.factoryFloor.code ?? "",
             amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
           };
         }),
@@ -657,7 +659,7 @@ export async function generateInvoiceFromOrders(
       completedDay: true,
       workCompanyId: true,
       factoryFloorId: true,
-      factoryFloor: { select: { companyId: true, name: true } },
+      factoryFloor: { select: { companyId: true, name: true, code: true } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: {
@@ -720,6 +722,7 @@ export async function generateInvoiceFromOrders(
         order.factoryFloor.name ??
         ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
         "",
+      siteCode: order.factoryFloor.code ?? "",
       amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
     };
   });
@@ -775,6 +778,7 @@ export async function generateInvoiceFromOrders(
               order.factoryFloor.name ??
               ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
               "",
+            siteCode: order.factoryFloor.code ?? "",
             amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
           };
         }),

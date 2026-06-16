@@ -650,7 +650,7 @@ export default function SiteForm({
                                       <input
                                         type="number"
                                         step="0.1"
-                                        value={detail.quantity}
+                                        value={detail.quantity || ""}
                                         onChange={(e) => {
                                           const details = [...child.priceDetails];
                                           details[dIdx] = { ...details[dIdx], quantity: Number(e.target.value) || 0 };
@@ -683,7 +683,7 @@ export default function SiteForm({
                                     <div className="relative">
                                       <input
                                         type="number"
-                                        value={detail.priceUnit}
+                                        value={detail.priceUnit || ""}
                                         onChange={(e) => {
                                           const details = [...child.priceDetails];
                                           details[dIdx] = { ...details[dIdx], priceUnit: Number(e.target.value) || 0 };
@@ -994,12 +994,22 @@ export default function SiteForm({
                       <label className="mb-1 block text-[11px] font-medium text-gray-500">
                         数量
                       </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        {...register(`priceDetails.${index}.quantity`)}
-                        className={inputClass}
-                        min="0.1"
+                      <Controller
+                        name={`priceDetails.${index}.quantity`}
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                            className={inputClass}
+                            min="0.1"
+                          />
+                        )}
                       />
                     </div>
                     <div>
@@ -1025,12 +1035,22 @@ export default function SiteForm({
                       単価
                     </label>
                     <div className="relative">
-                      <input
-                        type="number"
-                        {...register(`priceDetails.${index}.priceUnit`)}
-                        className={`${inputClass} pr-8`}
-                        placeholder="0"
-                        min="0"
+                      <Controller
+                        name={`priceDetails.${index}.priceUnit`}
+                        control={control}
+                        render={({ field }) => (
+                          <input
+                            type="number"
+                            value={field.value || ""}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
+                            className={`${inputClass} pr-8`}
+                            placeholder="0"
+                            min="0"
+                          />
+                        )}
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">
                         円

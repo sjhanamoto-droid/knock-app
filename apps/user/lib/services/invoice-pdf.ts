@@ -27,6 +27,7 @@ export interface InvoicePdfData {
     documentNumber: string;
     date: string | Date | null;
     siteName: string;
+    siteCode?: string;
     amount: number;
   }[];
   subtotal: number;
@@ -42,8 +43,8 @@ export interface InvoicePdfData {
   stampImageBase64?: string;
 }
 
-// 5 columns: No. | 日付 | 工事名 | 金額 | 税率
-const COL_W = [13, 25, 72, 35, 20]; // total = 165
+// 6 columns: No. | 日付 | 工事コード | 工事名 | 金額 | 税率
+const COL_W = [12, 22, 24, 52, 35, 20]; // total = 165
 
 // ============ Drawing functions ============
 
@@ -204,6 +205,7 @@ function drawLineItemsTable(doc: jsPDF, data: InvoicePdfData, y: number): number
   const bodyRows = data.lineItems.map((item, i) => [
     String(i + 1),
     dateSlash(item.date),
+    item.siteCode ?? "",
     item.siteName,
     yenFmt(item.amount),
     "10%",
@@ -211,14 +213,14 @@ function drawLineItemsTable(doc: jsPDF, data: InvoicePdfData, y: number): number
 
   // 最低1行は確保（データが0件の場合）
   if (bodyRows.length === 0) {
-    bodyRows.push(["", "", "", "", ""]);
+    bodyRows.push(["", "", "", "", "", ""]);
   }
 
   autoTable(doc, {
     startY: y,
     margin: { left: ML, right: MR },
     tableWidth: CW,
-    head: [["No.", "日付", "工事名", "金額", "税率"]],
+    head: [["No.", "日付", "工事コード", "工事名", "金額", "税率"]],
     body: bodyRows,
     theme: "grid",
     styles: {
@@ -242,9 +244,10 @@ function drawLineItemsTable(doc: jsPDF, data: InvoicePdfData, y: number): number
     columnStyles: {
       0: { cellWidth: COL_W[0], halign: "center" },
       1: { cellWidth: COL_W[1], halign: "center" },
-      2: { cellWidth: COL_W[2] },
-      3: { cellWidth: COL_W[3], halign: "right" },
-      4: { cellWidth: COL_W[4], halign: "center" },
+      2: { cellWidth: COL_W[2], halign: "center" },
+      3: { cellWidth: COL_W[3] },
+      4: { cellWidth: COL_W[4], halign: "right" },
+      5: { cellWidth: COL_W[5], halign: "center" },
     },
   });
 
@@ -259,7 +262,7 @@ function drawLineItemsTable(doc: jsPDF, data: InvoicePdfData, y: number): number
 function drawSummaryRows(doc: jsPDF, data: InvoicePdfData, y: number): number {
   // 金額列と税率列の幅を使う
   // 集計ボックスは表の右端に合わせ、金額が枠線に重ならないよう横幅を広げる
-  const tableRightX = ML + COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3] + COL_W[4];
+  const tableRightX = ML + COL_W[0] + COL_W[1] + COL_W[2] + COL_W[3] + COL_W[4] + COL_W[5];
   const boxW = 70; // 集計ボックス全体の横幅（従来 55 → 70 に拡大）
   const labelW = 32; // ラベル列（小計/消費税/合計）
   const amountW = boxW - labelW; // 金額列（= 38、従来 20）
