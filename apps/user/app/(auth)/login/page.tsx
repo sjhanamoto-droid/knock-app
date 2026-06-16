@@ -10,7 +10,8 @@ const CREDENTIALS_KEY = "knock_saved_credentials";
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
-  const [saveCredentials, setSaveCredentials] = useState(false);
+  // メールアドレスのみ保存する（パスワードは平文保存しない）
+  const [saveEmail, setSaveEmail] = useState(false);
   const {
     register,
     handleSubmit,
@@ -20,15 +21,16 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   });
 
-  // ページ読み込み時に保存済みの認証情報を復元
+  // ページ読み込み時に保存済みのメールアドレスを復元（パスワードは保存しない）
   useEffect(() => {
     try {
       const saved = localStorage.getItem(CREDENTIALS_KEY);
       if (saved) {
-        const { email, password } = JSON.parse(saved);
-        setValue("email", email);
-        setValue("password", password);
-        setSaveCredentials(true);
+        const { email } = JSON.parse(saved);
+        if (email) {
+          setValue("email", email);
+          setSaveEmail(true);
+        }
       }
     } catch {
       // ignore
@@ -37,12 +39,9 @@ export default function LoginPage() {
 
   async function onSubmit(data: LoginInput) {
     setError(null);
-    // ログイン前に認証情報を保存/削除（ログイン成功時はリダイレクトされるため）
-    if (saveCredentials) {
-      localStorage.setItem(
-        CREDENTIALS_KEY,
-        JSON.stringify({ email: data.email, password: data.password })
-      );
+    // ログイン前にメールアドレスを保存/削除（パスワードは平文保存しない）
+    if (saveEmail) {
+      localStorage.setItem(CREDENTIALS_KEY, JSON.stringify({ email: data.email }));
     } else {
       localStorage.removeItem(CREDENTIALS_KEY);
     }
@@ -172,8 +171,8 @@ export default function LoginPage() {
             <input
               id="save-credentials"
               type="checkbox"
-              checked={saveCredentials}
-              onChange={(e) => setSaveCredentials(e.target.checked)}
+              checked={saveEmail}
+              onChange={(e) => setSaveEmail(e.target.checked)}
               className="w-4 h-4 rounded"
               style={{ accentColor: "#F5A623" }}
             />
@@ -182,7 +181,7 @@ export default function LoginPage() {
               className="text-[13px]"
               style={{ color: "#1A2340" }}
             >
-              メールアドレスとパスワードを保存する
+              メールアドレスを保存する
             </label>
           </div>
 

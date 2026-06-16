@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { requireSession } from "@/lib/session";
 
+/** メンバー管理（作成・更新・削除）は代表者・管理者のみ許可。 */
+function assertManagerOrRep(role: string) {
+  if (role !== "REPRESENTATIVE" && role !== "MANAGER") {
+    throw new Error("権限がありません。代表者または管理者のみ実行できます。");
+  }
+}
+
 export async function getMembers() {
   const user = await requireSession();
 
@@ -67,6 +74,11 @@ export async function createMember(data: {
   role?: "REPRESENTATIVE" | "MANAGER" | "OTHER";
 }) {
   const user = await requireSession();
+  assertManagerOrRep(user.role);
+  // 代表者(REPRESENTATIVE)権限の付与は代表者のみ可能。
+  if ((data.role ?? "OTHER") === "REPRESENTATIVE" && user.role !== "REPRESENTATIVE") {
+    throw new Error("代表者権限の付与は代表者のみ可能です");
+  }
 
   const existing = await prisma.user.findUnique({
     where: { email: data.email },
@@ -107,11 +119,21 @@ export async function updateMember(
   }
 ) {
   const user = await requireSession();
+  assertManagerOrRep(user.role);
 
   const member = await prisma.user.findFirst({
     where: { id, companyId: user.companyId, deletedAt: null },
   });
   if (!member) throw new Error("メンバーが見つかりません");
+
+  // 代表者(REPRESENTATIVE)への昇格は代表者のみ可能。
+  if (
+    data.role === "REPRESENTATIVE" &&
+    member.role !== "REPRESENTATIVE" &&
+    user.role !== "REPRESENTATIVE"
+  ) {
+    throw new Error("代表者権限の付与は代表者のみ可能です");
+  }
 
   return prisma.user.update({
     where: { id },
@@ -121,6 +143,7 @@ export async function updateMember(
 
 export async function deleteMember(id: string) {
   const user = await requireSession();
+  assertManagerOrRep(user.role);
 
   const member = await prisma.user.findFirst({
     where: { id, companyId: user.companyId, deletedAt: null },

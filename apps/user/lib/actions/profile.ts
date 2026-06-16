@@ -276,6 +276,16 @@ export async function updateCompany(data: {
 }) {
   const user = await requireSession();
 
+  // 請求サイクル設定（締め日・支払猶予・支払期日）は会社全体の経済設定のため
+  // 代表者・管理者のみ変更可。住所・口座・インボイス等の一般プロフィールは全メンバー可。
+  const editsBillingSettings =
+    data.billingClosingDay !== undefined ||
+    data.billingGraceDays !== undefined ||
+    data.paymentDueType !== undefined;
+  if (editsBillingSettings && user.role !== "REPRESENTATIVE" && user.role !== "MANAGER") {
+    throw new Error("請求設定の変更は代表者または管理者のみ可能です");
+  }
+
   // registrationStep が 1 の場合、会社情報保存で次のステップへ進める
   const company = await prisma.company.findUnique({
     where: { id: user.companyId },

@@ -31,8 +31,22 @@ export async function submitEvaluation(data: {
         deletedAt: null,
       },
     },
+    select: {
+      id: true,
+      factoryFloor: { select: { companyId: true, workCompanyId: true } },
+    },
   });
   if (!order) throw new Error("取引が見つかりません");
+
+  // 評価相手はサーバ側で取引の当事者から再導出する。
+  // クライアント供給の evaluateeCompanyId は信頼しない（任意の会社を評価対象にされるのを防ぐ）。
+  const ordererCompanyId = order.factoryFloor.companyId;
+  const contractorCompanyId = order.factoryFloor.workCompanyId;
+  const evaluateeCompanyId =
+    user.companyId === ordererCompanyId ? contractorCompanyId : ordererCompanyId;
+  if (!evaluateeCompanyId || evaluateeCompanyId === user.companyId) {
+    throw new Error("評価相手が特定できません");
+  }
 
   // 既に評価済みか確認
   const existing = await prisma.evaluation.findFirst({
@@ -48,7 +62,7 @@ export async function submitEvaluation(data: {
       data: {
         factoryFloorOrderId: data.factoryFloorOrderId,
         evaluatorCompanyId: user.companyId,
-        evaluateeCompanyId: data.evaluateeCompanyId,
+        evaluateeCompanyId: evaluateeCompanyId,
         technicalSkill: data.technicalSkill,
         communication: data.communication,
         reliability: data.reliability,
@@ -58,7 +72,7 @@ export async function submitEvaluation(data: {
 
     // 被評価者に通知
     const evaluateeUsers = await tx.user.findMany({
-      where: { companyId: data.evaluateeCompanyId, isActive: true, deletedAt: null },
+      where: { companyId: evaluateeCompanyId, isActive: true, deletedAt: null },
       select: { id: true },
     });
     if (evaluateeUsers.length > 0) {
@@ -85,7 +99,7 @@ export async function submitEvaluation(data: {
   // 信用スコアを再計算する。トランザクションの「コミット後」に実行すること。
   // tx 内で呼ぶと、作成した評価がグローバル prisma のクエリから見えず（未コミット）、
   // 平均が直前の状態で算出されスコアが 0 になる。
-  await recalculateTrustScore(data.evaluateeCompanyId);
+  await recalculateTrustScore(evaluateeCompanyId);
 
   return evaluation;
 }

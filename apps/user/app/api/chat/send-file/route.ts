@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { sendPushToUsers } from "@/lib/push";
+import { validateChatFile } from "@/lib/upload-limits";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,6 +14,11 @@ export async function POST(req: NextRequest) {
 
     if (!file || !roomId) {
       return NextResponse.json({ error: "ファイルとルームIDが必要です" }, { status: 400 });
+    }
+
+    const fileErr = validateChatFile(file);
+    if (fileErr) {
+      return NextResponse.json({ error: fileErr }, { status: 400 });
     }
 
     // メンバー確認
