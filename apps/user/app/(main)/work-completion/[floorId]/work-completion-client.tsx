@@ -41,6 +41,7 @@ export function WorkCompletionClient({ data, floorId }: Props) {
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [completedDay, setCompletedDay] = useState(new Date().toISOString().split("T")[0]);
   const [successMessage, setSuccessMessage] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { orders, isOrderer } = data;
 
@@ -136,54 +137,117 @@ export function WorkCompletionClient({ data, floorId }: Props) {
               <p className="text-[13px] text-knock-text-secondary">対象の発注書はありません。</p>
             </div>
           ) : (
-            orders.map((order, i) => (
-              <button
-                key={order.id}
-                onClick={() => router.push(`/orders/${order.id}/completion-report`)}
-                className={`${cardClass} flex flex-col gap-2 border-l-4 text-left transition-all active:scale-[0.99]`}
-                style={{ borderLeftColor: accentColor }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-[15px] font-bold text-knock-text">{orderLabel(order, i)}</p>
-                    {order.orderSheet && (
-                      <p className="truncate text-[11px] text-knock-text-secondary">
-                        {order.orderSheet.documentNumber}
-                      </p>
-                    )}
-                  </div>
-                  {(() => {
-                    // 未締め(NONE)でも施工報告済みなら「施工報告済み」を表示する
-                    const reported = order.completionStatus === "NONE" && order.hasReport;
-                    const label = reported
-                      ? "施工報告済み"
-                      : orderCompletionStatusLabels[order.completionStatus] ?? order.completionStatus;
-                    const color = reported
-                      ? "bg-green-100 text-green-700"
-                      : orderCompletionStatusColors[order.completionStatus] ?? "bg-gray-100 text-gray-600";
-                    return (
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${color}`}>
-                        {label}
-                      </span>
-                    );
-                  })()}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      order.hasReport ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-                    }`}
+            orders.map((order, i) => {
+              const expanded = expandedId === order.id;
+              return (
+                <div
+                  key={order.id}
+                  className={`${cardClass} flex flex-col gap-2 border-l-4`}
+                  style={{ borderLeftColor: accentColor }}
+                >
+                  <button
+                    onClick={() => setExpandedId(expanded ? null : order.id)}
+                    className="flex flex-col gap-2 text-left"
                   >
-                    {order.hasReport ? "施工報告 済" : "施工報告 未"}
-                  </span>
-                  {order.orderSheet && (
-                    <span className="text-[14px] font-bold text-knock-text">
-                      ¥{order.orderSheet.totalAmount.toLocaleString()}
-                    </span>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-bold text-knock-text">{orderLabel(order, i)}</p>
+                        {order.orderSheet && (
+                          <p className="truncate text-[11px] text-knock-text-secondary">
+                            {order.orderSheet.documentNumber}
+                          </p>
+                        )}
+                      </div>
+                      {(() => {
+                        // 未締め(NONE)でも施工報告済みなら「施工報告済み」を表示する
+                        const reported = order.completionStatus === "NONE" && order.hasReport;
+                        const label = reported
+                          ? "施工報告済み"
+                          : orderCompletionStatusLabels[order.completionStatus] ?? order.completionStatus;
+                        const color = reported
+                          ? "bg-green-100 text-green-700"
+                          : orderCompletionStatusColors[order.completionStatus] ?? "bg-gray-100 text-gray-600";
+                        return (
+                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${color}`}>
+                            {label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                          order.hasReport ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {order.hasReport ? "施工報告 済" : "施工報告 未"}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {order.orderSheet && (
+                          <span className="text-[14px] font-bold text-knock-text">
+                            ¥{order.orderSheet.totalAmount.toLocaleString()}
+                          </span>
+                        )}
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          className={`shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+                        >
+                          <path d="M3.5 5L7 8.5L10.5 5" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+
+                  {expanded && (
+                    <div className="mt-1 flex flex-col gap-2 border-t border-gray-100 pt-3">
+                      <p className="text-[12px] font-bold text-knock-text-secondary">
+                        {order.isAdditional ? "追加工事の明細" : "発注の明細"}
+                      </p>
+                      {order.items.length === 0 ? (
+                        <p className="text-[12px] text-knock-text-secondary">明細はありません</p>
+                      ) : (
+                        <div className="flex flex-col gap-1.5">
+                          {order.items.map((it, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-start justify-between gap-2 rounded-lg bg-[#F7F7F7] px-3 py-2"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-[13px] font-semibold text-knock-text">{it.name}</p>
+                                <p className="text-[11px] text-knock-text-secondary">
+                                  {it.quantity}
+                                  {it.unitName ?? ""} × ¥{it.priceUnit.toLocaleString()}
+                                  {it.specifications ? ` / ${it.specifications}` : ""}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-[13px] font-bold text-knock-text">
+                                ¥{it.amount.toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                          <div className="flex items-center justify-between px-1 pt-1">
+                            <span className="text-[12px] text-knock-text-secondary">小計（税抜）</span>
+                            <span className="text-[13px] font-bold text-knock-text">
+                              ¥{order.subtotal.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => router.push(`/orders/${order.id}/completion-report`)}
+                        className="mt-1 w-full rounded-xl border-2 py-2.5 text-[13px] font-bold transition-all active:scale-[0.98]"
+                        style={{ borderColor: accentColor, color: accentColor }}
+                      >
+                        {order.hasReport ? "施工報告を確認" : "施工報告を提出"}
+                      </button>
+                    </div>
                   )}
                 </div>
-              </button>
-            ))
+              );
+            })
           )}
         </div>
 

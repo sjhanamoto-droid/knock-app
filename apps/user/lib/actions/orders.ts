@@ -766,9 +766,31 @@ export async function getWorkCompletion(factoryFloorId: string) {
           },
         },
       },
+      // 初回発注の明細（追加工事は inspectionData 側を使う）
+      priceDetails: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: "asc" },
+        select: {
+          name: true,
+          quantity: true,
+          priceUnit: true,
+          specifications: true,
+          unit: { select: { name: true } },
+        },
+      },
     },
   });
   if (!floor) return null;
+
+  // 初回発注の明細（floorの価格明細）
+  const floorItems = floor.priceDetails.map((d) => ({
+    name: d.name,
+    quantity: d.quantity,
+    unitName: d.unit?.name ?? null,
+    priceUnit: Number(d.priceUnit),
+    amount: d.quantity * Number(d.priceUnit),
+    specifications: d.specifications ?? null,
+  }));
 
   return {
     id: floor.id,
@@ -777,13 +799,39 @@ export async function getWorkCompletion(factoryFloorId: string) {
     isOrderer: floor.companyId === user.companyId,
     orders: floor.orders.map((o) => {
       const sheet = o.documents[0] ?? null;
-      const insp = o.inspectionData as { type?: string } | null;
+      const insp = o.inspectionData as
+        | {
+            type?: string;
+            priceDetails?: {
+              name: string;
+              quantity: number;
+              unitId?: string;
+              priceUnit: number;
+              specifications?: string;
+            }[];
+          }
+        | null;
+      const isAdditional = insp?.type === "ADDITIONAL_ORDER";
+      // 依頼の証左となる明細（初回=floor明細 / 追加=inspectionData明細）
+      const items = isAdditional
+        ? (insp?.priceDetails ?? []).map((d) => ({
+            name: d.name,
+            quantity: Number(d.quantity),
+            unitName: typeof d.unitId === "string" ? d.unitId : null,
+            priceUnit: Number(d.priceUnit),
+            amount: Number(d.quantity) * Number(d.priceUnit),
+            specifications: d.specifications ?? null,
+          }))
+        : floorItems;
+      const subtotal = items.reduce((s, it) => s + it.amount, 0);
       return {
         id: o.id,
         completionStatus: o.completionStatus,
         completedDay: o.completedDay ? o.completedDay.toISOString() : null,
         hasReport: !!o.completionReport,
-        isAdditional: insp?.type === "ADDITIONAL_ORDER",
+        isAdditional,
+        items,
+        subtotal,
         orderSheet: sheet
           ? {
               documentNumber: sheet.documentNumber,
