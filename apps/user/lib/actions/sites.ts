@@ -51,35 +51,23 @@ function toNumberOrNull(v: any): number | null {
 export type SiteSortField = "createdAt" | "startDayRequest" | "endDayRequest";
 export type SiteSortOrder = "asc" | "desc";
 
-// ステータス進行順（若い番号ほど手前）
-const STATUS_PRIORITY: Record<string, number> = {
-  NOT_ORDERED: 0,
-  ORDER_REQUESTED: 1,
-  ORDERED: 2,
-  CONFIRMED: 3,
-  IN_PROGRESS: 4,
-  INSPECTION: 5,
-  COMPLETED: 6,
-  DEAL_COMPLETED: 7,
-};
-
-/** 子工事のステータスから親の実効ステータスを算出（子の中で一番手前のもの） */
+/**
+ * 子工事のステータスからプロジェクト(親)の実効ステータスを算出（進捗集約）。
+ * - 全ての子工事が未発注(NOT_ORDERED/DRAFT) → 未発注(NOT_ORDERED)
+ * - 全ての子工事が完了(COMPLETED/DEAL_COMPLETED) → 完了(COMPLETED)
+ * - それ以外（一部でも発注済み、ただし全完了ではない） → 施工中(IN_PROGRESS)
+ * これにより「子Aが完了でも親が未発注」のような実態と乖離した表示を防ぐ。
+ */
+const UNORDERED_STATUSES = new Set(["NOT_ORDERED", "DRAFT"]);
+const DONE_STATUSES = new Set(["COMPLETED", "DEAL_COMPLETED"]);
 function computeEffectiveStatus(
   parentStatus: string,
   childStatuses: string[],
 ): string {
   if (childStatuses.length === 0) return parentStatus;
-  // 子工事がある場合は子工事のステータスのみで判定（親自身のステータスは無視）
-  let earliest = childStatuses[0];
-  let earliestPri = STATUS_PRIORITY[childStatuses[0]] ?? 99;
-  for (let i = 1; i < childStatuses.length; i++) {
-    const pri = STATUS_PRIORITY[childStatuses[i]] ?? 99;
-    if (pri < earliestPri) {
-      earliestPri = pri;
-      earliest = childStatuses[i];
-    }
-  }
-  return earliest;
+  if (childStatuses.every((s) => UNORDERED_STATUSES.has(s))) return "NOT_ORDERED";
+  if (childStatuses.every((s) => DONE_STATUSES.has(s))) return "COMPLETED";
+  return "IN_PROGRESS";
 }
 
 export async function getSites(
@@ -370,6 +358,16 @@ export async function createSite(data: CreateFactoryFloorInput & {
           specifications: d.specifications || null,
         })),
       });
+      // 明細から totalAmount を再計算して保存（単独作成・「工事を追加」で作成時）
+      const computedTotal = data.priceDetails.reduce((sum: number, d: { quantity: number; priceUnit: number }) => {
+        return sum + Math.ceil((Number(d.quantity) || 0) * (Number(d.priceUnit) || 0));
+      }, 0);
+      if (computedTotal > 0) {
+        await tx.factoryFloor.update({
+          where: { id: site.id },
+          data: { totalAmount: BigInt(computedTotal) },
+        });
+      }
     }
 
     // 4. 画像

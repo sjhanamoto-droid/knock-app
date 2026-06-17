@@ -237,6 +237,28 @@ export function HomeClient({ transactions, summary, badgeCounts, kycStep }: Home
           accentColor={accentColor}
         />
 
+        {/* 未発注の工事バッジ（発注者向け・「工事を追加」した発注待ちの工事に気付けるように） */}
+        {isOrderer && badgeCounts.unorderedWorks > 0 && (
+          <Link
+            href="/sites"
+            className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
+            style={{ borderLeft: `4px solid ${accentColor}` }}
+          >
+            <div className="flex flex-col">
+              <span className="text-[14px] font-bold text-knock-text">
+                未発注の工事 {badgeCounts.unorderedWorks}件
+              </span>
+              <span className="text-[12px] text-gray-500">発注待ちの工事があります</span>
+            </div>
+            <span
+              className="flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[12px] font-bold text-white"
+              style={{ backgroundColor: accentColor }}
+            >
+              {badgeCounts.unorderedWorks}
+            </span>
+          </Link>
+        )}
+
         {/* 現場カード一覧 */}
         <ActiveTransactions
           transactions={filteredTransactions}

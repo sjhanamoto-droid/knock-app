@@ -137,7 +137,7 @@ export async function getMonthlySummary() {
 export async function getHomeBadgeCounts() {
   const user = await requireSession();
 
-  const [unreadNotifications, unreadChats] = await Promise.all([
+  const [unreadNotifications, unreadChats, unorderedWorks] = await Promise.all([
     prisma.notification.count({
       where: { userId: user.id, seenFlag: false, deletedAt: null },
     }),
@@ -145,10 +145,20 @@ export async function getHomeBadgeCounts() {
       where: { userId: user.id, deletedAt: null },
       _sum: { unreadCount: true },
     }),
+    // 未発注の子工事(「工事を追加」した各工事)の件数。発注待ちの作業をホームで気付けるように。
+    prisma.factoryFloor.count({
+      where: {
+        companyId: user.companyId,
+        parentId: { not: null },
+        status: "NOT_ORDERED",
+        deletedAt: null,
+      },
+    }),
   ]);
 
   return {
     notifications: unreadNotifications,
     chats: unreadChats._sum.unreadCount ?? 0,
+    unorderedWorks,
   };
 }
