@@ -6,6 +6,7 @@ import { factoryFloorStatusLabels, factoryFloorStatusColors } from "@knock/utils
 interface Transaction {
   id: string;
   orderStatus: string | null;
+  isAdditional?: boolean;
   siteId: string;
   siteName: string;
   siteStatus: string;
@@ -100,14 +101,18 @@ function SiteCard({
   // メインCTA（カード下部）の決定
   let cta: { href: string; label: string } | null = null;
   if (!isOrderer && tx.orderStatus === "PENDING") {
-    // 受注者: 発注依頼への回答待ち
-    cta = { href: `/orders/${tx.id}/accept`, label: "発注依頼に回答" };
+    // 受注者: 発注依頼への回答待ち（追加工事は専用ページ・専用ラベル）
+    cta = tx.isAdditional
+      ? { href: `/orders/${tx.id}/additional-review`, label: "追加工事依頼に回答" }
+      : { href: `/orders/${tx.id}/accept`, label: "発注依頼に回答" };
   } else if (!isOrderer && tx.siteStatus === "IN_PROGRESS") {
     // 受注者: 施工中 → 工事完了
     cta = { href: `/work-completion/${tx.siteId}`, label: "工事完了" };
   } else if (isOrderer && tx.orderStatus === "APPROVED") {
-    // 発注者: 受注者が回答済み → 発注を確定
-    cta = { href: `/orders/${tx.id}/confirm`, label: "発注を確定する" };
+    // 発注者: 受注者が回答済み → 発注を確定（追加工事は専用ページで確定）
+    cta = tx.isAdditional
+      ? { href: `/orders/${tx.id}/additional-review`, label: "追加工事を確定する" }
+      : { href: `/orders/${tx.id}/confirm`, label: "発注を確定する" };
   }
 
   return (
