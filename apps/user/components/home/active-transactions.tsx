@@ -6,6 +6,7 @@ import { factoryFloorStatusLabels, factoryFloorStatusColors } from "@knock/utils
 interface Transaction {
   id: string;
   orderStatus: string | null;
+  completionStatus?: string | null;
   isAdditional?: boolean;
   siteId: string;
   siteName: string;
@@ -105,6 +106,9 @@ function SiteCard({
     cta = tx.isAdditional
       ? { href: `/orders/${tx.id}/additional-review`, label: "追加工事依頼に回答" }
       : { href: `/orders/${tx.id}/accept`, label: "発注依頼に回答" };
+  } else if (isOrderer && tx.completionStatus === "CLOSE_REQUESTED") {
+    // 発注者: 受注者が工事完了(締め)を依頼済み → 工事完了を確認・承認
+    cta = { href: `/work-completion/${tx.siteId}`, label: "工事完了を確認" };
   } else if (!isOrderer && tx.siteStatus === "IN_PROGRESS") {
     // 受注者: 施工中 → 工事完了
     cta = { href: `/work-completion/${tx.siteId}`, label: "工事完了" };

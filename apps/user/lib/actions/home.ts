@@ -30,6 +30,7 @@ export async function getActiveTransactions() {
     select: {
       id: true,
       status: true,
+      completionStatus: true,
       inspectionData: true,
       factoryFloor: {
         select: {
@@ -66,6 +67,7 @@ export async function getActiveTransactions() {
   return orders.map((order) => ({
     id: order.id,
     orderStatus: order.status,
+    completionStatus: order.completionStatus,
     isAdditional:
       (order.inspectionData as { type?: string } | null)?.type === "ADDITIONAL_ORDER",
     siteId: order.factoryFloor.id,
