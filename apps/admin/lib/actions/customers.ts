@@ -53,6 +53,7 @@ export async function getCompanies(params?: {
         companyForm: true,
         telNumber: true,
         isActive: true,
+        isHidden: true,
         createdAt: true,
         _count: { select: { users: true } },
       },
@@ -91,6 +92,7 @@ export async function getCompany(id: string) {
           role: true,
           isActive: true,
           createdAt: true,
+          lastLoginAt: true,
         },
       },
       contracts: {
@@ -123,6 +125,7 @@ export async function getCompany(id: string) {
     users: company.users.map((u) => ({
       ...u,
       createdAt: u.createdAt.toISOString(),
+      lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
     })),
     contracts: company.contracts.map((c) => ({
       ...c,
@@ -213,6 +216,7 @@ export async function updateCompany(
     hpUrl?: string;
     invoiceNumber?: string;
     isActive?: boolean;
+    isHidden?: boolean;
   }
 ) {
   await requireAdminSession();
@@ -256,10 +260,15 @@ export async function updateUser(
       role: true,
       isActive: true,
       createdAt: true,
+      lastLoginAt: true,
     },
   });
 
-  return { ...updated, createdAt: updated.createdAt.toISOString() };
+  return {
+    ...updated,
+    createdAt: updated.createdAt.toISOString(),
+    lastLoginAt: updated.lastLoginAt?.toISOString() ?? null,
+  };
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {
@@ -319,10 +328,15 @@ export async function createUser(
       role: true,
       isActive: true,
       createdAt: true,
+      lastLoginAt: true,
     },
   });
 
-  return { ...user, createdAt: user.createdAt.toISOString() };
+  return {
+    ...user,
+    createdAt: user.createdAt.toISOString(),
+    lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+  };
 }
 
 export async function deleteCompany(id: string) {

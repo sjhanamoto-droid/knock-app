@@ -19,7 +19,7 @@ import {
   contractStatusLabels,
   paymentStatusLabels,
 } from "@knock/utils";
-import { formatDate, formatCurrency } from "@knock/utils";
+import { formatDate, formatDateTime, formatCurrency } from "@knock/utils";
 
 type CompanyDetail = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 type UserItem = CompanyDetail["users"][number];
@@ -85,6 +85,22 @@ export default function CompanyDetailPage() {
     setCompany({ ...company, isActive: updated.isActive });
   }
 
+  async function toggleHidden() {
+    if (!company) return;
+    const next = !company.isHidden;
+    if (
+      next &&
+      !confirm(
+        "この受注者を非表示にしますか？\n繋がり申請(申請中/承認済み)が無い相手からは、受注者一覧・案件で表示されなくなります。"
+      )
+    )
+      return;
+    const updated = await updateCompany(params.companyId as string, {
+      isHidden: next,
+    });
+    setCompany({ ...company, isHidden: updated.isHidden });
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -145,6 +161,11 @@ export default function CompanyDetailPage() {
             >
               {company.isActive ? "有効" : "無効"}
             </span>
+            {company.isHidden && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                非表示
+              </span>
+            )}
           </div>
         </div>
         <div className="flex gap-2">
@@ -154,6 +175,14 @@ export default function CompanyDetailPage() {
           >
             {company.isActive ? "無効化" : "有効化"}
           </button>
+          {(company.type === "CONTRACTOR" || company.type === "BOTH") && (
+            <button
+              onClick={toggleHidden}
+              className="rounded-xl border border-amber-200 px-4 py-2 text-[13px] font-medium text-amber-700 hover:bg-amber-50"
+            >
+              {company.isHidden ? "表示にする" : "非表示にする"}
+            </button>
+          )}
           <button
             onClick={handleDelete}
             className="rounded-xl border border-red-200 px-4 py-2 text-[13px] font-medium text-red-600 hover:bg-red-50"
@@ -739,6 +768,9 @@ function UsersTab({
                 状態
               </th>
               <th className="px-4 py-3 text-[12px] font-semibold text-gray-400">
+                最終ログイン
+              </th>
+              <th className="px-4 py-3 text-[12px] font-semibold text-gray-400">
                 操作
               </th>
             </tr>
@@ -767,6 +799,11 @@ function UsersTab({
                     {user.isActive ? "有効" : "無効"}
                   </span>
                 </td>
+                <td className="px-4 py-3 text-[13px] text-gray-600">
+                  {user.lastLoginAt
+                    ? formatDateTime(new Date(user.lastLoginAt))
+                    : "未ログイン"}
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() =>
@@ -782,7 +819,7 @@ function UsersTab({
             {users.length === 0 && (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-8 text-center text-[13px] text-gray-400"
                 >
                   ユーザーがいません

@@ -65,23 +65,24 @@ model AdminUser {
 // ============ Users & Companies ============
 
 model User {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   lastName      String
   firstName     String
   lastNameKana  String?
   firstNameKana String?
-  email         String   @unique
+  email         String    @unique
   password      String
   dateOfBirth   String?
-  role          UserRole @default(OTHER)
+  role          UserRole  @default(OTHER)
   telNumber     String?
   avatar        String?
   companyId     String
-  company       Company  @relation(fields: [companyId], references: [id])
-  policyStatus  Boolean  @default(false)
-  isActive      Boolean  @default(false)
+  company       Company   @relation(fields: [companyId], references: [id])
+  policyStatus  Boolean   @default(false)
+  isActive      Boolean   @default(false)
   kycType       Int?
   resetToken    String?
+  lastLoginAt   DateTime? // 最終ログイン日時
 
   // プロフィール強化
   gender               Gender?
@@ -184,6 +185,7 @@ model Company {
   // ステータス
   registrationStep     Int? // 現在の登録ステップ (null = 登録完了)
   isActive             Boolean   @default(false)
+  isHidden             Boolean   @default(false) // 非表示: 繋がり未申請の相手から受注者・案件を隠す
   contractApprovedDate DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

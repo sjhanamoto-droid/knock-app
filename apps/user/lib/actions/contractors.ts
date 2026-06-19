@@ -48,6 +48,7 @@ export async function searchContractors(filters?: {
       logo: true,
       prefecture: true,
       city: true,
+      isHidden: true,
       occupations: {
         include: {
           occupationSubItem: {
@@ -101,15 +102,20 @@ export async function searchContractors(filters?: {
     )
   );
 
-  return companies.map((c) => ({
-    ...c,
-    isConnected: connectedIds.has(c.id),
-    connectionStatus: connectedIds.has(c.id)
-      ? ("connected" as const)
-      : pendingIds.has(c.id)
-        ? ("pending" as const)
-        : ("none" as const),
-  }));
+  return companies
+    .filter(
+      // 非表示の受注者は、繋がり(申請中/承認済み)がある相手にのみ表示する
+      (c) => !c.isHidden || connectedIds.has(c.id) || pendingIds.has(c.id)
+    )
+    .map((c) => ({
+      ...c,
+      isConnected: connectedIds.has(c.id),
+      connectionStatus: connectedIds.has(c.id)
+        ? ("connected" as const)
+        : pendingIds.has(c.id)
+          ? ("pending" as const)
+          : ("none" as const),
+    }));
 }
 
 // ============ 受注者詳細 ============
@@ -129,6 +135,7 @@ export async function getContractor(companyId: string) {
       name: true,
       logo: true,
       backgroundImage: true,
+      isHidden: true,
       postalCode: true,
       prefecture: true,
       city: true,
@@ -252,6 +259,15 @@ export async function getContractor(companyId: string) {
       invitationStatus = invited.inviteCompanyId === user.companyId ? "sent" : "received";
       invitedId = invited.id;
     }
+  }
+
+  // 非表示の受注者は、繋がり(申請中/承認済み)が無い相手には見せない
+  if (
+    company.isHidden &&
+    companyId !== user.companyId &&
+    invitationStatus === "none"
+  ) {
+    return null;
   }
 
   // 代表者情報

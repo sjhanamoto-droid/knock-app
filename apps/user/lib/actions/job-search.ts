@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { requireKyc } from "@/lib/actions/verification";
 import { sendPushToUsers } from "@/lib/push";
+import { getRelatedCompanyIds, isViewerHidden } from "@/lib/visibility";
 
 /**
  * 検索フィルター用: 職種一覧を取得
@@ -78,6 +79,16 @@ export async function searchJobs(filters?: {
 
   if (filters?.prefecture) {
     where.address = { contains: filters.prefecture, mode: "insensitive" };
+  }
+
+  // 非表示の受注者は、繋がり(申請中/承認済み)がある発注者の案件のみ閲覧可能。
+  // 繋がりが1件も無ければ案件は一切表示しない（in:[] の曖昧さを避けるため早期return）。
+  if (await isViewerHidden(user.companyId)) {
+    const related = await getRelatedCompanyIds(user.companyId);
+    if (related.size === 0) {
+      return { jobs: [], total: 0, page, totalPages: 0 };
+    }
+    where.companyId = { in: [...related] };
   }
 
   const [jobs, total] = await Promise.all([
@@ -188,6 +199,17 @@ export async function getJobDetail(jobId: string) {
   });
 
   if (!job) throw new Error("案件が見つかりません");
+
+  // 非表示の受注者は、繋がり(申請中/承認済み)が無い発注者の案件詳細を見られない
+  if (
+    job.company.id !== user.companyId &&
+    (await isViewerHidden(user.companyId))
+  ) {
+    const related = await getRelatedCompanyIds(user.companyId);
+    if (!related.has(job.company.id)) {
+      throw new Error("案件が見つかりません");
+    }
+  }
 
   // 自社の応募状況を取得
   const myApplication = await prisma.jobApplication.findFirst({

@@ -204,6 +204,11 @@ export default function CustomersPage() {
                     >
                       {company.name || "(未設定)"}
                     </Link>
+                    {company.isHidden && (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                        非表示
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span

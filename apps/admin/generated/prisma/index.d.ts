@@ -9283,6 +9283,7 @@ export namespace Prisma {
     isActive: boolean | null
     kycType: number | null
     resetToken: string | null
+    lastLoginAt: Date | null
     gender: $Enums.Gender | null
     workEligibility: $Enums.WorkEligibility | null
     tradeName: string | null
@@ -9310,6 +9311,7 @@ export namespace Prisma {
     isActive: boolean | null
     kycType: number | null
     resetToken: string | null
+    lastLoginAt: Date | null
     gender: $Enums.Gender | null
     workEligibility: $Enums.WorkEligibility | null
     tradeName: string | null
@@ -9337,6 +9339,7 @@ export namespace Prisma {
     isActive: number
     kycType: number
     resetToken: number
+    lastLoginAt: number
     gender: number
     workEligibility: number
     tradeName: number
@@ -9374,6 +9377,7 @@ export namespace Prisma {
     isActive?: true
     kycType?: true
     resetToken?: true
+    lastLoginAt?: true
     gender?: true
     workEligibility?: true
     tradeName?: true
@@ -9401,6 +9405,7 @@ export namespace Prisma {
     isActive?: true
     kycType?: true
     resetToken?: true
+    lastLoginAt?: true
     gender?: true
     workEligibility?: true
     tradeName?: true
@@ -9428,6 +9433,7 @@ export namespace Prisma {
     isActive?: true
     kycType?: true
     resetToken?: true
+    lastLoginAt?: true
     gender?: true
     workEligibility?: true
     tradeName?: true
@@ -9542,6 +9548,7 @@ export namespace Prisma {
     isActive: boolean
     kycType: number | null
     resetToken: string | null
+    lastLoginAt: Date | null
     gender: $Enums.Gender | null
     workEligibility: $Enums.WorkEligibility | null
     tradeName: string | null
@@ -9588,6 +9595,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: boolean
     resetToken?: boolean
+    lastLoginAt?: boolean
     gender?: boolean
     workEligibility?: boolean
     tradeName?: boolean
@@ -9626,6 +9634,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: boolean
     resetToken?: boolean
+    lastLoginAt?: boolean
     gender?: boolean
     workEligibility?: boolean
     tradeName?: boolean
@@ -9654,6 +9663,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: boolean
     resetToken?: boolean
+    lastLoginAt?: boolean
     gender?: boolean
     workEligibility?: boolean
     tradeName?: boolean
@@ -9682,6 +9692,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: boolean
     resetToken?: boolean
+    lastLoginAt?: boolean
     gender?: boolean
     workEligibility?: boolean
     tradeName?: boolean
@@ -9692,7 +9703,7 @@ export namespace Prisma {
     deletedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "lastName" | "firstName" | "lastNameKana" | "firstNameKana" | "email" | "password" | "dateOfBirth" | "role" | "telNumber" | "avatar" | "companyId" | "policyStatus" | "isActive" | "kycType" | "resetToken" | "gender" | "workEligibility" | "tradeName" | "workersCompInsurance" | "bio" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "lastName" | "firstName" | "lastNameKana" | "firstNameKana" | "email" | "password" | "dateOfBirth" | "role" | "telNumber" | "avatar" | "companyId" | "policyStatus" | "isActive" | "kycType" | "resetToken" | "lastLoginAt" | "gender" | "workEligibility" | "tradeName" | "workersCompInsurance" | "bio" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     company?: boolean | CompanyDefaultArgs<ExtArgs>
     createdFactoryFloors?: boolean | User$createdFactoryFloorsArgs<ExtArgs>
@@ -9744,6 +9755,7 @@ export namespace Prisma {
       isActive: boolean
       kycType: number | null
       resetToken: string | null
+      lastLoginAt: Date | null
       gender: $Enums.Gender | null
       workEligibility: $Enums.WorkEligibility | null
       tradeName: string | null
@@ -10201,6 +10213,7 @@ export namespace Prisma {
     readonly isActive: FieldRef<"User", 'Boolean'>
     readonly kycType: FieldRef<"User", 'Int'>
     readonly resetToken: FieldRef<"User", 'String'>
+    readonly lastLoginAt: FieldRef<"User", 'DateTime'>
     readonly gender: FieldRef<"User", 'Gender'>
     readonly workEligibility: FieldRef<"User", 'WorkEligibility'>
     readonly tradeName: FieldRef<"User", 'String'>
@@ -10915,6 +10928,7 @@ export namespace Prisma {
     isAvailabilityPublic: boolean | null
     registrationStep: number | null
     isActive: boolean | null
+    isHidden: boolean | null
     contractApprovedDate: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -10967,6 +10981,7 @@ export namespace Prisma {
     isAvailabilityPublic: boolean | null
     registrationStep: number | null
     isActive: boolean | null
+    isHidden: boolean | null
     contractApprovedDate: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -11019,6 +11034,7 @@ export namespace Prisma {
     isAvailabilityPublic: number
     registrationStep: number
     isActive: number
+    isHidden: number
     contractApprovedDate: number
     createdAt: number
     updatedAt: number
@@ -11091,6 +11107,7 @@ export namespace Prisma {
     isAvailabilityPublic?: true
     registrationStep?: true
     isActive?: true
+    isHidden?: true
     contractApprovedDate?: true
     createdAt?: true
     updatedAt?: true
@@ -11143,6 +11160,7 @@ export namespace Prisma {
     isAvailabilityPublic?: true
     registrationStep?: true
     isActive?: true
+    isHidden?: true
     contractApprovedDate?: true
     createdAt?: true
     updatedAt?: true
@@ -11195,6 +11213,7 @@ export namespace Prisma {
     isAvailabilityPublic?: true
     registrationStep?: true
     isActive?: true
+    isHidden?: true
     contractApprovedDate?: true
     createdAt?: true
     updatedAt?: true
@@ -11334,6 +11353,7 @@ export namespace Prisma {
     isAvailabilityPublic: boolean
     registrationStep: number | null
     isActive: boolean
+    isHidden: boolean
     contractApprovedDate: Date | null
     createdAt: Date
     updatedAt: Date
@@ -11405,6 +11425,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: boolean
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11487,6 +11508,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: boolean
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11540,6 +11562,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: boolean
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -11593,13 +11616,14 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: boolean
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     deletedAt?: boolean
   }
 
-  export type CompanyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "adminCompanyId" | "name" | "email" | "nameKana" | "companyForm" | "type" | "postalCode" | "prefecture" | "city" | "streetAddress" | "building" | "showAddress" | "telNumber" | "hpUrl" | "invoiceNumber" | "kycDocument" | "note" | "logo" | "backgroundImage" | "stampImage" | "bankName" | "bankBranchName" | "bankAccountType" | "bankAccountNumber" | "bankAccountName" | "stripeCustomerId" | "stripeSubscriptionId" | "fireInsurance" | "socialInsurance" | "otherInsurance" | "workforceCapacity" | "constructionPermit" | "invoiceRegistration" | "billingClosingDay" | "billingGraceDays" | "paymentDueType" | "latitude" | "longitude" | "isAcceptingWork" | "selfIntro" | "yearsOfExperience" | "isAvailabilityPublic" | "registrationStep" | "isActive" | "contractApprovedDate" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["company"]>
+  export type CompanyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "adminCompanyId" | "name" | "email" | "nameKana" | "companyForm" | "type" | "postalCode" | "prefecture" | "city" | "streetAddress" | "building" | "showAddress" | "telNumber" | "hpUrl" | "invoiceNumber" | "kycDocument" | "note" | "logo" | "backgroundImage" | "stampImage" | "bankName" | "bankBranchName" | "bankAccountType" | "bankAccountNumber" | "bankAccountName" | "stripeCustomerId" | "stripeSubscriptionId" | "fireInsurance" | "socialInsurance" | "otherInsurance" | "workforceCapacity" | "constructionPermit" | "invoiceRegistration" | "billingClosingDay" | "billingGraceDays" | "paymentDueType" | "latitude" | "longitude" | "isAcceptingWork" | "selfIntro" | "yearsOfExperience" | "isAvailabilityPublic" | "registrationStep" | "isActive" | "isHidden" | "contractApprovedDate" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["company"]>
   export type CompanyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     adminCompany?: boolean | AdminCompanyDefaultArgs<ExtArgs>
     users?: boolean | Company$usersArgs<ExtArgs>
@@ -11718,6 +11742,7 @@ export namespace Prisma {
       isAvailabilityPublic: boolean
       registrationStep: number | null
       isActive: boolean
+      isHidden: boolean
       contractApprovedDate: Date | null
       createdAt: Date
       updatedAt: Date
@@ -12219,6 +12244,7 @@ export namespace Prisma {
     readonly isAvailabilityPublic: FieldRef<"Company", 'Boolean'>
     readonly registrationStep: FieldRef<"Company", 'Int'>
     readonly isActive: FieldRef<"Company", 'Boolean'>
+    readonly isHidden: FieldRef<"Company", 'Boolean'>
     readonly contractApprovedDate: FieldRef<"Company", 'DateTime'>
     readonly createdAt: FieldRef<"Company", 'DateTime'>
     readonly updatedAt: FieldRef<"Company", 'DateTime'>
@@ -67148,6 +67174,7 @@ export namespace Prisma {
     isActive: 'isActive',
     kycType: 'kycType',
     resetToken: 'resetToken',
+    lastLoginAt: 'lastLoginAt',
     gender: 'gender',
     workEligibility: 'workEligibility',
     tradeName: 'tradeName',
@@ -67207,6 +67234,7 @@ export namespace Prisma {
     isAvailabilityPublic: 'isAvailabilityPublic',
     registrationStep: 'registrationStep',
     isActive: 'isActive',
+    isHidden: 'isHidden',
     contractApprovedDate: 'contractApprovedDate',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
@@ -68775,6 +68803,7 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     kycType?: IntNullableFilter<"User"> | number | null
     resetToken?: StringNullableFilter<"User"> | string | null
+    lastLoginAt?: DateTimeNullableFilter<"User"> | Date | string | null
     gender?: EnumGenderNullableFilter<"User"> | $Enums.Gender | null
     workEligibility?: EnumWorkEligibilityNullableFilter<"User"> | $Enums.WorkEligibility | null
     tradeName?: StringNullableFilter<"User"> | string | null
@@ -68812,6 +68841,7 @@ export namespace Prisma {
     isActive?: SortOrder
     kycType?: SortOrderInput | SortOrder
     resetToken?: SortOrderInput | SortOrder
+    lastLoginAt?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     workEligibility?: SortOrderInput | SortOrder
     tradeName?: SortOrderInput | SortOrder
@@ -68852,6 +68882,7 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     kycType?: IntNullableFilter<"User"> | number | null
     resetToken?: StringNullableFilter<"User"> | string | null
+    lastLoginAt?: DateTimeNullableFilter<"User"> | Date | string | null
     gender?: EnumGenderNullableFilter<"User"> | $Enums.Gender | null
     workEligibility?: EnumWorkEligibilityNullableFilter<"User"> | $Enums.WorkEligibility | null
     tradeName?: StringNullableFilter<"User"> | string | null
@@ -68889,6 +68920,7 @@ export namespace Prisma {
     isActive?: SortOrder
     kycType?: SortOrderInput | SortOrder
     resetToken?: SortOrderInput | SortOrder
+    lastLoginAt?: SortOrderInput | SortOrder
     gender?: SortOrderInput | SortOrder
     workEligibility?: SortOrderInput | SortOrder
     tradeName?: SortOrderInput | SortOrder
@@ -68924,6 +68956,7 @@ export namespace Prisma {
     isActive?: BoolWithAggregatesFilter<"User"> | boolean
     kycType?: IntNullableWithAggregatesFilter<"User"> | number | null
     resetToken?: StringNullableWithAggregatesFilter<"User"> | string | null
+    lastLoginAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     gender?: EnumGenderNullableWithAggregatesFilter<"User"> | $Enums.Gender | null
     workEligibility?: EnumWorkEligibilityNullableWithAggregatesFilter<"User"> | $Enums.WorkEligibility | null
     tradeName?: StringNullableWithAggregatesFilter<"User"> | string | null
@@ -68983,6 +69016,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFilter<"Company"> | boolean
     registrationStep?: IntNullableFilter<"Company"> | number | null
     isActive?: BoolFilter<"Company"> | boolean
+    isHidden?: BoolFilter<"Company"> | boolean
     contractApprovedDate?: DateTimeNullableFilter<"Company"> | Date | string | null
     createdAt?: DateTimeFilter<"Company"> | Date | string
     updatedAt?: DateTimeFilter<"Company"> | Date | string
@@ -69064,6 +69098,7 @@ export namespace Prisma {
     isAvailabilityPublic?: SortOrder
     registrationStep?: SortOrderInput | SortOrder
     isActive?: SortOrder
+    isHidden?: SortOrder
     contractApprovedDate?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -69148,6 +69183,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFilter<"Company"> | boolean
     registrationStep?: IntNullableFilter<"Company"> | number | null
     isActive?: BoolFilter<"Company"> | boolean
+    isHidden?: BoolFilter<"Company"> | boolean
     contractApprovedDate?: DateTimeNullableFilter<"Company"> | Date | string | null
     createdAt?: DateTimeFilter<"Company"> | Date | string
     updatedAt?: DateTimeFilter<"Company"> | Date | string
@@ -69229,6 +69265,7 @@ export namespace Prisma {
     isAvailabilityPublic?: SortOrder
     registrationStep?: SortOrderInput | SortOrder
     isActive?: SortOrder
+    isHidden?: SortOrder
     contractApprovedDate?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -69289,6 +69326,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolWithAggregatesFilter<"Company"> | boolean
     registrationStep?: IntNullableWithAggregatesFilter<"Company"> | number | null
     isActive?: BoolWithAggregatesFilter<"Company"> | boolean
+    isHidden?: BoolWithAggregatesFilter<"Company"> | boolean
     contractApprovedDate?: DateTimeNullableWithAggregatesFilter<"Company"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Company"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Company"> | Date | string
@@ -73462,6 +73500,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -73499,6 +73538,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -73534,6 +73574,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73571,6 +73612,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73607,6 +73649,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -73633,6 +73676,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73660,6 +73704,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73715,6 +73760,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -73796,6 +73842,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -73875,6 +73922,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -73956,6 +74004,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -74036,6 +74085,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -74087,6 +74137,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -74139,6 +74190,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -78788,6 +78840,7 @@ export namespace Prisma {
     isActive?: SortOrder
     kycType?: SortOrder
     resetToken?: SortOrder
+    lastLoginAt?: SortOrder
     gender?: SortOrder
     workEligibility?: SortOrder
     tradeName?: SortOrder
@@ -78819,6 +78872,7 @@ export namespace Prisma {
     isActive?: SortOrder
     kycType?: SortOrder
     resetToken?: SortOrder
+    lastLoginAt?: SortOrder
     gender?: SortOrder
     workEligibility?: SortOrder
     tradeName?: SortOrder
@@ -78846,6 +78900,7 @@ export namespace Prisma {
     isActive?: SortOrder
     kycType?: SortOrder
     resetToken?: SortOrder
+    lastLoginAt?: SortOrder
     gender?: SortOrder
     workEligibility?: SortOrder
     tradeName?: SortOrder
@@ -79193,6 +79248,7 @@ export namespace Prisma {
     isAvailabilityPublic?: SortOrder
     registrationStep?: SortOrder
     isActive?: SortOrder
+    isHidden?: SortOrder
     contractApprovedDate?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -79254,6 +79310,7 @@ export namespace Prisma {
     isAvailabilityPublic?: SortOrder
     registrationStep?: SortOrder
     isActive?: SortOrder
+    isHidden?: SortOrder
     contractApprovedDate?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -79306,6 +79363,7 @@ export namespace Prisma {
     isAvailabilityPublic?: SortOrder
     registrationStep?: SortOrder
     isActive?: SortOrder
+    isHidden?: SortOrder
     contractApprovedDate?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -87407,6 +87465,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -87486,6 +87545,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -87632,6 +87692,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFilter<"Company"> | boolean
     registrationStep?: IntNullableFilter<"Company"> | number | null
     isActive?: BoolFilter<"Company"> | boolean
+    isHidden?: BoolFilter<"Company"> | boolean
     contractApprovedDate?: DateTimeNullableFilter<"Company"> | Date | string | null
     createdAt?: DateTimeFilter<"Company"> | Date | string
     updatedAt?: DateTimeFilter<"Company"> | Date | string
@@ -87803,6 +87864,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -87883,6 +87945,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -88345,6 +88408,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88425,6 +88489,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -88839,6 +88904,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -88874,6 +88940,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -90072,6 +90139,7 @@ export namespace Prisma {
     isActive?: BoolFilter<"User"> | boolean
     kycType?: IntNullableFilter<"User"> | number | null
     resetToken?: StringNullableFilter<"User"> | string | null
+    lastLoginAt?: DateTimeNullableFilter<"User"> | Date | string | null
     gender?: EnumGenderNullableFilter<"User"> | $Enums.Gender | null
     workEligibility?: EnumWorkEligibilityNullableFilter<"User"> | $Enums.WorkEligibility | null
     tradeName?: StringNullableFilter<"User"> | string | null
@@ -90867,6 +90935,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -90947,6 +91016,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -91041,6 +91111,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -91121,6 +91192,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -91170,6 +91242,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -91206,6 +91279,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -91256,6 +91330,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -91292,6 +91367,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -91355,6 +91431,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -91435,6 +91512,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -91529,6 +91607,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -91609,6 +91688,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -91658,6 +91738,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -91694,6 +91775,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -91744,6 +91826,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -91780,6 +91863,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -91814,6 +91898,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -91850,6 +91935,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -91900,6 +91986,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -91936,6 +92023,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -91999,6 +92087,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -92079,6 +92168,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -92173,6 +92263,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -92253,6 +92344,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -92349,6 +92441,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -92385,6 +92478,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -92597,6 +92691,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -92633,6 +92728,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -93294,6 +93390,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -93374,6 +93471,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -93457,6 +93555,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -93537,6 +93636,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -93631,6 +93731,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93711,6 +93812,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93800,6 +93902,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93880,6 +93983,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -93958,6 +94062,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -94038,6 +94143,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -94121,6 +94227,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -94201,6 +94308,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -94542,6 +94650,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94622,6 +94731,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94711,6 +94821,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -94791,6 +94902,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -95049,6 +95161,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -95085,6 +95198,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -95180,6 +95294,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -95216,6 +95331,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -95289,6 +95405,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -95325,6 +95442,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -95467,6 +95585,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -95503,6 +95622,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -95619,6 +95739,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -95699,6 +95820,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -95793,6 +95915,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -95873,6 +95996,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -96035,6 +96159,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -96115,6 +96240,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -96209,6 +96335,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -96289,6 +96416,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -96367,6 +96495,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -96447,6 +96576,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -96530,6 +96660,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -96610,6 +96741,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -96704,6 +96836,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -96784,6 +96917,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -96873,6 +97007,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -96953,6 +97088,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -97031,6 +97167,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -97111,6 +97248,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -97194,6 +97332,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -97274,6 +97413,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -97368,6 +97508,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -97448,6 +97589,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -97537,6 +97679,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -97617,6 +97760,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -97695,6 +97839,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -97775,6 +97920,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -97858,6 +98004,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -97938,6 +98085,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -98032,6 +98180,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -98112,6 +98261,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -98201,6 +98351,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -98281,6 +98432,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -98406,6 +98558,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -98486,6 +98639,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -98569,6 +98723,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -98649,6 +98804,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -98796,6 +98952,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -98876,6 +99033,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -98965,6 +99123,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -99045,6 +99204,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -99170,6 +99330,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -99250,6 +99411,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -99333,6 +99495,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -99413,6 +99576,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -99560,6 +99724,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -99640,6 +99805,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -99729,6 +99895,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -99809,6 +99976,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -99887,6 +100055,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -99967,6 +100136,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -100061,6 +100231,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -100141,6 +100312,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -100219,6 +100391,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -100299,6 +100472,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -100535,6 +100709,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -100615,6 +100790,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -100886,6 +101062,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -100966,6 +101143,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -101119,6 +101297,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -101199,6 +101378,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -101277,6 +101457,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -101357,6 +101538,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -101451,6 +101633,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -101531,6 +101714,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -101649,6 +101833,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -101729,6 +101914,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -101846,6 +102032,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -101926,6 +102113,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -102531,6 +102719,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -102611,6 +102800,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -102732,6 +102922,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -102812,6 +103003,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -103100,6 +103292,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -103136,6 +103329,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -103205,6 +103399,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -103241,6 +103436,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -103300,6 +103496,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -103336,6 +103533,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -103404,6 +103602,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -103484,6 +103683,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -103567,6 +103767,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -103647,6 +103848,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -104187,6 +104389,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -104223,6 +104426,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -104297,6 +104501,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -104377,6 +104582,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -104466,6 +104672,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -104546,6 +104753,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -104876,6 +105084,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -104912,6 +105121,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -105047,6 +105257,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -105083,6 +105294,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -106768,6 +106980,7 @@ export namespace Prisma {
     isAvailabilityPublic?: boolean
     registrationStep?: number | null
     isActive?: boolean
+    isHidden?: boolean
     contractApprovedDate?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -106870,6 +107083,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -106949,6 +107163,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -107028,6 +107243,7 @@ export namespace Prisma {
     isAvailabilityPublic?: BoolFieldUpdateOperationsInput | boolean
     registrationStep?: NullableIntFieldUpdateOperationsInput | number | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    isHidden?: BoolFieldUpdateOperationsInput | boolean
     contractApprovedDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -107584,6 +107800,7 @@ export namespace Prisma {
     isActive?: boolean
     kycType?: number | null
     resetToken?: string | null
+    lastLoginAt?: Date | string | null
     gender?: $Enums.Gender | null
     workEligibility?: $Enums.WorkEligibility | null
     tradeName?: string | null
@@ -107962,6 +108179,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -107997,6 +108215,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -108032,6 +108251,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     kycType?: NullableIntFieldUpdateOperationsInput | number | null
     resetToken?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLoginAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     gender?: NullableEnumGenderFieldUpdateOperationsInput | $Enums.Gender | null
     workEligibility?: NullableEnumWorkEligibilityFieldUpdateOperationsInput | $Enums.WorkEligibility | null
     tradeName?: NullableStringFieldUpdateOperationsInput | string | null

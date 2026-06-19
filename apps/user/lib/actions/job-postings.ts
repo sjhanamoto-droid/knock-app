@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { sendPushToUsers } from "@/lib/push";
+import { getRelatedCompanyIds } from "@/lib/visibility";
 
 /**
  * 案件を掲載する（発注者）
@@ -80,7 +81,7 @@ export async function getApplicationsForJob(jobPostingId: string) {
   });
   if (!job) throw new Error("案件が見つかりません");
 
-  return prisma.jobApplication.findMany({
+  const applications = await prisma.jobApplication.findMany({
     where: { jobPostingId },
     orderBy: { createdAt: "desc" },
     include: {
@@ -89,6 +90,7 @@ export async function getApplicationsForJob(jobPostingId: string) {
           id: true,
           name: true,
           logo: true,
+          isHidden: true,
           occupations: {
             include: { occupationSubItem: { select: { name: true } } },
           },
@@ -96,6 +98,12 @@ export async function getApplicationsForJob(jobPostingId: string) {
       },
     },
   });
+
+  // 非表示の受注者は、繋がり(申請中/承認済み)が無い発注者には応募者として表示しない
+  const related = await getRelatedCompanyIds(user.companyId);
+  return applications.filter(
+    (a) => !a.company.isHidden || related.has(a.company.id)
+  );
 }
 
 /**
@@ -118,6 +126,7 @@ export async function getApplicationDetail(applicationId: string) {
           id: true,
           name: true,
           logo: true,
+          isHidden: true,
           prefecture: true,
           city: true,
           telNumber: true,
@@ -138,6 +147,12 @@ export async function getApplicationDetail(applicationId: string) {
   });
 
   if (!application) return null;
+
+  // 非表示の受注者は、繋がり(申請中/承認済み)が無い発注者には詳細を見せない
+  if (application.company.isHidden) {
+    const related = await getRelatedCompanyIds(user.companyId);
+    if (!related.has(application.company.id)) return null;
+  }
 
   return {
     ...application,

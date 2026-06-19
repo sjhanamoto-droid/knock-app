@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { getRelatedCompanyIds, isViewerHidden } from "@/lib/visibility";
 
 /**
  * 地図表示用: 緯度経度付き案件を検索する（受注者）
@@ -36,6 +37,14 @@ export async function searchJobsWithLocation(filters?: {
 
   if (filters?.prefecture) {
     where.address = { contains: filters.prefecture, mode: "insensitive" };
+  }
+
+  // 非表示の受注者は、繋がり(申請中/承認済み)がある発注者の案件のみ閲覧可能。
+  // 繋がりが1件も無ければ案件は一切表示しない（in:[] の曖昧さを避けるため早期return）。
+  if (await isViewerHidden(user.companyId)) {
+    const related = await getRelatedCompanyIds(user.companyId);
+    if (related.size === 0) return [];
+    where.companyId = { in: [...related] };
   }
 
   const jobs = await prisma.jobPosting.findMany({
@@ -120,6 +129,7 @@ export async function searchContractorsWithLocation(filters?: {
       city: true,
       latitude: true,
       longitude: true,
+      isHidden: true,
       occupations: {
         include: {
           occupationSubItem: { select: { name: true } },
@@ -163,19 +173,26 @@ export async function searchContractorsWithLocation(filters?: {
     )
   );
 
-  return companies.map((c) => ({
-    id: c.id,
-    name: c.name,
-    logo: c.logo,
-    prefecture: c.prefecture,
-    city: c.city,
-    latitude: Number(c.latitude),
-    longitude: Number(c.longitude),
-    connectionStatus: connectedIds.has(c.id)
-      ? ("connected" as const)
-      : pendingIds.has(c.id)
-        ? ("pending" as const)
-        : ("none" as const),
-    occupationNames: c.occupations.map((o) => o.occupationSubItem.name).slice(0, 3),
-  }));
+  return companies
+    .filter(
+      // 非表示の受注者は、繋がり(申請中/承認済み)がある相手にのみ表示する
+      (c) => !c.isHidden || connectedIds.has(c.id) || pendingIds.has(c.id)
+    )
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      logo: c.logo,
+      prefecture: c.prefecture,
+      city: c.city,
+      latitude: Number(c.latitude),
+      longitude: Number(c.longitude),
+      connectionStatus: connectedIds.has(c.id)
+        ? ("connected" as const)
+        : pendingIds.has(c.id)
+          ? ("pending" as const)
+          : ("none" as const),
+      occupationNames: c.occupations
+        .map((o) => o.occupationSubItem.name)
+        .slice(0, 3),
+    }));
 }

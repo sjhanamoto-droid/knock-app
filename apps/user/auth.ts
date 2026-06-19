@@ -52,6 +52,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.companyType = (user as unknown as Record<string, unknown>).companyType;
         token.activeMode = (user as unknown as Record<string, unknown>).activeMode;
         token.registrationStep = (user as unknown as Record<string, unknown>).registrationStep;
+
+        // 最終ログイン日時を記録（更新失敗してもログインは継続させる）
+        if (user.id) {
+          await prisma.user
+            .update({
+              where: { id: user.id },
+              data: { lastLoginAt: new Date() },
+            })
+            .catch((e) =>
+              console.error("[auth] lastLoginAt update failed:", e)
+            );
+        }
       }
 
       // セッション更新時
