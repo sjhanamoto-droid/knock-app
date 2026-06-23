@@ -33,6 +33,7 @@ export async function getAllSites(params?: {
       include: {
         company: { select: { name: true } },
         workCompany: { select: { name: true } },
+        parent: { select: { name: true } },
       },
     }),
     prisma.factoryFloor.count({ where }),

@@ -78,7 +78,12 @@ export default function AdminSitesPage() {
             ) : (
               data.sites.map((site) => (
                 <tr key={site.id} className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50">
-                  <td className="px-4 py-3 text-[13px] font-medium text-gray-900">{site.name ?? "名称未設定"}</td>
+                  <td className="px-4 py-3 text-[13px] font-medium text-gray-900">
+                    {site.parent?.name && (
+                      <span className="font-normal text-gray-400">{site.parent.name} </span>
+                    )}
+                    {site.name ?? "名称未設定"}
+                  </td>
                   <td className="px-4 py-3 text-[13px] text-gray-600">{site.company.name ?? "(未設定)"}</td>
                   <td className="px-4 py-3 text-[13px] text-gray-600">{site.workCompany?.name ?? "-"}</td>
                   <td className="px-4 py-3">
