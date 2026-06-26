@@ -14,7 +14,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
  * ボディが肥大して413になるのを防ぐ。失敗時(非画像/デコード不可)は null を返し、
  * 呼び出し側で元ファイルを使う。
  */
-async function compressImage(file: File, maxDim = 1600, quality = 0.8): Promise<Blob | null> {
+async function compressImage(file: File, maxDim = 1280, quality = 0.65): Promise<Blob | null> {
   if (!file.type.startsWith("image/")) return null;
   try {
     const bitmap = await createImageBitmap(file);
@@ -90,6 +90,14 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
 
   async function handleSubmitReport() {
     setShowReportConfirm(false);
+    // 施工写真は base64 データURIとしてサーバーアクションのボディに含まれる。
+    // Vercelのリクエストボディ上限(約4.5MB)を超えると送信自体が失敗するため、
+    // 合計サイズを事前チェックして分かりやすいメッセージを出す。
+    const totalPhotoBytes = photos.reduce((sum, p) => sum + p.length, 0);
+    if (totalPhotoBytes > 4 * 1024 * 1024) {
+      toast("施工写真の合計サイズが大きすぎます。枚数を減らして送信してください。");
+      return;
+    }
     setSubmitting(true);
     try {
       await submitCompletionReport({
