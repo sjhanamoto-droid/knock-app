@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 import { requireSession } from "@/lib/session";
 import { validateImageOrPdf } from "@/lib/upload-limits";
 
@@ -16,18 +17,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ファイルがありません" }, { status: 400 });
   }
 
-  const urls: string[] = [];
+  try {
+    const urls: string[] = [];
 
-  for (const file of files) {
-    const err = validateImageOrPdf(file);
-    if (err) {
-      return NextResponse.json({ error: err }, { status: 400 });
+    for (const file of files) {
+      const err = validateImageOrPdf(file);
+      if (err) {
+        return NextResponse.json({ error: err }, { status: 400 });
+      }
+
+      // 画像/PDFを Vercel Blob（実ストレージ）に保存し、短い公開URLだけを返す。
+      // 以前は base64 データURIを返していたため、これを呼び出し元が
+      // サーバーアクションのボディに含めて送信し、写真複数枚で
+      // Vercelのボディ上限(約4.5MB)を超えて送信失敗していた。
+      // URLを返すようにすることで、その上限問題を根本的に解消する。
+      const blob = await put(`uploads/${file.name || "file"}`, file, {
+        access: "public",
+        addRandomSuffix: true,
+        contentType: file.type || undefined,
+      });
+      urls.push(blob.url);
     }
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const base64 = buffer.toString("base64");
-    const mimeType = file.type || "application/octet-stream";
-    urls.push(`data:${mimeType};base64,${base64}`);
-  }
 
-  return NextResponse.json({ urls });
+    return NextResponse.json({ urls });
+  } catch (e) {
+    console.error("[api/upload] blob put failed:", e);
+    return NextResponse.json({ error: "アップロードに失敗しました" }, { status: 500 });
+  }
 }

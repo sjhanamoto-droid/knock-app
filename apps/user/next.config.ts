@@ -10,10 +10,10 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // 完了報告の施工写真など base64 画像を含むサーバーアクションのボディ上限。
-      // デフォルト1MBだと画像送信で(Body exceeded 1 MB limit)になるため引き上げる。
-      // Vercelのリクエストボディ上限(約4.5MB)が物理上限。これを超える分は
-      // クライアント側の圧縮＋合計サイズガードで防ぐ（completion-report-client 参照）。
+      // サーバーアクションのボディ上限（デフォルト1MB）。
+      // 画像は /api/upload で Vercel Blob に保存し短いURLのみを送るため、
+      // 通常この上限に達することはないが、その他のフォーム送信の余裕として引き上げておく。
+      // Vercelのリクエストボディ上限(約4.5MB)が物理上限。
       bodySizeLimit: "4.5mb",
     },
   },

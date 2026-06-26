@@ -90,14 +90,8 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
 
   async function handleSubmitReport() {
     setShowReportConfirm(false);
-    // 施工写真は base64 データURIとしてサーバーアクションのボディに含まれる。
-    // Vercelのリクエストボディ上限(約4.5MB)を超えると送信自体が失敗するため、
-    // 合計サイズを事前チェックして分かりやすいメッセージを出す。
-    const totalPhotoBytes = photos.reduce((sum, p) => sum + p.length, 0);
-    if (totalPhotoBytes > 4 * 1024 * 1024) {
-      toast("施工写真の合計サイズが大きすぎます。枚数を減らして送信してください。");
-      return;
-    }
+    // 施工写真は /api/upload で Vercel Blob に保存済みで、photos には短いURLのみが入る。
+    // サーバーアクションのボディに base64 を載せないため、ボディ上限による送信失敗は起きない。
     setSubmitting(true);
     try {
       await submitCompletionReport({

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { sendPushToUsers } from "@/lib/push";
@@ -29,11 +30,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "チャットルームのメンバーではありません" }, { status: 403 });
     }
 
-    // ファイルをbase64データURLに変換
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const base64 = buffer.toString("base64");
+    // ファイルを Vercel Blob（実ストレージ）に保存し、短い公開URLを使う。
+    // 以前は base64 データURIを message.file / jsonImage に保存しており、
+    // DBが肥大化し大きいファイルで送信失敗しやすかった。
     const mimeType = file.type || "application/octet-stream";
-    const fileUrl = `data:${mimeType};base64,${base64}`;
+    const blob = await put(`chat/${roomId}/${file.name || "file"}`, file, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType: file.type || undefined,
+    });
+    const fileUrl = blob.url;
 
     // 画像判定（MIMEタイプ or 拡張子）
     const isImage = mimeType.startsWith("image/") ||
