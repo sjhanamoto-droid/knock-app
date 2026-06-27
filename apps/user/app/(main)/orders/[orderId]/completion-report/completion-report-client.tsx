@@ -6,6 +6,7 @@ import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail, submitCompletionReport } from "@/lib/actions/orders";
 import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
 import { formatCurrency } from "@knock/utils";
+import { ImageLightbox } from "@/components/image-lightbox";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -82,6 +83,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null);
 
   async function refresh() {
     const updated = await getOrderDetail(orderId);
@@ -193,8 +195,8 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
           {floor.name ?? ""} / {(isOrderer ? floor.workCompany?.name : floor.company?.name) ?? ""}
         </p>
 
-        {isOrderer ? (
-          /* ===== 発注者: 施工報告の確認（閲覧のみ） ===== */
+        {isOrderer || !canEditReport ? (
+          /* ===== 発注者 / 受注者(完了後): 施工報告の確認（閲覧のみ） ===== */
           <>
             {/* 発注金額（注文書） */}
             {orderSheet && (
@@ -230,13 +232,18 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                     </h3>
                     <div className="grid grid-cols-3 gap-2">
                       {(report.photos as string[]).map((url, i) => (
-                        <div key={i} className="aspect-square overflow-hidden rounded-xl border border-gray-200">
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => setViewer({ images: report.photos as string[], index: i })}
+                          className="aspect-square overflow-hidden rounded-xl border border-gray-200 transition-all active:scale-95"
+                        >
                           <img
                             src={url}
                             alt={`施工写真 ${i + 1}`}
                             className="h-full w-full object-cover"
                           />
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -292,11 +299,17 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                   <div className="flex flex-wrap gap-2">
                     {photos.map((url, i) => (
                       <div key={i} className="relative h-20 w-20">
-                        <img
-                          src={url}
-                          alt={`施工写真 ${i + 1}`}
-                          className="h-full w-full rounded-xl object-cover"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => setViewer({ images: photos, index: i })}
+                          className="block h-full w-full overflow-hidden rounded-xl transition-all active:scale-95"
+                        >
+                          <img
+                            src={url}
+                            alt={`施工写真 ${i + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                        </button>
                         <button
                           onClick={() => removePhoto(i)}
                           className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white"
@@ -328,16 +341,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                   {submitting ? "送信中..." : report ? "施工報告を更新" : "施工報告を送信"}
                 </button>
               </>
-            ) : (
-              <div className="rounded-2xl bg-white p-5 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-                <p className="text-[15px] font-bold text-knock-text">完了</p>
-                {order.completedDay && (
-                  <p className="mt-1.5 text-[13px] text-knock-text-secondary">
-                    工事完了日: {new Date(order.completedDay).toLocaleDateString("ja-JP")}
-                  </p>
-                )}
-              </div>
-            )}
+            ) : null}
           </>
         )}
       </div>
@@ -358,6 +362,15 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
         title="完了"
         message={successMessage}
       />
+
+      {viewer && (
+        <ImageLightbox
+          images={viewer.images}
+          index={viewer.index}
+          onClose={() => setViewer(null)}
+          fileNamePrefix="施工写真"
+        />
+      )}
     </div>
   );
 }

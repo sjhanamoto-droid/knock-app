@@ -10,6 +10,7 @@ import {
 } from "@knock/utils";
 import { ConfirmDialog, useToast } from "@knock/ui";
 import { useMode } from "@/lib/hooks/use-mode";
+import { ImageLightbox } from "@/components/image-lightbox";
 
 type SiteDetail = NonNullable<Awaited<ReturnType<typeof getSite>>>;
 type ActiveTab = "detail" | "images" | "children";
@@ -1102,25 +1103,12 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
 
       {/* 画像プレビュー */}
       {previewImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-          onClick={() => setPreviewImage(null)}
-        >
-          <button
-            onClick={() => setPreviewImage(null)}
-            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
-          >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-          <img
-            src={previewImage}
-            alt="プレビュー"
-            className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
+        <ImageLightbox
+          images={[previewImage]}
+          index={0}
+          onClose={() => setPreviewImage(null)}
+          fileNamePrefix="現場画像"
+        />
       )}
 
       {/* 削除確認ダイアログ */}

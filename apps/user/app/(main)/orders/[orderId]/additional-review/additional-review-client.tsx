@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions/orders";
 import { formatCurrency } from "@knock/utils";
 import { ConfirmDialog, useToast } from "@knock/ui";
+import { ImageLightbox } from "@/components/image-lightbox";
 
 // base64 の data URL はブラウザが新規タブで直接開けない(ブロックされる)ため、
 // Blob に変換して object URL として開く。ポップアップブロック時はダウンロードにフォールバック。
@@ -56,6 +57,7 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null);
 
   async function handleAccept() {
     setSubmitting(true);
@@ -280,8 +282,8 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
                   <button
                     key={i}
                     type="button"
-                    onClick={() => openDataUrl(url, `追加工事画像_${i + 1}`)}
-                    className="block overflow-hidden rounded-lg border border-gray-200"
+                    onClick={() => setViewer({ images: order.imageUrls, index: i })}
+                    className="block overflow-hidden rounded-lg border border-gray-200 transition-all active:scale-95"
                   >
                     <img src={url} alt={`追加工事画像${i + 1}`} className="h-24 w-full object-cover" />
                   </button>
@@ -378,6 +380,15 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
         cancelLabel="戻る"
         variant="danger"
       />
+
+      {viewer && (
+        <ImageLightbox
+          images={viewer.images}
+          index={viewer.index}
+          onClose={() => setViewer(null)}
+          fileNamePrefix="追加工事画像"
+        />
+      )}
     </div>
   );
 }

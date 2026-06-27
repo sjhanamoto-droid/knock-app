@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getChatRoom, getNewMessages, sendMessage, markAsRead } from "@/lib/actions/chat";
+import { ImageLightbox } from "@/components/image-lightbox";
 import {
   formatDateTime,
   formatCurrency,
@@ -34,6 +35,7 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
   // 自分のメッセージ判定用（ログインユーザーの実ID）
   const currentUserId = initialData.myUserId;
   const [uploading, setUploading] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Mark as read on mount
   useEffect(() => {
@@ -254,9 +256,13 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
             </span>
           )}
           {isImage && fileUrl ? (
-            <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-2xl border border-gray-200">
+            <button
+              type="button"
+              onClick={() => setLightboxUrl(fileUrl)}
+              className="block overflow-hidden rounded-2xl border border-gray-200 transition-all active:scale-[0.98]"
+            >
               <img src={fileUrl} alt={fileName} className="max-h-[200px] w-auto object-cover" />
-            </a>
+            </button>
           ) : fileUrl ? (
             <a
               href={fileUrl}
@@ -609,6 +615,15 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
             </div>
           </div>
         </>
+      )}
+
+      {lightboxUrl && (
+        <ImageLightbox
+          images={[lightboxUrl]}
+          index={0}
+          onClose={() => setLightboxUrl(null)}
+          fileNamePrefix="画像"
+        />
       )}
     </div>
   );
