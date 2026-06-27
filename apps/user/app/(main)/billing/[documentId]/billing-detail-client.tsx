@@ -201,10 +201,10 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
           </div>
         </div>
 
-        {/* 納品書明細 */}
+        {/* 発注明細 */}
         {lineItems.length > 0 && (
           <div className={cardClass}>
-            <p className="text-[13px] font-bold text-[#1A2340] mb-3">含まれる納品書</p>
+            <p className="text-[13px] font-bold text-[#1A2340] mb-3">含まれる発注</p>
             <div className="space-y-2">
               {lineItems.map((item, i) => (
                 <div key={i} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5">

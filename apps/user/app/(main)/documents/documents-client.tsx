@@ -14,7 +14,7 @@ import {
 } from "@knock/utils";
 import { formatCurrency } from "@knock/utils";
 
-type DocumentFilter = "all" | "ORDER_SHEET" | "DELIVERY_NOTE" | "INVOICE";
+type DocumentFilter = "all" | "ORDER_SHEET" | "INVOICE";
 type DocListResult = Awaited<ReturnType<typeof getDocuments>>;
 type InvoiceCandidates = Awaited<ReturnType<typeof getInvoiceCandidates>>;
 type Counterparty = { id: string; name: string };
@@ -22,13 +22,11 @@ type Counterparty = { id: string; name: string };
 const FILTER_TABS: { value: DocumentFilter; label: string }[] = [
   { value: "all", label: "全て" },
   { value: "ORDER_SHEET", label: "注文書" },
-  { value: "DELIVERY_NOTE", label: "納品書" },
   { value: "INVOICE", label: "請求書" },
 ];
 
 const TYPE_TITLE_MAP: Record<string, string> = {
   ORDER_SHEET: "注文書一覧",
-  DELIVERY_NOTE: "納品書一覧",
   INVOICE: "請求書一覧",
 };
 
@@ -211,24 +209,51 @@ export function DocumentsClient({
       </header>
 
       <div className="flex flex-col gap-3 px-4 pt-3 pb-4">
-        {/* 取引先選択 */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-1">
-            取引先
-          </label>
-          <select
-            value={selectedCompanyId}
-            onChange={(e) => setSelectedCompanyId(e.target.value)}
-            className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-[13px] text-knock-text focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">全ての取引先</option>
-            {counterparties.map((cp) => (
-              <option key={cp.id} value={cp.id}>
-                {cp.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* 取引先選択ファースト：先に取引先を選ぶ */}
+        {!selectedCompanyId ? (
+          <div className="flex flex-col gap-2">
+            <p className="px-1 pt-1 text-[13px] font-bold text-knock-text">取引先を選択してください</p>
+            {counterparties.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-10">
+                <span className="text-[13px] text-knock-text-muted">取引先がありません</span>
+              </div>
+            ) : (
+              counterparties.map((cp) => (
+                <button
+                  key={cp.id}
+                  onClick={() => setSelectedCompanyId(cp.id)}
+                  className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
+                  style={{ borderLeft: `4px solid ${accentColor}` }}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <CompanyIcon />
+                    <span className="truncate text-[14px] font-bold text-knock-text">{cp.name}</span>
+                  </span>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M6 4L10 8L6 12" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              ))
+            )}
+          </div>
+        ) : (
+          <>
+            {/* 選択中の取引先ヘッダ */}
+            <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <span className="flex min-w-0 items-center gap-2">
+                <CompanyIcon />
+                <span className="truncate text-[13px] font-bold text-knock-text">
+                  {counterparties.find((c) => c.id === selectedCompanyId)?.name ?? "取引先"}
+                </span>
+              </span>
+              <button
+                onClick={() => setSelectedCompanyId("")}
+                className="shrink-0 text-[12px] font-bold"
+                style={{ color: accentColor }}
+              >
+                変更
+              </button>
+            </div>
 
         {/* Invoice Candidates Section */}
         {candidates.length > 0 && (
@@ -251,7 +276,7 @@ export function DocumentsClient({
                         {c.orderCompanyName} 宛
                       </span>
                       <span className="text-[10px] text-knock-text-secondary">
-                        納品書 {c.deliveryNoteCount}件 /{" "}
+                        発注 {c.orderCount}件 /{" "}
                         <span className="font-bold" style={{ color: accentColor }}>
                           {formatCurrency(c.totalAmount)}
                         </span>
@@ -385,6 +410,8 @@ export function DocumentsClient({
             </svg>
             <span className="text-[13px] text-knock-text-muted">帳票がありません</span>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

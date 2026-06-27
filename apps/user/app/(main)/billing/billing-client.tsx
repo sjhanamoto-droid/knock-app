@@ -8,6 +8,7 @@ import { getBillingList } from "@/lib/actions/invoices";
 import { useToast } from "@knock/ui";
 
 type InvoiceItem = Awaited<ReturnType<typeof getBillingList>>[number];
+type Counterparty = { id: string; name: string };
 
 const statusLabels: Record<string, string> = {
   DRAFT: "確認待ち",
@@ -33,19 +34,27 @@ function WavyUnderline({ color }: { color: string }) {
 
 interface Props {
   initialInvoices: InvoiceItem[];
+  initialCounterparties: Counterparty[];
   initialYear: number;
   initialMonth: number;
 }
 
-export function BillingClient({ initialInvoices, initialYear, initialMonth }: Props) {
+export function BillingClient({ initialInvoices, initialCounterparties, initialYear, initialMonth }: Props) {
   const router = useRouter();
   const { accentColor } = useMode();
   const { toast } = useToast();
   const [invoices, setInvoices] = useState<InvoiceItem[]>(initialInvoices);
   const [loading, setLoading] = useState(false);
+  const [counterparties] = useState<Counterparty[]>(initialCounterparties);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 
   const [selectedYear, setSelectedYear] = useState(initialYear);
   const [selectedMonth, setSelectedMonth] = useState(initialMonth);
+
+  // 選択中の取引先で絞り込み
+  const shownInvoices = invoices.filter(
+    (inv) => (inv.isOrderer ? inv.workerCompany.id : inv.orderCompany.id) === selectedCompanyId
+  );
 
   const isInitialMount = useRef(true);
 
@@ -99,6 +108,46 @@ export function BillingClient({ initialInvoices, initialYear, initialMonth }: Pr
         </div>
       </div>
 
+      {!selectedCompanyId ? (
+        /* 取引先選択ファースト：先に取引先を選ぶ */
+        <div className="flex flex-col gap-2 px-4 pt-3">
+          <p className="px-1 pt-1 text-[13px] font-bold text-[#1A2340]">取引先を選択してください</p>
+          {counterparties.length === 0 ? (
+            <div className="rounded-2xl bg-white p-8 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <p className="text-[14px] text-gray-400">取引先がありません</p>
+            </div>
+          ) : (
+            counterparties.map((cp) => (
+              <button
+                key={cp.id}
+                onClick={() => setSelectedCompanyId(cp.id)}
+                className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
+                style={{ borderLeft: `4px solid ${accentColor}` }}
+              >
+                <span className="truncate text-[14px] font-bold text-[#1A2340]">{cp.name}</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M6 4L10 8L6 12" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            ))
+          )}
+        </div>
+      ) : (
+        <>
+      {/* 選択中の取引先ヘッダ */}
+      <div className="mx-4 mt-3 flex items-center justify-between rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+        <span className="truncate text-[13px] font-bold text-[#1A2340]">
+          {counterparties.find((c) => c.id === selectedCompanyId)?.name ?? "取引先"}
+        </span>
+        <button
+          onClick={() => setSelectedCompanyId("")}
+          className="shrink-0 text-[12px] font-bold"
+          style={{ color: accentColor }}
+        >
+          変更
+        </button>
+      </div>
+
       {/* 月選択 */}
       <div className="flex items-center justify-center gap-6 py-4">
         <button onClick={prevMonth} className="p-2 rounded-full active:bg-gray-200">
@@ -134,12 +183,12 @@ export function BillingClient({ initialInvoices, initialYear, initialMonth }: Pr
           <div className="flex items-center justify-center py-20">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
           </div>
-        ) : invoices.length === 0 ? (
+        ) : shownInvoices.length === 0 ? (
           <div className="rounded-2xl bg-white p-8 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-            <p className="text-[14px] text-gray-400">この月の請求書はありません</p>
+            <p className="text-[14px] text-gray-400">この取引先のこの月の請求書はありません</p>
           </div>
         ) : (
-          invoices.map((inv) => {
+          shownInvoices.map((inv) => {
             const sc = statusColors[inv.status] ?? statusColors.VOID;
             return (
               <Link
@@ -178,6 +227,8 @@ export function BillingClient({ initialInvoices, initialYear, initialMonth }: Pr
           })
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

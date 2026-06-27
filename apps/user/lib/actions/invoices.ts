@@ -87,7 +87,7 @@ export async function getInvoiceCandidates(yearMonth: string) {
       orderCompanyId: string;
       workerCompanyName: string;
       orderCompanyName: string;
-      deliveryNoteCount: number;
+      orderCount: number;
       totalAmount: number;
     }
   >();
@@ -112,7 +112,7 @@ export async function getInvoiceCandidates(yearMonth: string) {
 
     const existing = pairMap.get(key);
     if (existing) {
-      existing.deliveryNoteCount += 1;
+      existing.orderCount += 1;
       existing.totalAmount += orderTotal;
     } else {
       pairMap.set(key, {
@@ -120,7 +120,7 @@ export async function getInvoiceCandidates(yearMonth: string) {
         orderCompanyId,
         workerCompanyName: candidateWorkerNameById.get(order.workCompanyId) ?? "",
         orderCompanyName: order.factoryFloor.company?.name ?? "",
-        deliveryNoteCount: 1,
+        orderCount: 1,
         totalAmount: orderTotal,
       });
     }

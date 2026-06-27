@@ -676,7 +676,7 @@ export function CompanyEditClient({ initialProfile, initialMasters, initialSelec
         {showInfo && (
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
           <h3 className="mb-3 text-[13px] font-bold uppercase tracking-wider text-gray-500">印鑑画像</h3>
-          <p className="mb-3 text-[12px] text-gray-500">帳票（注文書・納品書・請求書）に自動挿入されます</p>
+          <p className="mb-3 text-[12px] text-gray-500">帳票（注文書・請求書）に自動挿入されます</p>
 
           {stampPreview ? (
             <div className="flex items-center gap-4">
