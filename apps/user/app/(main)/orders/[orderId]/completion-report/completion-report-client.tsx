@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { getOrderDetail, submitCompletionReport } from "@/lib/actions/orders";
+import { draftCompletionReport } from "@/lib/actions/ai";
 import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
 import { formatCurrency } from "@knock/utils";
 import { ImageLightbox } from "@/components/image-lightbox";
@@ -80,6 +81,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
     (initialOrder?.completionReport?.photos as string[] | undefined) ?? []
   );
   const [uploading, setUploading] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -281,6 +283,33 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                     placeholder="施工の報告を記入してください（任意）"
                     className="w-full rounded-xl border-none bg-[#F0F0F0] px-4 py-3 text-[14px]"
                   />
+                  <button
+                    type="button"
+                    disabled={drafting || submitting || uploading}
+                    onClick={async () => {
+                      setDrafting(true);
+                      try {
+                        const r = await draftCompletionReport({
+                          siteName: floor.name ?? "",
+                          counterpartyName:
+                            (isOrderer ? floor.workCompany?.name : floor.company?.name) ?? undefined,
+                          completionDate,
+                          photoCount: photos.length,
+                          roughNotes: comment || undefined,
+                        });
+                        if ("error" in r) {
+                          toast(r.error);
+                        } else {
+                          setComment(r.text);
+                        }
+                      } finally {
+                        setDrafting(false);
+                      }
+                    }}
+                    className="mt-2 inline-flex items-center gap-1 rounded-lg bg-[#F0F0F0] px-3 py-2 text-[13px] font-bold text-knock-text transition-colors active:bg-gray-200 disabled:opacity-50"
+                  >
+                    {drafting ? "生成中…" : "✨ AIで下書き"}
+                  </button>
                 </div>
 
                 {/* 施工写真 */}
