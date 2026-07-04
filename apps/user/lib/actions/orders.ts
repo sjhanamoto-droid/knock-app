@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { requireKyc } from "@/lib/actions/verification";
@@ -107,20 +108,22 @@ export async function rejectOrder(id: string) {
     },
   });
   if (!order) throw new Error("発注が見つかりません");
-  if (order.status !== "PENDING") throw new Error("この発注は既に処理済みです");
 
-  return prisma.$transaction(async (tx) => {
+  // 二重送信対策: PENDING のものだけを REJECTED に原子的に遷移し、重複処理を防ぐ。
+  const claim = await prisma.factoryFloorOrder.updateMany({
+    where: { id, status: "PENDING", deletedAt: null },
+    data: { status: "REJECTED" },
+  });
+  if (claim.count !== 1) throw new Error("この発注は既に処理済みです");
+
+  const result = await prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
     await tx.notification.updateMany({
       where: { userId: user.id, targetId: id, seenFlag: false },
       data: { seenFlag: true },
     });
 
-    await tx.factoryFloorOrder.update({
-      where: { id },
-      data: { status: "REJECTED" },
-    });
-
+    // 発注ステータスは上の原子的クレームで REJECTED 済み。
     // 現場ステータスを「未発注」に戻し、施工会社をクリア
     await tx.factoryFloor.update({
       where: { id: order.factoryFloor.id },
@@ -184,6 +187,11 @@ export async function rejectOrder(id: string) {
 
     return { id };
   });
+
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  revalidatePath("/chat");
+  return result;
 }
 
 export async function cancelOrder(id: string) {
@@ -337,7 +345,7 @@ export async function createOrderRequest(data: {
   });
   if (!matching) throw new Error("発注するには先につながり申請を承認してもらう必要があります");
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     // 1. 発注レコード作成
     const order = await tx.factoryFloorOrder.create({
       data: {
@@ -413,6 +421,10 @@ export async function createOrderRequest(data: {
 
     return order;
   });
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  revalidatePath("/chat");
+  return result;
 }
 
 // ============ V2: 発注確定（注文書自動生成） ============
@@ -451,7 +463,18 @@ export async function confirmOrder(orderId: string): Promise<{ success: boolean;
   }
 
   // 注文書を先に生成（トランザクション外で実行しコネクションプール枯渇を防ぐ）
-  const documentId = await generateOrderSheet(orderId);
+  let documentId: string;
+  try {
+    documentId = await generateOrderSheet(orderId);
+  } catch (e) {
+    // 原子的クレームを取り消して再試行可能に戻す
+    await prisma.factoryFloorOrder.updateMany({
+      where: { id: orderId, status: "CONFIRMED", deletedAt: null },
+      data: { status: "APPROVED" },
+    });
+    console.error("[confirmOrder] generateOrderSheet failed:", e);
+    return { success: false, error: "注文書の生成に失敗しました。もう一度お試しください。" };
+  }
 
   await prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
@@ -556,6 +579,9 @@ export async function confirmOrder(orderId: string): Promise<{ success: boolean;
     return { orderId, documentId };
   });
 
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  revalidatePath("/chat");
   return { success: true, orderId, documentId };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : String(e) };
@@ -580,20 +606,22 @@ export async function acceptOrder(orderId: string) {
     },
   });
   if (!order) throw new Error("発注が見つかりません");
-  if (order.status !== "PENDING") throw new Error("この発注は既に処理済みです");
 
-  return prisma.$transaction(async (tx) => {
+  // 二重送信対策: PENDING のものだけを APPROVED に原子的に遷移し、重複処理を防ぐ。
+  const claim = await prisma.factoryFloorOrder.updateMany({
+    where: { id: orderId, status: "PENDING", deletedAt: null },
+    data: { status: "APPROVED" },
+  });
+  if (claim.count !== 1) throw new Error("この発注は既に処理済みです");
+
+  const result = await prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
     await tx.notification.updateMany({
       where: { userId: user.id, targetId: orderId, seenFlag: false },
       data: { seenFlag: true },
     });
 
-    // 1. 発注ステータスを「了承」に更新 + 現場ステータスを「発注済」に更新
-    await tx.factoryFloorOrder.update({
-      where: { id: orderId },
-      data: { status: "APPROVED" },
-    });
+    // 1. 発注ステータスは上の原子的クレームで APPROVED 済み。現場ステータスを「発注済」に更新
     await tx.factoryFloor.update({
       where: { id: order.factoryFloor.id },
       data: { status: "ORDERED" },
@@ -653,6 +681,11 @@ export async function acceptOrder(orderId: string) {
 
     return { orderId };
   });
+
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  revalidatePath("/chat");
+  return result;
 }
 
 // ============ V2: 完了報告（受注者） ============
@@ -872,7 +905,7 @@ export async function requestCloseFloor(factoryFloorId: string) {
   const toRequest = orders.filter((o) => o.completionStatus === "NONE");
   if (toRequest.length === 0) throw new Error("既に締め依頼済み、または完了済みです");
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await tx.factoryFloorOrder.updateMany({
       where: { id: { in: toRequest.map((o) => o.id) } },
       data: { completionStatus: "CLOSE_REQUESTED" },
@@ -921,6 +954,10 @@ export async function requestCloseFloor(factoryFloorId: string) {
 
     return { factoryFloorId: floor.id };
   });
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  revalidatePath("/chat");
+  return result;
 }
 
 // ============ V2: 工事完了(締め)承認（発注者・現場全体）→ 請求対象データ確定 ============
@@ -1032,6 +1069,8 @@ export async function approveCloseFloor(factoryFloorId: string, completedDay: st
     await recalculateTrustScore(floor.workCompanyId);
   }
 
+  revalidatePath("/orders");
+  revalidatePath("/sites");
   return result;
 }
 
@@ -1057,7 +1096,7 @@ export async function rejectCloseFloor(factoryFloorId: string) {
   const toRevert = floor.orders.filter((o) => o.completionStatus === "CLOSE_REQUESTED");
   if (toRevert.length === 0) throw new Error("差し戻しできる状態ではありません");
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     await tx.notification.updateMany({
       where: { userId: user.id, targetId: floor.id, seenFlag: false },
       data: { seenFlag: true },
@@ -1098,6 +1137,9 @@ export async function rejectCloseFloor(factoryFloorId: string) {
 
     return { factoryFloorId: floor.id };
   });
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  return result;
 }
 
 // ============ V2: 取引詳細（拡張版） ============

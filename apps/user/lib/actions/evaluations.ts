@@ -110,6 +110,16 @@ export async function submitEvaluation(data: {
 export async function getEvaluationForOrder(orderId: string) {
   const user = await requireSession();
 
+  const order = await prisma.factoryFloorOrder.findUnique({
+    where: { id: orderId },
+    select: { workCompanyId: true, factoryFloor: { select: { companyId: true } } },
+  });
+  if (!order) return [];
+  const isParty =
+    order.workCompanyId === user.companyId ||
+    order.factoryFloor?.companyId === user.companyId;
+  if (!isParty) return [];
+
   return prisma.evaluation.findMany({
     where: {
       factoryFloorOrderId: orderId,

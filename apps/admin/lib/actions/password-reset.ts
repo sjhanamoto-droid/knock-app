@@ -4,6 +4,11 @@ import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
+// リセットトークンの有効期限（1時間）。
+// 専用カラムを追加せず、トークン文字列に "ランダム.失効時刻" の形で失効時刻を埋め込む。
+// DB は完全一致で引くため、失効時刻の改ざんは照合不一致となり成立しない。
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+
 export async function requestAdminPasswordReset(email: string) {
   try {
     const adminUser = await prisma.adminUser.findUnique({
@@ -11,7 +16,8 @@ export async function requestAdminPasswordReset(email: string) {
     });
 
     if (adminUser) {
-      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = Date.now() + RESET_TOKEN_TTL_MS;
+      const token = `${crypto.randomBytes(32).toString("hex")}.${expiresAt}`;
 
       await prisma.adminUser.update({
         where: { id: adminUser.id },
@@ -52,13 +58,23 @@ export async function resetAdminPassword(token: string, newPassword: string) {
       return { error: "無効なトークンです" };
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // 失効時刻を検証。期限切れならトークンを破棄して拒否。
+    const expiresAt = Number(token.split(".")[1]);
+    if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) {
+      await prisma.adminUser.update({
+        where: { id: adminUser.id },
+        data: { resetToken: null },
+      });
+      return { error: "トークンの有効期限が切れています。お手数ですが再度お試しください。" };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.adminUser.update({
       where: { id: adminUser.id },
       data: {
         password: hashedPassword,
-        resetToken: null,
+        resetToken: null, // 単回使用: 使用後に破棄
       },
     });
 

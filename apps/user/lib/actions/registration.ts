@@ -195,6 +195,14 @@ export async function registerStep2(
   }
 ) {
   try {
+    const existing = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { registrationStep: true },
+    });
+    if (!existing || existing.registrationStep == null) {
+      return { error: "この会社は登録済みか、対象が見つかりません" };
+    }
+
     await prisma.company.update({
       where: { id: companyId },
       data: {
@@ -241,6 +249,14 @@ export async function registerStep3(
 
     if (!user) {
       return { error: "対象のユーザーが見つかりません" };
+    }
+
+    const company = await prisma.company.findUnique({
+      where: { id: companyId },
+      select: { registrationStep: true },
+    });
+    if (!company || company.registrationStep == null) {
+      return { error: "この会社は既に登録済みです" };
     }
 
     // トランザクションで User と Company を同時更新 + サブスクリプション作成

@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { generateInvoice, generateInvoiceFromOrders } from "@/lib/services/document-generator";
-import { getBillingPeriod, getBillingMonth } from "@/lib/helpers/billing-period";
+import { getBillingMonth } from "@/lib/helpers/billing-period";
 
 /**
  * 請求書候補を取得
@@ -142,91 +142,6 @@ export async function generateMonthlyInvoice(
 }
 
 /**
- * 発注者の締め日に基づいてドラフト請求書を受注者ごとに自動生成
- */
-export async function generateDraftInvoices(companyId: string) {
-  const company = await prisma.company.findUnique({
-    where: { id: companyId },
-    select: {
-      id: true,
-      billingClosingDay: true,
-      billingGraceDays: true,
-      paymentDueType: true,
-    },
-  });
-  if (!company) return [];
-
-  // 対象月の yearMonth を計算
-  const now = new Date();
-  const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-  // 対象月の締切(CLOSED)発注を受注者ごとに集計
-  const year = parseInt(yearMonth.substring(0, 4));
-  const month = parseInt(yearMonth.substring(4, 6));
-  // 発注者の締め日に基づく請求期間で集計（締め日 null は月末締め）
-  const { start: startOfMonth, end: endOfMonth } = getBillingPeriod(
-    yearMonth,
-    company.billingClosingDay
-  );
-
-  const orders = await prisma.factoryFloorOrder.findMany({
-    where: {
-      deletedAt: null,
-      status: "CONFIRMED",
-      completionStatus: "CLOSED",
-      factoryFloor: { companyId, deletedAt: null },
-      completedDay: { gte: startOfMonth, lte: endOfMonth },
-    },
-    select: {
-      workCompanyId: true,
-    },
-  });
-
-  if (orders.length === 0) return [];
-
-  // 既存のドラフト請求書を確認
-  const existingInvoices = await prisma.document.findMany({
-    where: {
-      type: "INVOICE",
-      orderCompanyId: companyId,
-      yearMonth,
-      deletedAt: null,
-    },
-    select: { workerCompanyId: true },
-  });
-
-  const invoicedWorkers = new Set(existingInvoices.map((i) => i.workerCompanyId));
-
-  // 受注者ごとにユニークなIDを集める
-  const workerIds = [...new Set(orders.map((o) => o.workCompanyId))].filter(
-    (id) => !invoicedWorkers.has(id)
-  );
-
-  // 支払期日を計算
-  const dueDate = calculateDueDate(company.paymentDueType, year, month);
-
-  const createdIds: string[] = [];
-  for (const workerCompanyId of workerIds) {
-    try {
-      const docId = await generateInvoice(workerCompanyId, companyId, yearMonth);
-      // ドラフト状態に戻す + 支払期日を設定
-      await prisma.document.update({
-        where: { id: docId },
-        data: {
-          status: "DRAFT",
-          dueDate,
-        },
-      });
-      createdIds.push(docId);
-    } catch {
-      // 請求対象の工事がない場合はスキップ
-    }
-  }
-
-  return createdIds;
-}
-
-/**
  * 支払期日を計算
  */
 function calculateDueDate(
@@ -345,103 +260,23 @@ export async function recalculateInvoice(documentId: string) {
   // 既存のドラフトを失わないよう、「生成成功後に」旧請求書を無効化する。
   const newDocId = await generateInvoice(doc.workerCompanyId, doc.orderCompanyId, doc.yearMonth);
 
-  // ドラフト状態 + 支払期日を引き継ぎ
-  await prisma.document.update({
-    where: { id: newDocId },
-    data: {
-      status: "DRAFT",
-      dueDate: doc.dueDate,
-    },
-  });
+  // ドラフト状態 + 支払期日の引き継ぎと旧請求書の無効化を原子的に実行
+  await prisma.$transaction(async (tx) => {
+    await tx.document.update({
+      where: { id: newDocId },
+      data: {
+        status: "DRAFT",
+        dueDate: doc.dueDate,
+      },
+    });
 
-  // 生成成功後に旧請求書を無効化
-  await prisma.document.update({
-    where: { id: documentId },
-    data: { status: "VOID", deletedAt: new Date() },
+    await tx.document.update({
+      where: { id: documentId },
+      data: { status: "VOID", deletedAt: new Date() },
+    });
   });
 
   return newDocId;
-}
-
-/**
- * 猶予期限超過の請求書を自動確定（Cron用）
- */
-export async function autoConfirmOverdueInvoices() {
-  const now = new Date();
-
-  // 全社のドラフト請求書を取得
-  const draftInvoices = await prisma.document.findMany({
-    where: {
-      type: "INVOICE",
-      status: "DRAFT",
-      deletedAt: null,
-    },
-    include: {
-      orderCompany: {
-        select: {
-          billingClosingDay: true,
-          billingGraceDays: true,
-        },
-      },
-    },
-  });
-
-  let confirmedCount = 0;
-
-  for (const invoice of draftInvoices) {
-    if (!invoice.yearMonth) continue;
-
-    const graceDays = invoice.orderCompany.billingGraceDays ?? 5;
-    const closingDay = invoice.orderCompany.billingClosingDay;
-    const year = parseInt(invoice.yearMonth.substring(0, 4));
-    const month = parseInt(invoice.yearMonth.substring(4, 6));
-
-    // 締め日を計算
-    let closingDate: Date;
-    if (closingDay) {
-      closingDate = new Date(year, month - 1, closingDay);
-    } else {
-      // 月末
-      closingDate = new Date(year, month, 0);
-    }
-
-    // 猶予期限 = 締め日 + 猶予日数
-    const graceDeadline = new Date(closingDate);
-    graceDeadline.setDate(graceDeadline.getDate() + graceDays);
-
-    if (now > graceDeadline) {
-      await prisma.document.update({
-        where: { id: invoice.id },
-        data: {
-          status: "ISSUED",
-          autoConfirmedAt: now,
-          confirmedAt: now,
-        },
-      });
-
-      // 受注者に通知
-      const contractorUsers = await prisma.user.findMany({
-        where: { companyId: invoice.workerCompanyId, isActive: true, deletedAt: null },
-        select: { id: true },
-      });
-
-      if (contractorUsers.length > 0) {
-        await prisma.notification.createMany({
-          data: contractorUsers.map((u) => ({
-            userId: u.id,
-            title: "請求書自動確定",
-            content: `${invoice.yearMonth?.substring(0, 4)}年${invoice.yearMonth?.substring(4)}月分の請求書が自動確定されました`,
-            type: 41,
-            targetId: invoice.id,
-          })),
-        });
-      }
-
-      confirmedCount++;
-    }
-  }
-
-  return { confirmedCount };
 }
 
 /**
@@ -519,71 +354,74 @@ export async function markInvoicePaid(documentId: string) {
 
   if (!doc) throw new Error("請求書が見つかりません");
 
-  // 請求書を CONFIRMED (支払済み) に
-  await prisma.document.update({
-    where: { id: documentId },
-    data: { status: "CONFIRMED" },
-  });
-
-  // 関連する発注の FactoryFloor を DEAL_COMPLETED に更新。
+  // メタデータはJS操作のみ（DB不要）なのでトランザクション外で取得
   // 新方式: metadata.orderIds（発注ID）/ 旧方式: metadata.deliveryNoteIds（納品書ID）
   const metadata = doc.metadata as Record<string, unknown> | null;
   const metaOrderIds = (metadata?.orderIds as string[]) ?? [];
   const deliveryNoteIds = (metadata?.deliveryNoteIds as string[]) ?? [];
 
-  let floorIds: string[] = [];
-
-  if (metaOrderIds.length > 0) {
-    // 新方式: 発注IDから直接 FactoryFloor を解決
-    const orders = await prisma.factoryFloorOrder.findMany({
-      where: { id: { in: metaOrderIds } },
-      select: { factoryFloorId: true },
-    });
-    floorIds = orders.map((o) => o.factoryFloorId);
-  } else if (deliveryNoteIds.length > 0) {
-    // 旧方式: 納品書 → FactoryFloorOrder → FactoryFloor
-    const deliveryNotes = await prisma.document.findMany({
-      where: { id: { in: deliveryNoteIds } },
-      select: { factoryFloorOrderId: true },
+  await prisma.$transaction(async (tx) => {
+    // 請求書を CONFIRMED (支払済み) に
+    await tx.document.update({
+      where: { id: documentId },
+      data: { status: "CONFIRMED" },
     });
 
-    const orderIds = deliveryNotes.map((n) => n.factoryFloorOrderId);
-    const orders = await prisma.factoryFloorOrder.findMany({
-      where: { id: { in: orderIds } },
-      select: { factoryFloorId: true },
-    });
-    floorIds = orders.map((o) => o.factoryFloorId);
-  }
+    // 関連する発注の FactoryFloor を DEAL_COMPLETED に更新
+    let floorIds: string[] = [];
 
-  if (floorIds.length > 0) {
-    // 新フローでは締め完了で現場は COMPLETED になる。支払い完了で取引終端(DEAL_COMPLETED)へ。
-    // （旧フローの DELIVERY_APPROVED/INVOICED も後方互換で許容）
-    await prisma.factoryFloor.updateMany({
-      where: {
-        id: { in: floorIds },
-        status: { in: ["DELIVERY_APPROVED", "INVOICED", "COMPLETED"] },
-      },
-      data: { status: "DEAL_COMPLETED" },
-    });
-  }
+    if (metaOrderIds.length > 0) {
+      // 新方式: 発注IDから直接 FactoryFloor を解決
+      const orders = await tx.factoryFloorOrder.findMany({
+        where: { id: { in: metaOrderIds } },
+        select: { factoryFloorId: true },
+      });
+      floorIds = orders.map((o) => o.factoryFloorId);
+    } else if (deliveryNoteIds.length > 0) {
+      // 旧方式: 納品書 → FactoryFloorOrder → FactoryFloor
+      const deliveryNotes = await tx.document.findMany({
+        where: { id: { in: deliveryNoteIds } },
+        select: { factoryFloorOrderId: true },
+      });
 
-  // 受注者に支払い完了通知
-  const contractorUsers = await prisma.user.findMany({
-    where: { companyId: doc.workerCompanyId, isActive: true, deletedAt: null },
-    select: { id: true },
+      const orderIds = deliveryNotes.map((n) => n.factoryFloorOrderId);
+      const orders = await tx.factoryFloorOrder.findMany({
+        where: { id: { in: orderIds } },
+        select: { factoryFloorId: true },
+      });
+      floorIds = orders.map((o) => o.factoryFloorId);
+    }
+
+    if (floorIds.length > 0) {
+      // 新フローでは締め完了で現場は COMPLETED になる。支払い完了で取引終端(DEAL_COMPLETED)へ。
+      // （旧フローの DELIVERY_APPROVED/INVOICED も後方互換で許容）
+      await tx.factoryFloor.updateMany({
+        where: {
+          id: { in: floorIds },
+          status: { in: ["DELIVERY_APPROVED", "INVOICED", "COMPLETED"] },
+        },
+        data: { status: "DEAL_COMPLETED" },
+      });
+    }
+
+    // 受注者に支払い完了通知
+    const contractorUsers = await tx.user.findMany({
+      where: { companyId: doc.workerCompanyId, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (contractorUsers.length > 0) {
+      await tx.notification.createMany({
+        data: contractorUsers.map((u) => ({
+          userId: u.id,
+          title: "支払い完了",
+          content: `${doc.yearMonth?.substring(0, 4)}年${doc.yearMonth?.substring(4)}月分の支払いが完了しました`,
+          type: 43,
+          targetId: documentId,
+        })),
+      });
+    }
   });
-
-  if (contractorUsers.length > 0) {
-    await prisma.notification.createMany({
-      data: contractorUsers.map((u) => ({
-        userId: u.id,
-        title: "支払い完了",
-        content: `${doc.yearMonth?.substring(0, 4)}年${doc.yearMonth?.substring(4)}月分の支払いが完了しました`,
-        type: 43,
-        targetId: documentId,
-      })),
-    });
-  }
 
   return { success: true };
 }

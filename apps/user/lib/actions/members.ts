@@ -135,6 +135,14 @@ export async function updateMember(
     throw new Error("代表者権限の付与は代表者のみ可能です");
   }
 
+  // 最後の代表者を降格することはできない。
+  if (member.role === "REPRESENTATIVE" && data.role && data.role !== "REPRESENTATIVE") {
+    const otherReps = await prisma.user.count({
+      where: { companyId: user.companyId, role: "REPRESENTATIVE", deletedAt: null, id: { not: id } },
+    });
+    if (otherReps === 0) throw new Error("最後の代表者を降格することはできません。先に別のメンバーを代表者にしてください。");
+  }
+
   return prisma.user.update({
     where: { id },
     data,
@@ -151,6 +159,7 @@ export async function deleteMember(id: string) {
   if (!member) throw new Error("メンバーが見つかりません");
 
   if (member.id === user.id) throw new Error("自分自身を削除することはできません");
+  if (member.role === "REPRESENTATIVE") throw new Error("代表者は削除できません。先に別のメンバーへ代表者を引き継いでください。");
 
   return prisma.user.update({
     where: { id },

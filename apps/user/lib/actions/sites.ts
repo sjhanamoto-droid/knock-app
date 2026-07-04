@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
-import { unstable_cache } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import type { CreateFactoryFloorInput, UpdateFactoryFloorInput } from "@knock/types";
 
 // ============ ヘルパー ============
@@ -295,13 +295,23 @@ export async function createSite(data: CreateFactoryFloorInput & {
   // ジオコーディング（トランザクション外で実行）
   const geo = data.address ? await geocodeAddress(data.address) : null;
 
-  // 子現場のジオコーディング（親と異なる住所の場合のみ）
+  // 子現場のジオコーディング（親と異なる住所のみを並列処理）
   const childGeos: (typeof geo)[] = [];
-  if (data.children) {
+  if (data.children && data.children.length > 0) {
+    const uniqueAddrs = [
+      ...new Set(
+        data.children
+          .map((c) => c.address || data.address || null)
+          .filter((addr): addr is string => !!addr && addr !== data.address)
+      ),
+    ];
+    const geoResults = await Promise.all(uniqueAddrs.map((addr) => geocodeAddress(addr)));
+    const geoMap = new Map(uniqueAddrs.map((addr, i) => [addr, geoResults[i]]));
+
     for (const child of data.children) {
       const childAddr = child.address || data.address || null;
       if (childAddr && childAddr !== data.address) {
-        childGeos.push(await geocodeAddress(childAddr));
+        childGeos.push(geoMap.get(childAddr) ?? null);
       } else {
         childGeos.push(geo); // 親と同じ住所なら親のジオコーディング結果を再利用
       }
@@ -480,6 +490,7 @@ export async function createSite(data: CreateFactoryFloorInput & {
     return site;
   });
 
+  revalidatePath("/sites");
   return serializeBigInt(result);
 }
 
@@ -731,6 +742,7 @@ export async function updateSite(
     return site;
   });
 
+  revalidatePath("/sites");
   return serializeBigInt(result);
 }
 
@@ -744,10 +756,18 @@ export async function deleteSite(id: string) {
   });
   if (!site) throw new Error("現場が見つかりません");
 
-  return prisma.factoryFloor.update({
+  // 発注済み以降のステータスは削除不可（updateSite と同じガード条件）
+  if (!["NOT_ORDERED", "DRAFT"].includes(site.status)) {
+    throw new Error("発注後の現場は削除できません");
+  }
+
+  const result = await prisma.factoryFloor.update({
     where: { id },
     data: { deletedAt: new Date() },
   });
+
+  revalidatePath("/sites");
+  return result;
 }
 
 // ============ 複製 ============

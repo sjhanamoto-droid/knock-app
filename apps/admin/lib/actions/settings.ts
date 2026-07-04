@@ -108,12 +108,26 @@ export async function updateAdminUser(
     isActive?: boolean;
   }
 ) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
+  const target = await prisma.adminUser.findUnique({
+    where: { id },
+    select: { adminCompanyId: true },
+  });
+  if (!target || target.adminCompanyId !== admin.adminCompanyId) {
+    throw new Error("権限がありません");
+  }
   return prisma.adminUser.update({ where: { id }, data });
 }
 
 export async function resetAdminUserPassword(id: string, newPassword: string) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
+  const target = await prisma.adminUser.findUnique({
+    where: { id },
+    select: { adminCompanyId: true },
+  });
+  if (!target || target.adminCompanyId !== admin.adminCompanyId) {
+    throw new Error("権限がありません");
+  }
   const hashedPassword = await bcrypt.hash(newPassword, 12);
   await prisma.adminUser.update({
     where: { id },
@@ -123,7 +137,15 @@ export async function resetAdminUserPassword(id: string, newPassword: string) {
 }
 
 export async function deleteAdminUser(id: string) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
+  if (admin.id === id) throw new Error("自分自身は削除できません");
+  const target = await prisma.adminUser.findUnique({
+    where: { id },
+    select: { adminCompanyId: true },
+  });
+  if (!target || target.adminCompanyId !== admin.adminCompanyId) {
+    throw new Error("権限がありません");
+  }
   await prisma.adminUser.update({
     where: { id },
     data: { deletedAt: new Date() },

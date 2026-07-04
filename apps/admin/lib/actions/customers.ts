@@ -13,13 +13,13 @@ export async function getCompanies(params?: {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
 
   const page = params?.page ?? 1;
   const perPage = params?.perPage ?? 20;
   const skip = (page - 1) * perPage;
 
-  const where: Record<string, unknown> = { deletedAt: null };
+  const where: Record<string, unknown> = { deletedAt: null, adminCompanyId: admin.adminCompanyId };
   if (params?.search) {
     where.OR = [
       { name: { contains: params.search } },
@@ -219,7 +219,15 @@ export async function updateCompany(
     isHidden?: boolean;
   }
 ) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
+
+  const target = await prisma.company.findUnique({
+    where: { id },
+    select: { adminCompanyId: true },
+  });
+  if (!target || target.adminCompanyId !== admin.adminCompanyId) {
+    throw new Error("権限がありません");
+  }
 
   const updated = await prisma.company.update({
     where: { id },
@@ -243,7 +251,15 @@ export async function updateUser(
     isActive?: boolean;
   }
 ) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { company: { select: { adminCompanyId: true } } },
+  });
+  if (!targetUser?.company || targetUser.company.adminCompanyId !== admin.adminCompanyId) {
+    throw new Error("権限がありません");
+  }
 
   const updated = await prisma.user.update({
     where: { id: userId },
@@ -272,7 +288,15 @@ export async function updateUser(
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
+
+  const targetUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { company: { select: { adminCompanyId: true } } },
+  });
+  if (!targetUser?.company || targetUser.company.adminCompanyId !== admin.adminCompanyId) {
+    throw new Error("権限がありません");
+  }
 
   const hashedPassword = await bcrypt.hash(newPassword, 12);
   await prisma.user.update({
@@ -340,7 +364,15 @@ export async function createUser(
 }
 
 export async function deleteCompany(id: string) {
-  await requireAdminSession();
+  const admin = await requireAdminSession();
+
+  const target = await prisma.company.findUnique({
+    where: { id },
+    select: { adminCompanyId: true },
+  });
+  if (!target || target.adminCompanyId !== admin.adminCompanyId) {
+    throw new Error("権限がありません");
+  }
 
   return prisma.company.update({
     where: { id },

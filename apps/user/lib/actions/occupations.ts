@@ -46,20 +46,22 @@ export async function saveCompanyOccupations(
   // 自社プロフィールの編集は updateCompany（住所・口座等）と同様に全メンバー可
   const user = await requireSession();
 
-  // Delete existing and re-create
-  await prisma.companyOccupation.deleteMany({
-    where: { companyId: user.companyId },
-  });
-
-  if (selections.length > 0) {
-    await prisma.companyOccupation.createMany({
-      data: selections.map((s) => ({
-        companyId: user.companyId,
-        occupationSubItemId: s.occupationSubItemId,
-        note: s.note || null,
-      })),
+  // Delete existing and re-create（アトミックに実行）
+  await prisma.$transaction(async (tx) => {
+    await tx.companyOccupation.deleteMany({
+      where: { companyId: user.companyId },
     });
-  }
+
+    if (selections.length > 0) {
+      await tx.companyOccupation.createMany({
+        data: selections.map((s) => ({
+          companyId: user.companyId,
+          occupationSubItemId: s.occupationSubItemId,
+          note: s.note || null,
+        })),
+      });
+    }
+  });
 
   return { success: true };
 }

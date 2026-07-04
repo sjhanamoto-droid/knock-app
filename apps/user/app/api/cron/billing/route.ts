@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateDraftInvoices, autoConfirmOverdueInvoices } from "@/lib/actions/invoices";
+import { generateDraftInvoices, autoConfirmOverdueInvoices } from "@/lib/billing/cron-jobs";
 
 export async function GET(request: Request) {
   // Verify cron secret
@@ -10,7 +10,9 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const today = now.getDate();
+  // cronはUTC15時(=JST0時)実行のため、締め日判定をJST基準に統一する
+  const jst = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const today = jst.getUTCDate();
 
   try {
     // 1. 締め日が今日の会社のドラフト請求書を生成
@@ -21,7 +23,7 @@ export async function GET(request: Request) {
         OR: [
           { billingClosingDay: today },
           // 月末締め: 月の最終日
-          ...(isLastDayOfMonth(now) ? [{ billingClosingDay: null }] : []),
+          ...(isLastDayOfMonth(jst) ? [{ billingClosingDay: null }] : []),
         ],
       },
       select: { id: true },
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
           select: { id: true },
         });
 
-        const ym = `${now.getFullYear()}年${now.getMonth() + 1}月`;
+        const ym = `${jst.getUTCFullYear()}年${jst.getUTCMonth() + 1}月`;
         if (ordererUsers.length > 0) {
           await prisma.notification.createMany({
             data: ordererUsers.map((u) => ({
@@ -72,8 +74,9 @@ export async function GET(request: Request) {
   }
 }
 
+// JST基準のDateオブジェクト（getUTC*で読む）を受け取り、月末かどうか判定する
 function isLastDayOfMonth(date: Date): boolean {
   const nextDay = new Date(date);
-  nextDay.setDate(nextDay.getDate() + 1);
-  return nextDay.getDate() === 1;
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+  return nextDay.getUTCDate() === 1;
 }
