@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { ConfirmDialog, useToast } from "@knock/ui";
@@ -8,10 +8,15 @@ import {
   confirmInvoice,
   recalculateInvoice,
   markInvoicePaid,
+  getInvoiceOrderRows,
+  getAddableOrders,
+  rebuildInvoiceFromOrders,
 } from "@/lib/actions/invoices";
 import { getDocumentDetail } from "@/lib/actions/documents";
 
 type DocDetail = Awaited<ReturnType<typeof getDocumentDetail>>;
+type OrderRow = Awaited<ReturnType<typeof getInvoiceOrderRows>>[number];
+type AddableRow = Awaited<ReturnType<typeof getAddableOrders>>[number];
 
 // base64 の data URL はブラウザが新規タブで直接開けない(ブロックされる)ため、
 // Blob に変換して object URL として開く。通常URLはそのまま開く。
@@ -82,6 +87,74 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"confirm" | "paid" | null>(null);
 
+  // 含まれる発注（注文書リンク付き）と、追加/削除のステージング
+  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [addedRows, setAddedRows] = useState<OrderRow[]>([]);
+  const [showPicker, setShowPicker] = useState(false);
+  const [addable, setAddable] = useState<AddableRow[]>([]);
+  const [pickerLoading, setPickerLoading] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+
+  useEffect(() => {
+    getInvoiceOrderRows(documentId).then(setOrderRows).catch(() => {});
+  }, [documentId]);
+
+  async function openPicker() {
+    setShowPicker(true);
+    setPickerLoading(true);
+    try {
+      setAddable(await getAddableOrders(documentId));
+    } catch {
+      toast("追加できる発注の取得に失敗しました");
+    } finally {
+      setPickerLoading(false);
+    }
+  }
+
+  function addOrder(row: AddableRow) {
+    setAddedRows((prev) =>
+      prev.some((r) => r.orderId === row.orderId)
+        ? prev
+        : [...prev, { orderId: row.orderId, siteName: row.siteName, siteCode: row.siteCode, documentNumber: "", amount: row.amount, orderSheetPdfUrl: null }]
+    );
+  }
+
+  function removeCurrent(orderId: string) {
+    setRemovedIds((prev) => new Set(prev).add(orderId));
+  }
+  function restoreCurrent(orderId: string) {
+    setRemovedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(orderId);
+      return next;
+    });
+  }
+  function removeAdded(orderId: string) {
+    setAddedRows((prev) => prev.filter((r) => r.orderId !== orderId));
+  }
+
+  async function handleRebuild() {
+    const stagedIds = [
+      ...orderRows.filter((r) => !removedIds.has(r.orderId)).map((r) => r.orderId),
+      ...addedRows.map((r) => r.orderId),
+    ];
+    if (stagedIds.length === 0) {
+      toast("発注を1件以上残してください");
+      return;
+    }
+    setRebuilding(true);
+    try {
+      const res = await rebuildInvoiceFromOrders(documentId, stagedIds);
+      toast("請求書を作り直しました");
+      router.replace(`/billing/${res.id}`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setRebuilding(false);
+    }
+  }
+
   if (!doc) {
     return <div className="p-4 text-center text-knock-text-muted">請求書が見つかりません</div>;
   }
@@ -132,6 +205,13 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
   const sc = statusColors[doc.status] ?? statusColors.VOID;
   const metadata = doc.metadata as Record<string, unknown> | null;
   const lineItems = (metadata?.lineItems as { documentNumber: string; siteName: string; siteCode?: string; amount: number }[]) ?? [];
+
+  // 発注の追加/削除は「確認待ち・確定済み」のみ（支払済み・無効は不可）
+  const editable = doc.status === "DRAFT" || doc.status === "ISSUED";
+  const currentRows = orderRows.filter((r) => !removedIds.has(r.orderId));
+  const addedIds = new Set(addedRows.map((r) => r.orderId));
+  const dirty = removedIds.size > 0 || addedRows.length > 0;
+  const stagedTotal = [...currentRows, ...addedRows].reduce((s, r) => s + r.amount, 0);
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] pb-32">
@@ -201,25 +281,110 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
           </div>
         </div>
 
-        {/* 発注明細 */}
-        {lineItems.length > 0 && (
+        {/* 含まれる発注 */}
+        {(orderRows.length > 0 || lineItems.length > 0) && (
           <div className={cardClass}>
             <p className="text-[13px] font-bold text-[#1A2340] mb-3">含まれる発注</p>
-            <div className="space-y-2">
-              {lineItems.map((item, i) => (
-                <div key={i} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5">
-                  <div>
-                    <p className="text-[13px] font-medium text-[#1A2340]">{item.siteName || "─"}</p>
-                    <p className="text-[11px] text-knock-text-secondary">
-                      {item.siteCode ? `工事番号: ${item.siteCode} / ` : ""}{item.documentNumber}
-                    </p>
+
+            {orderRows.length > 0 ? (
+              <div className="space-y-2">
+                {/* 既存の発注（タップで注文書を表示） */}
+                {currentRows.map((row) => (
+                  <div key={row.orderId} className="flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => (row.orderSheetPdfUrl ? openPdf(row.orderSheetPdfUrl) : toast("注文書が見つかりません"))}
+                      className="flex min-w-0 flex-1 items-center justify-between text-left"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-medium text-[#1A2340]">{row.siteName || "─"}</p>
+                        <p className="truncate text-[11px] text-knock-text-secondary">
+                          {row.siteCode ? `工事番号: ${row.siteCode} / ` : ""}{row.documentNumber || "注文書を表示"}
+                        </p>
+                      </div>
+                      <span className="ml-2 flex shrink-0 items-center gap-1 text-[13px] font-bold text-[#1A2340]">
+                        ¥{row.amount.toLocaleString()}
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      </span>
+                    </button>
+                    {editable && (
+                      <button type="button" onClick={() => removeCurrent(row.orderId)} className="shrink-0 rounded-full p-1 active:bg-gray-200" aria-label="削除">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4L12 12M12 4L4 12" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                      </button>
+                    )}
                   </div>
-                  <p className="text-[13px] font-bold text-[#1A2340]">
-                    ¥{item.amount.toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+
+                {/* 削除予定（復元可能） */}
+                {orderRows.filter((r) => removedIds.has(r.orderId)).map((row) => (
+                  <div key={row.orderId} className="flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13px] font-medium text-red-400 line-through">{row.siteName || "─"}</p>
+                      <p className="text-[11px] text-red-300">削除されます</p>
+                    </div>
+                    <button type="button" onClick={() => restoreCurrent(row.orderId)} className="shrink-0 text-[12px] font-bold text-[#1A2340]">戻す</button>
+                  </div>
+                ))}
+
+                {/* 追加した発注 */}
+                {addedRows.map((row) => (
+                  <div key={row.orderId} className="flex items-center gap-2 rounded-xl bg-green-50 px-3 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded bg-green-500 px-1.5 py-0.5 text-[9px] font-bold text-white">追加</span>
+                        <p className="truncate text-[13px] font-medium text-[#1A2340]">{row.siteName || "─"}</p>
+                      </div>
+                      {row.siteCode && <p className="text-[11px] text-knock-text-secondary">工事番号: {row.siteCode}</p>}
+                    </div>
+                    <span className="shrink-0 text-[13px] font-bold text-[#1A2340]">¥{row.amount.toLocaleString()}</span>
+                    <button type="button" onClick={() => removeAdded(row.orderId)} className="shrink-0 rounded-full p-1 active:bg-gray-200" aria-label="取り消し">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4L12 12M12 4L4 12" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* 旧データ（発注ID未保持）の読み取り専用表示 */
+              <div className="space-y-2">
+                {lineItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5">
+                    <div>
+                      <p className="text-[13px] font-medium text-[#1A2340]">{item.siteName || "─"}</p>
+                      <p className="text-[11px] text-knock-text-secondary">
+                        {item.siteCode ? `工事番号: ${item.siteCode} / ` : ""}{item.documentNumber}
+                      </p>
+                    </div>
+                    <p className="text-[13px] font-bold text-[#1A2340]">¥{item.amount.toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 発注を追加する */}
+            {editable && orderRows.length > 0 && (
+              <button
+                type="button"
+                onClick={openPicker}
+                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border-2 border-dashed py-2.5 text-[13px] font-bold transition-all active:scale-[0.98]"
+                style={{ borderColor: accentColor, color: accentColor }}
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                発注を追加する
+              </button>
+            )}
+
+            {/* 追加/削除がある場合のみ、請求書を作り直す */}
+            {editable && dirty && (
+              <button
+                type="button"
+                onClick={handleRebuild}
+                disabled={rebuilding}
+                className="mt-2 w-full rounded-xl py-3 text-[14px] font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50"
+                style={{ backgroundColor: accentColor }}
+              >
+                {rebuilding ? "作成中..." : `変更を反映して請求書を再作成する（¥${stagedTotal.toLocaleString()}）`}
+              </button>
+            )}
           </div>
         )}
 
@@ -291,6 +456,45 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
           </button>
         )}
       </div>
+
+      {/* 発注の追加ピッカー */}
+      {showPicker && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowPicker(false)}>
+          <div className="max-h-[75vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[15px] font-bold text-[#1A2340]">発注を追加</p>
+              <button onClick={() => setShowPicker(false)} className="text-[13px] font-bold text-gray-400">閉じる</button>
+            </div>
+            <p className="mb-3 text-[12px] text-knock-text-secondary">この取引先の締め完了・未請求の発注から選択できます。</p>
+            {pickerLoading ? (
+              <div className="flex justify-center py-10"><div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" /></div>
+            ) : addable.filter((a) => !addedIds.has(a.orderId)).length === 0 ? (
+              <div className="rounded-xl bg-gray-50 p-6 text-center text-[13px] text-gray-400">追加できる発注はありません</div>
+            ) : (
+              <div className="space-y-2">
+                {addable.filter((a) => !addedIds.has(a.orderId)).map((a) => (
+                  <button
+                    key={a.orderId}
+                    onClick={() => addOrder(a)}
+                    className="flex w-full items-center justify-between rounded-xl bg-gray-50 px-3 py-3 text-left transition-all active:scale-[0.98]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-medium text-[#1A2340]">{a.siteName || "─"}</p>
+                      <p className="truncate text-[11px] text-knock-text-secondary">
+                        {a.siteCode ? `工事番号: ${a.siteCode} / ` : ""}{a.completedDay ? `締め: ${new Date(a.completedDay).toLocaleDateString("ja-JP")}` : ""}
+                      </p>
+                    </div>
+                    <span className="ml-2 flex shrink-0 items-center gap-1 text-[13px] font-bold" style={{ color: accentColor }}>
+                      ¥{a.amount.toLocaleString()}
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 確認ダイアログ */}
       <ConfirmDialog

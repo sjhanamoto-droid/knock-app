@@ -603,3 +603,150 @@ export async function createManualInvoice(
 
   return { id: docId };
 }
+
+/**
+ * 請求書に含まれる発注の一覧（注文書PDF付き）。
+ * 「含まれる発注」の各項目タップで注文書を開くために metadata.orderIds を解決する。
+ */
+export async function getInvoiceOrderRows(documentId: string) {
+  const user = await requireSession();
+  const doc = await prisma.document.findFirst({
+    where: {
+      id: documentId, type: "INVOICE", deletedAt: null,
+      OR: [{ orderCompanyId: user.companyId }, { workerCompanyId: user.companyId }],
+    },
+    select: { metadata: true },
+  });
+  if (!doc) return [];
+  const orderIds = ((doc.metadata as Record<string, unknown> | null)?.orderIds as string[]) ?? [];
+  if (orderIds.length === 0) return [];
+
+  const orders = await prisma.factoryFloorOrder.findMany({
+    where: { id: { in: orderIds } },
+    select: {
+      id: true,
+      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true } } } },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: { pdfUrl: true, documentNumber: true, totalAmount: true },
+      },
+    },
+  });
+  const byId = new Map(orders.map((o) => [o.id, o]));
+  return orderIds.map((id) => {
+    const o = byId.get(id);
+    const sheet = o?.documents[0] ?? null;
+    return {
+      orderId: id,
+      siteName: o?.factoryFloor.name ?? "",
+      siteCode: o?.factoryFloor.code ?? o?.factoryFloor.parent?.code ?? "",
+      documentNumber: sheet?.documentNumber ?? "",
+      amount: (o?.documents ?? []).reduce((s, d) => s + Number(d.totalAmount ?? 0), 0),
+      orderSheetPdfUrl: sheet?.pdfUrl ?? null,
+    };
+  });
+}
+
+/**
+ * この請求書に追加できる発注（同じ取引先・締め完了(CLOSED)・未請求）。
+ * 二重請求防止のため、既存の非VOID請求書に含まれる発注は除外する。
+ */
+export async function getAddableOrders(documentId: string) {
+  const user = await requireSession();
+  const doc = await prisma.document.findFirst({
+    where: {
+      id: documentId, type: "INVOICE", deletedAt: null,
+      OR: [{ orderCompanyId: user.companyId }, { workerCompanyId: user.companyId }],
+    },
+    select: { orderCompanyId: true, workerCompanyId: true },
+  });
+  if (!doc) return [];
+
+  const orders = await prisma.factoryFloorOrder.findMany({
+    where: {
+      deletedAt: null, status: "CONFIRMED", completionStatus: "CLOSED",
+      workCompanyId: doc.workerCompanyId,
+      factoryFloor: { companyId: doc.orderCompanyId, deletedAt: null },
+    },
+    select: {
+      id: true, completedDay: true,
+      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true } } } },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        select: { totalAmount: true },
+      },
+    },
+    orderBy: { completedDay: "desc" },
+  });
+
+  const invs = await prisma.document.findMany({
+    where: {
+      type: "INVOICE", deletedAt: null, status: { not: "VOID" },
+      OR: [{ orderCompanyId: user.companyId }, { workerCompanyId: user.companyId }],
+    },
+    select: { metadata: true },
+  });
+  const invoiced = new Set<string>();
+  for (const inv of invs) {
+    const ids = ((inv.metadata as Record<string, unknown> | null)?.orderIds as string[]) ?? [];
+    ids.forEach((i) => invoiced.add(i));
+  }
+
+  return orders
+    .filter((o) => o.documents.length > 0 && !invoiced.has(o.id))
+    .map((o) => ({
+      orderId: o.id,
+      siteName: o.factoryFloor.name ?? "",
+      siteCode: o.factoryFloor.code ?? o.factoryFloor.parent?.code ?? "",
+      amount: o.documents.reduce((s, d) => s + Number(d.totalAmount ?? 0), 0),
+      completedDay: o.completedDay?.toISOString() ?? null,
+    }));
+}
+
+/**
+ * 発注セットを編集して請求書を作り直す（追加/削除の反映）。
+ * 旧請求書をVOIDにし、新しい発注セットで請求書を再作成する。
+ * 支払済み(CONFIRMED)・無効(VOID)は編集不可。異なる取引先の発注は混在不可。
+ */
+export async function rebuildInvoiceFromOrders(documentId: string, orderIds: string[]) {
+  const user = await requireSession();
+  const doc = await prisma.document.findFirst({
+    where: {
+      id: documentId, type: "INVOICE", deletedAt: null,
+      OR: [{ orderCompanyId: user.companyId }, { workerCompanyId: user.companyId }],
+    },
+    select: { id: true, status: true, issuedAt: true, dueDate: true, orderCompanyId: true, workerCompanyId: true },
+  });
+  if (!doc) throw new Error("請求書が見つかりません");
+  if (doc.status === "CONFIRMED") throw new Error("支払済みの請求書は編集できません");
+  if (doc.status === "VOID") throw new Error("無効な請求書は編集できません");
+  const ids = [...new Set(orderIds)];
+  if (ids.length === 0) throw new Error("発注を1件以上選択してください");
+
+  const orders = await prisma.factoryFloorOrder.findMany({
+    where: { id: { in: ids }, deletedAt: null, completionStatus: "CLOSED" },
+    select: { id: true, workCompanyId: true, factoryFloor: { select: { companyId: true } } },
+  });
+  if (orders.length !== ids.length) throw new Error("締め完了していない発注が含まれています");
+  const mismatch = orders.some(
+    (o) => o.workCompanyId !== doc.workerCompanyId || o.factoryFloor.companyId !== doc.orderCompanyId
+  );
+  if (mismatch) throw new Error("この請求書と異なる取引先の発注は追加できません");
+
+  const billingDate = doc.issuedAt ?? new Date();
+  const newDocId = await generateInvoiceFromOrders(ids, billingDate);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.document.update({
+      where: { id: newDocId },
+      data: { status: doc.status, ...(doc.dueDate ? { dueDate: doc.dueDate } : {}) },
+    });
+    await tx.document.update({
+      where: { id: documentId },
+      data: { status: "VOID", deletedAt: new Date() },
+    });
+  });
+
+  return { id: newDocId };
+}
