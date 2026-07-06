@@ -10,6 +10,11 @@ import { useToast } from "@knock/ui";
 type InvoiceItem = Awaited<ReturnType<typeof getBillingList>>[number];
 type Candidate = Awaited<ReturnType<typeof getInvoiceCandidates>>[number];
 
+// 受注者(worker)側からの手動作成の「入口」を一時的に非表示にするフラグ。
+// false: 受注者の「締め完了・請求可能な取引先」を隠す（発注者ロールのみ表示）。
+// true にすれば受注者側も再表示され、元の挙動に戻る（機能・アクションはそのまま残置）。
+const ALLOW_CONTRACTOR_MANUAL_CREATE = false;
+
 const statusLabels: Record<string, string> = {
   DRAFT: "確認待ち",
   ISSUED: "確定済み",
@@ -53,6 +58,11 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
 
   const isInitialMount = useRef(true);
   const yearMonth = `${selectedYear}${String(selectedMonth).padStart(2, "0")}`;
+
+  // フラグOFFの間は受注者ロール("worker")の候補を隠し、発注者ロール("orderer")のみ表示。
+  const visibleCandidates = candidates.filter(
+    (c) => ALLOW_CONTRACTOR_MANUAL_CREATE || c.role === "orderer"
+  );
 
   // 月を変えたら、その月の「締め完了の取引先」と「既存の請求書」を取得し直す
   useEffect(() => {
@@ -134,7 +144,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
             <p className="px-1 pb-2 text-[13px] font-bold text-[#1A2340]">
               締め完了・請求可能な取引先
             </p>
-            {candidates.length === 0 ? (
+            {visibleCandidates.length === 0 ? (
               <div className="rounded-2xl bg-white p-6 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
                 <p className="text-[13px] text-gray-400">
                   この月に締め処理が完了した取引先はありません
@@ -142,7 +152,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {candidates.map((c) => {
+                {visibleCandidates.map((c) => {
                   // 発注者ロールなら相手＝受注者名、受注者ロールなら相手＝発注者名を表示
                   const counterparty = c.role === "orderer" ? c.workerCompanyName : c.orderCompanyName;
                   const subLabel =
