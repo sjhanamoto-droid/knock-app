@@ -291,7 +291,7 @@ export function NewInvoiceClient({ initialNotes, initialYear, initialMonth }: Pr
 
       {/* 固定フッター */}
       {selectedCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white px-4 pb-8 pt-4 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+60px)] left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 border-t border-gray-200 bg-white px-4 pb-4 pt-4 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-[13px] text-knock-text-secondary">
               選択: {selectedCount}件
