@@ -4,11 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
-import { getBillingList } from "@/lib/actions/invoices";
+import { getBillingList, getInvoiceCandidates } from "@/lib/actions/invoices";
 import { useToast } from "@knock/ui";
 
 type InvoiceItem = Awaited<ReturnType<typeof getBillingList>>[number];
-type Counterparty = { id: string; name: string };
+type Candidate = Awaited<ReturnType<typeof getInvoiceCandidates>>[number];
 
 const statusLabels: Record<string, string> = {
   DRAFT: "確認待ち",
@@ -34,41 +34,39 @@ function WavyUnderline({ color }: { color: string }) {
 
 interface Props {
   initialInvoices: InvoiceItem[];
-  initialCounterparties: Counterparty[];
+  initialCandidates: Candidate[];
   initialYear: number;
   initialMonth: number;
 }
 
-export function BillingClient({ initialInvoices, initialCounterparties, initialYear, initialMonth }: Props) {
+export function BillingClient({ initialInvoices, initialCandidates, initialYear, initialMonth }: Props) {
   const router = useRouter();
   const { accentColor } = useMode();
   const { toast } = useToast();
-  const [invoices, setInvoices] = useState<InvoiceItem[]>(initialInvoices);
-  const [loading, setLoading] = useState(false);
-  const [counterparties] = useState<Counterparty[]>(initialCounterparties);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
 
   const [selectedYear, setSelectedYear] = useState(initialYear);
   const [selectedMonth, setSelectedMonth] = useState(initialMonth);
 
-  // 選択中の取引先で絞り込み
-  const shownInvoices = invoices.filter(
-    (inv) => (inv.isOrderer ? inv.workerCompany.id : inv.orderCompany.id) === selectedCompanyId
-  );
+  const [invoices, setInvoices] = useState<InvoiceItem[]>(initialInvoices);
+  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
+  const [loading, setLoading] = useState(false);
 
   const isInitialMount = useRef(true);
-
   const yearMonth = `${selectedYear}${String(selectedMonth).padStart(2, "0")}`;
 
+  // 月を変えたら、その月の「締め完了の取引先」と「既存の請求書」を取得し直す
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
     setLoading(true);
-    getBillingList(yearMonth)
-      .then(setInvoices)
-      .catch(() => toast("請求書の取得に失敗しました"))
+    Promise.all([getInvoiceCandidates(yearMonth), getBillingList(yearMonth)])
+      .then(([cands, invs]) => {
+        setCandidates(cands);
+        setInvoices(invs);
+      })
+      .catch(() => toast("請求情報の取得に失敗しました"))
       .finally(() => setLoading(false));
   }, [yearMonth]);
 
@@ -108,49 +106,9 @@ export function BillingClient({ initialInvoices, initialCounterparties, initialY
         </div>
       </div>
 
-      {!selectedCompanyId ? (
-        /* 取引先選択ファースト：先に取引先を選ぶ */
-        <div className="flex flex-col gap-2 px-4 pt-3">
-          <p className="px-1 pt-1 text-[13px] font-bold text-[#1A2340]">取引先を選択してください</p>
-          {counterparties.length === 0 ? (
-            <div className="rounded-2xl bg-white p-8 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-              <p className="text-[14px] text-gray-400">取引先がありません</p>
-            </div>
-          ) : (
-            counterparties.map((cp) => (
-              <button
-                key={cp.id}
-                onClick={() => setSelectedCompanyId(cp.id)}
-                className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
-                style={{ borderLeft: `4px solid ${accentColor}` }}
-              >
-                <span className="truncate text-[14px] font-bold text-[#1A2340]">{cp.name}</span>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M6 4L10 8L6 12" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            ))
-          )}
-        </div>
-      ) : (
-        <>
-      {/* 選択中の取引先ヘッダ */}
-      <div className="mx-4 mt-3 flex items-center justify-between rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-        <span className="truncate text-[13px] font-bold text-[#1A2340]">
-          {counterparties.find((c) => c.id === selectedCompanyId)?.name ?? "取引先"}
-        </span>
-        <button
-          onClick={() => setSelectedCompanyId("")}
-          className="shrink-0 text-[12px] font-bold"
-          style={{ color: accentColor }}
-        >
-          変更
-        </button>
-      </div>
-
-      {/* 月選択 */}
+      {/* 月選択（最初に月を選ぶ） */}
       <div className="flex items-center justify-center gap-6 py-4">
-        <button onClick={prevMonth} className="p-2 rounded-full active:bg-gray-200">
+        <button onClick={prevMonth} className="rounded-full p-2 active:bg-gray-200">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M12 4L6 10L12 16" stroke="#1A2340" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -158,76 +116,108 @@ export function BillingClient({ initialInvoices, initialCounterparties, initialY
         <span className="text-[16px] font-bold text-[#1A2340]">
           {selectedYear}年{selectedMonth}月
         </span>
-        <button onClick={nextMonth} className="p-2 rounded-full active:bg-gray-200">
+        <button onClick={nextMonth} className="rounded-full p-2 active:bg-gray-200">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path d="M8 4L14 10L8 16" stroke="#1A2340" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
 
-      <div className="px-4 pb-2">
-        <button
-          onClick={() => router.push("/billing/new")}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-[14px] font-bold transition-all active:scale-[0.98]"
-          style={{ borderColor: accentColor, color: accentColor }}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          請求書を作成する
-        </button>
-      </div>
-
-      <div className="space-y-3 px-4">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
-          </div>
-        ) : shownInvoices.length === 0 ? (
-          <div className="rounded-2xl bg-white p-8 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-            <p className="text-[14px] text-gray-400">この取引先のこの月の請求書はありません</p>
-          </div>
-        ) : (
-          shownInvoices.map((inv) => {
-            const sc = statusColors[inv.status] ?? statusColors.VOID;
-            return (
-              <Link
-                key={inv.id}
-                href={`/billing/${inv.id}`}
-                className="block rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.99]"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="text-[14px] font-bold text-[#1A2340]">
-                      {inv.isOrderer ? inv.workerCompany.name : inv.orderCompany.name}
-                    </p>
-                    <p className="text-[12px] text-knock-text-secondary mt-0.5">
-                      {inv.isOrderer ? "受注者" : "発注者"} / {inv.documentNumber}
-                    </p>
-                  </div>
-                  <span
-                    className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
-                    style={{ backgroundColor: sc.bg, color: sc.text }}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-5 px-4">
+          {/* 締め完了・請求可能な取引先 */}
+          <div>
+            <p className="px-1 pb-2 text-[13px] font-bold text-[#1A2340]">
+              締め完了・請求可能な取引先
+            </p>
+            {candidates.length === 0 ? (
+              <div className="rounded-2xl bg-white p-6 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+                <p className="text-[13px] text-gray-400">
+                  この月に締め処理が完了した取引先はありません
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {candidates.map((c) => (
+                  <button
+                    key={`${c.workerCompanyId}::${c.orderCompanyId}`}
+                    onClick={() => router.push("/billing/new")}
+                    className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
+                    style={{ borderLeft: `4px solid ${accentColor}` }}
                   >
-                    {statusLabels[inv.status] ?? inv.status}
-                  </span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-[12px] text-knock-text-secondary">
-                    {inv.dueDate && (
-                      <span>支払期日: {new Date(inv.dueDate).toLocaleDateString("ja-JP")}</span>
-                    )}
-                  </div>
-                  <p className="text-[18px] font-bold" style={{ color: accentColor }}>
-                    ¥{inv.totalAmount.toLocaleString()}
-                  </p>
-                </div>
-              </Link>
-            );
-          })
-        )}
-      </div>
-        </>
+                    <div className="min-w-0">
+                      <p className="truncate text-[14px] font-bold text-[#1A2340]">
+                        {c.orderCompanyName}
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-knock-text-secondary">
+                        締め完了 / 請求書を作成できます
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[12px] font-bold" style={{ color: accentColor }}>
+                      作成 ›
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* この月の請求書 */}
+          <div>
+            <p className="px-1 pb-2 text-[13px] font-bold text-[#1A2340]">
+              この月の請求書
+            </p>
+            {invoices.length === 0 ? (
+              <div className="rounded-2xl bg-white p-6 text-center shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+                <p className="text-[13px] text-gray-400">この月の請求書はありません</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {invoices.map((inv) => {
+                  const sc = statusColors[inv.status] ?? statusColors.VOID;
+                  return (
+                    <Link
+                      key={inv.id}
+                      href={`/billing/${inv.id}`}
+                      className="block rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.99]"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <p className="text-[14px] font-bold text-[#1A2340]">
+                            {inv.isOrderer ? inv.workerCompany.name : inv.orderCompany.name}
+                          </p>
+                          <p className="text-[12px] text-knock-text-secondary mt-0.5">
+                            {inv.isOrderer ? "受注者" : "発注者"} / {inv.documentNumber}
+                          </p>
+                        </div>
+                        <span
+                          className="rounded-lg px-2.5 py-1 text-[11px] font-bold"
+                          style={{ backgroundColor: sc.bg, color: sc.text }}
+                        >
+                          {statusLabels[inv.status] ?? inv.status}
+                        </span>
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <div className="text-[12px] text-knock-text-secondary">
+                          {inv.dueDate && (
+                            <span>支払期日: {new Date(inv.dueDate).toLocaleDateString("ja-JP")}</span>
+                          )}
+                        </div>
+                        <p className="text-[18px] font-bold" style={{ color: accentColor }}>
+                          ¥{inv.totalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

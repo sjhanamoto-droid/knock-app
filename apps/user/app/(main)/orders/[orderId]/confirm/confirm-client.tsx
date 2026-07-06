@@ -147,6 +147,7 @@ export function ConfirmClient({ initialOrder, orderId }: Props) {
             orderCompany={floor.company}
             workerCompany={floor.workCompany}
             siteName={floor.name}
+            siteCode={floor.code ?? floor.parent?.code ?? null}
             siteAddress={floor.address}
             startDate={floor.startDayRequest}
             endDate={floor.endDayRequest}

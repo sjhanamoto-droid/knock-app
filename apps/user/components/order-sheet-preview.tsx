@@ -23,6 +23,7 @@ interface OrderSheetPreviewProps {
   orderCompany: CompanyInfo | null;
   workerCompany: CompanyInfo | null;
   siteName: string | null;
+  siteCode: string | null;
   siteAddress: string | null;
   startDate: string | Date | null;
   endDate: string | Date | null;
@@ -63,6 +64,7 @@ export function OrderSheetPreview({
   orderCompany,
   workerCompany,
   siteName,
+  siteCode,
   siteAddress,
   startDate,
   endDate,
@@ -145,6 +147,16 @@ export function OrderSheetPreview({
                   {siteName ?? "未設定"}
                 </p>
               </div>
+              {siteCode && (
+                <div>
+                  <span className="text-[11px] font-bold text-gray-500">
+                    工事番号
+                  </span>
+                  <p className="text-[13px] font-semibold text-gray-900">
+                    {siteCode}
+                  </p>
+                </div>
+              )}
               {siteAddress && (
                 <div>
                   <span className="text-[11px] font-bold text-gray-500">

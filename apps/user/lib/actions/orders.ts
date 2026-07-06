@@ -1172,6 +1172,7 @@ export async function getOrderDetail(orderId: string) {
             },
           },
           priceDetails: { where: { deletedAt: null }, include: { unit: true } },
+          parent: { select: { code: true } },
         },
       },
       completionReport: true,

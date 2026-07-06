@@ -131,7 +131,7 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
 
   const sc = statusColors[doc.status] ?? statusColors.VOID;
   const metadata = doc.metadata as Record<string, unknown> | null;
-  const lineItems = (metadata?.lineItems as { documentNumber: string; siteName: string; amount: number }[]) ?? [];
+  const lineItems = (metadata?.lineItems as { documentNumber: string; siteName: string; siteCode?: string; amount: number }[]) ?? [];
 
   return (
     <div className="min-h-screen bg-[#F5F5F5] pb-32">
@@ -210,7 +210,9 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
                 <div key={i} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5">
                   <div>
                     <p className="text-[13px] font-medium text-[#1A2340]">{item.siteName || "─"}</p>
-                    <p className="text-[11px] text-knock-text-secondary">{item.documentNumber}</p>
+                    <p className="text-[11px] text-knock-text-secondary">
+                      {item.siteCode ? `工事番号: ${item.siteCode} / ` : ""}{item.documentNumber}
+                    </p>
                   </div>
                   <p className="text-[13px] font-bold text-[#1A2340]">
                     ¥{item.amount.toLocaleString()}

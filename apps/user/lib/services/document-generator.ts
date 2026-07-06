@@ -92,7 +92,7 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
         include: {
           company: true,
           workCompany: true,
-          parent: { select: { name: true } },
+          parent: { select: { name: true, code: true } },
           priceDetails: { where: { deletedAt: null }, include: { unit: true } },
         },
       },
@@ -187,7 +187,7 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
     orderCompanyRepresentative: "",
     // 現場情報
     siteName: fullSiteName,
-    siteCode: floor.code ?? "",
+    siteCode: floor.code ?? floor.parent?.code ?? "",
     // 明細
     priceDetails: pdfPriceDetails,
     subtotal: Number(subtotal),
@@ -289,7 +289,7 @@ export async function generateInvoice(
       id: true,
       completedDay: true,
       factoryFloorId: true,
-      factoryFloor: { select: { name: true, code: true } },
+      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true } } } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: {
@@ -346,7 +346,7 @@ export async function generateInvoice(
         order.factoryFloor.name ??
         ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
         "",
-      siteCode: order.factoryFloor.code ?? "",
+      siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
       amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
     };
   });
@@ -403,7 +403,7 @@ export async function generateInvoice(
               order.factoryFloor.name ??
               ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
               "",
-            siteCode: order.factoryFloor.code ?? "",
+            siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
             amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
           };
         }),
@@ -433,7 +433,7 @@ export async function generateInvoiceFromOrders(
       completedDay: true,
       workCompanyId: true,
       factoryFloorId: true,
-      factoryFloor: { select: { companyId: true, name: true, code: true } },
+      factoryFloor: { select: { companyId: true, name: true, code: true, parent: { select: { code: true } } } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: {
@@ -496,7 +496,7 @@ export async function generateInvoiceFromOrders(
         order.factoryFloor.name ??
         ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
         "",
-      siteCode: order.factoryFloor.code ?? "",
+      siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
       amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
     };
   });
@@ -552,7 +552,7 @@ export async function generateInvoiceFromOrders(
               order.factoryFloor.name ??
               ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
               "",
-            siteCode: order.factoryFloor.code ?? "",
+            siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
             amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
           };
         }),

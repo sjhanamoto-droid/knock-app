@@ -1,5 +1,4 @@
-import { getBillingList } from "@/lib/actions/invoices";
-import { getDocumentCounterparties } from "@/lib/actions/documents";
+import { getBillingList, getInvoiceCandidates } from "@/lib/actions/invoices";
 import { BillingClient } from "./billing-client";
 
 export default async function BillingPage() {
@@ -8,15 +7,15 @@ export default async function BillingPage() {
   const month = now.getMonth() + 1;
   const yearMonth = `${year}${String(month).padStart(2, "0")}`;
 
-  const [invoices, counterparties] = await Promise.all([
+  const [invoices, candidates] = await Promise.all([
     getBillingList(yearMonth),
-    getDocumentCounterparties(),
+    getInvoiceCandidates(yearMonth),
   ]);
 
   return (
     <BillingClient
       initialInvoices={invoices}
-      initialCounterparties={counterparties}
+      initialCandidates={candidates}
       initialYear={year}
       initialMonth={month}
     />
