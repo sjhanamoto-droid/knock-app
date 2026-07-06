@@ -142,26 +142,34 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
               </div>
             ) : (
               <div className="flex flex-col gap-2">
-                {candidates.map((c) => (
-                  <button
-                    key={`${c.workerCompanyId}::${c.orderCompanyId}`}
-                    onClick={() => router.push("/billing/new")}
-                    className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
-                    style={{ borderLeft: `4px solid ${accentColor}` }}
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-bold text-[#1A2340]">
-                        {c.orderCompanyName}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-knock-text-secondary">
-                        締め完了 / 請求書を作成できます
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-[12px] font-bold" style={{ color: accentColor }}>
-                      作成 ›
-                    </span>
-                  </button>
-                ))}
+                {candidates.map((c) => {
+                  // 発注者ロールなら相手＝受注者名、受注者ロールなら相手＝発注者名を表示
+                  const counterparty = c.role === "orderer" ? c.workerCompanyName : c.orderCompanyName;
+                  const subLabel =
+                    c.role === "orderer"
+                      ? "締め完了 / 受注者へ代理発行できます"
+                      : "締め完了 / 請求書を作成できます";
+                  return (
+                    <button
+                      key={`${c.workerCompanyId}::${c.orderCompanyId}`}
+                      onClick={() => router.push("/billing/new")}
+                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
+                      style={{ borderLeft: `4px solid ${accentColor}` }}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px] font-bold text-[#1A2340]">
+                          {counterparty}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-knock-text-secondary">
+                          {subLabel}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[12px] font-bold" style={{ color: accentColor }}>
+                        作成 ›
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -26,7 +26,11 @@ export async function getInvoiceCandidates(yearMonth: string) {
       deletedAt: null,
       status: "CONFIRMED",
       completionStatus: "CLOSED",
-      workCompanyId: user.companyId,
+      // 自社が受注者・発注者のどちらでも候補に含める（発注者側からの作成を許可）
+      OR: [
+        { workCompanyId: user.companyId },
+        { factoryFloor: { companyId: user.companyId } },
+      ],
       completedDay: { gte: rawStart, lte: rawEnd },
       factoryFloor: { deletedAt: null },
     },
@@ -68,7 +72,11 @@ export async function getInvoiceCandidates(yearMonth: string) {
   const existingInvoices = await prisma.document.findMany({
     where: {
       type: "INVOICE",
-      workerCompanyId: user.companyId,
+      // 受注者・発注者どちら側で既に請求済みでも重複作成させない
+      OR: [
+        { workerCompanyId: user.companyId },
+        { orderCompanyId: user.companyId },
+      ],
       yearMonth,
       deletedAt: null,
     },
@@ -87,6 +95,8 @@ export async function getInvoiceCandidates(yearMonth: string) {
       orderCompanyId: string;
       workerCompanyName: string;
       orderCompanyName: string;
+      // 自社のロール: "worker"=受注者(相手=発注者に請求) / "orderer"=発注者(受注者に代理発行)
+      role: "worker" | "orderer";
       orderCount: number;
       totalAmount: number;
     }
@@ -120,6 +130,7 @@ export async function getInvoiceCandidates(yearMonth: string) {
         orderCompanyId,
         workerCompanyName: candidateWorkerNameById.get(order.workCompanyId) ?? "",
         orderCompanyName: order.factoryFloor.company?.name ?? "",
+        role: order.workCompanyId === user.companyId ? "worker" : "orderer",
         orderCount: 1,
         totalAmount: orderTotal,
       });
