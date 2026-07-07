@@ -3,13 +3,16 @@ import path from "path";
 import { prisma } from "@/lib/prisma";
 import { generateOrderSheetPdf, type OrderSheetPdfData } from "./order-sheet-pdf";
 import { generateInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
-import { getBillingPeriod } from "@/lib/helpers/billing-period";
+import { getBillingPeriod, getBillingMonth } from "@/lib/helpers/billing-period";
 
 /**
  * 帳票番号の自動採番
  * FORMAT: {TYPE_PREFIX}-{YYYYMM}-{SEQ}
  */
-async function generateDocumentNumber(type: "ORDER_SHEET" | "DELIVERY_NOTE" | "INVOICE"): Promise<string> {
+async function generateDocumentNumber(
+  type: "ORDER_SHEET" | "DELIVERY_NOTE" | "INVOICE",
+  yearMonthOverride?: string,
+): Promise<string> {
   const prefix = {
     ORDER_SHEET: "ORD",
     DELIVERY_NOTE: "DLV",
@@ -17,7 +20,9 @@ async function generateDocumentNumber(type: "ORDER_SHEET" | "DELIVERY_NOTE" | "I
   }[type];
 
   const now = new Date();
-  const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  // 請求書は締め月(yearMonthOverride)で採番する。指定が無ければ発行日ベース。
+  const yearMonth =
+    yearMonthOverride ?? `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const count = await prisma.document.count({
     where: {
@@ -311,7 +316,7 @@ export async function generateInvoice(
     throw new Error("対象月に請求対象の工事がありません");
   }
 
-  const documentNumber = await generateDocumentNumber("INVOICE");
+  const documentNumber = await generateDocumentNumber("INVOICE", yearMonth);
 
   // 合算: 各発注の非VOIDの注文書金額をそのまま合計
   let totalSubtotal = BigInt(0);
@@ -464,8 +469,24 @@ export async function generateInvoiceFromOrders(
     }
   }
 
-  const documentNumber = await generateDocumentNumber("INVOICE");
-  const yearMonth = `${billingDate.getFullYear()}${String(billingDate.getMonth() + 1).padStart(2, "0")}`;
+  // 請求月は「発行日」ではなく工事の締め月（完了日＋発注者の締め日）で決める。
+  // 候補一覧・納品書一覧(getBillingMonth)と同じ基準に揃える。締め月が混在する場合は最新を採用。
+  const ordererClosing = await prisma.company.findUnique({
+    where: { id: orderCompanyId },
+    select: { billingClosingDay: true },
+  });
+  const billingMonths = billableOrders
+    .map((o) =>
+      o.completedDay ? getBillingMonth(o.completedDay, ordererClosing?.billingClosingDay ?? null) : null
+    )
+    .filter((m): m is string => m !== null)
+    .sort();
+  const yearMonth =
+    billingMonths.length > 0
+      ? billingMonths[billingMonths.length - 1]
+      : `${billingDate.getFullYear()}${String(billingDate.getMonth() + 1).padStart(2, "0")}`;
+
+  const documentNumber = await generateDocumentNumber("INVOICE", yearMonth);
 
   let totalSubtotal = BigInt(0);
   let totalTax = BigInt(0);
