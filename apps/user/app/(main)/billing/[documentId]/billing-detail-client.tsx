@@ -206,8 +206,8 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
   const metadata = doc.metadata as Record<string, unknown> | null;
   const lineItems = (metadata?.lineItems as { documentNumber: string; siteName: string; siteCode?: string; amount: number }[]) ?? [];
 
-  // 発注の追加/削除は「確認待ち・確定済み」のみ（支払済み・無効は不可）
-  const editable = doc.status === "DRAFT" || doc.status === "ISSUED";
+  // 発注の追加/削除は「確認待ち(DRAFT)」のみ。確定済み(ISSUED)・支払済み・無効は編集不可。
+  const editable = doc.status === "DRAFT";
   const currentRows = orderRows.filter((r) => !removedIds.has(r.orderId));
   const addedIds = new Set(addedRows.map((r) => r.orderId));
   const dirty = removedIds.size > 0 || addedRows.length > 0;

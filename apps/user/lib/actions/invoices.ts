@@ -730,8 +730,8 @@ export async function rebuildInvoiceFromOrders(documentId: string, orderIds: str
     select: { id: true, status: true, issuedAt: true, dueDate: true, orderCompanyId: true, workerCompanyId: true },
   });
   if (!doc) throw new Error("請求書が見つかりません");
-  if (doc.status === "CONFIRMED") throw new Error("支払済みの請求書は編集できません");
-  if (doc.status === "VOID") throw new Error("無効な請求書は編集できません");
+  // 確定済み(ISSUED)・支払済み(CONFIRMED)・無効(VOID)は編集不可。確認待ち(DRAFT)のみ編集可。
+  if (doc.status !== "DRAFT") throw new Error("確定済みの請求書は編集できません");
   const ids = [...new Set(orderIds)];
   if (ids.length === 0) throw new Error("発注を1件以上選択してください");
 
