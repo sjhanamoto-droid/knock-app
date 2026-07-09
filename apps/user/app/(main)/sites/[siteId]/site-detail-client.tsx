@@ -58,6 +58,21 @@ function fmtAmount(n: number | bigint | null | undefined): string {
   return `${Number(n).toLocaleString("ja-JP")}円`;
 }
 
+// 発注（工事）の完了状況ラベル。2026-06-12改修以降、完了は発注ごとの
+// completionStatus で管理する（NONE=未完了 / CLOSE_REQUESTED=締め依頼中 / CLOSED=締め完了）。
+function completionStatusMeta(
+  status: string | null | undefined
+): { label: string; color: string } {
+  switch (status) {
+    case "CLOSED":
+      return { label: "締め完了", color: "bg-green-100 text-green-700" };
+    case "CLOSE_REQUESTED":
+      return { label: "締め依頼中", color: "bg-amber-100 text-amber-700" };
+    default:
+      return { label: "未完了", color: "bg-gray-100 text-gray-600" };
+  }
+}
+
 /* ──────────── Wavy Underline SVG ──────────── */
 
 function WavyUnderline({ color }: { color: string }) {
@@ -1051,20 +1066,62 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {site.orders.map((order) => (
-                      <Link
-                        key={order.id}
-                        href={`/orders/${order.id}`}
-                        className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2.5 transition-colors active:bg-gray-100 active:scale-[0.98]"
-                      >
-                        <span className="text-[13px] text-knock-text">
-                          {fmtDate(order.createdAt)}
-                        </span>
-                        <span className="text-[12px] font-medium text-knock-text-secondary">
-                          {order.status ?? ""}
-                        </span>
-                      </Link>
-                    ))}
+                    {site.orders.map((order) => {
+                      const orderSheet = order.documents?.[0] ?? null;
+                      const completion = completionStatusMeta(order.completionStatus);
+                      return (
+                        <div
+                          key={order.id}
+                          className="rounded-xl bg-gray-50 px-3 py-2.5"
+                        >
+                          {/* 発注日 + 完了状況 */}
+                          <Link
+                            href={`/orders/${order.id}`}
+                            className="flex items-center justify-between gap-2 transition-opacity active:opacity-70"
+                          >
+                            <span className="text-[13px] text-knock-text">
+                              {fmtDate(order.createdAt)}
+                            </span>
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${completion.color}`}
+                            >
+                              {completion.label}
+                            </span>
+                          </Link>
+
+                          {/* 完了日 */}
+                          {order.completedDay && (
+                            <p className="mt-1 text-[11px] text-knock-text-secondary">
+                              完了日: {fmtDate(order.completedDay)}
+                            </p>
+                          )}
+
+                          {/* 注文書 */}
+                          {orderSheet && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (orderSheet.pdfUrl) openPdf(orderSheet.pdfUrl);
+                              }}
+                              disabled={!orderSheet.pdfUrl}
+                              className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left transition-colors active:bg-gray-100 disabled:opacity-60"
+                            >
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <span className="shrink-0 rounded bg-[#22C55E] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                  PDF
+                                </span>
+                                <span className="truncate text-[12px] font-medium text-knock-text">
+                                  注文書 {orderSheet.documentNumber}
+                                </span>
+                              </span>
+                              <span className="shrink-0 text-[12px] font-bold text-knock-text-secondary">
+                                {fmtAmount(orderSheet.totalAmount)}
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

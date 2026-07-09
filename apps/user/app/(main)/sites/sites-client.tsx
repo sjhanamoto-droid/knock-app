@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   getSites,
   getContractorSites,
@@ -142,6 +143,7 @@ function ChevronRightIcon() {
 /* ──────────── Main Page ──────────── */
 
 export function SitesClient({ initialSites }: { initialSites: Site[] }) {
+  const router = useRouter();
   const { isOrderer, accentColor } = useMode();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sites, setSites] = useState<Site[]>(initialSites);
@@ -383,12 +385,17 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
             const companyName =
               (site as { workCompany?: { name: string } | null }).workCompany?.name ??
               (site as { company?: { name: string } | null }).company?.name;
+            const parent = (site as {
+              parent?: { id: string; name: string | null } | null;
+            }).parent;
 
             return (
-              <Link
+              <div
                 key={site.id}
-                href={`/sites/${site.id}`}
-                className="overflow-hidden rounded-xl bg-white shadow-[0_1px_6px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
+                role="button"
+                tabIndex={0}
+                onClick={() => router.push(`/sites/${site.id}`)}
+                className="cursor-pointer overflow-hidden rounded-xl bg-white shadow-[0_1px_6px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
                 style={{ borderLeft: `4px solid ${accentColor}` }}
               >
                 <div className="px-4 py-3">
@@ -411,6 +418,29 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
                       <ChevronRightIcon />
                     </div>
                   </div>
+
+                  {/* Parent project name (親プロジェクト) */}
+                  {parent?.name && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/sites/${parent.id}`);
+                      }}
+                      className="mb-1.5 flex max-w-full items-center gap-1 text-[11px] font-medium"
+                      style={{ color: accentColor }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                        <path
+                          d="M1.5 3.5C1.5 2.9 2 2.5 2.5 2.5H5.5L6.8 4H11.5C12 4 12.5 4.4 12.5 5V10.5C12.5 11.1 12 11.5 11.5 11.5H2.5C2 11.5 1.5 11.1 1.5 10.5V3.5Z"
+                          stroke="currentColor"
+                          strokeWidth="1.2"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <span className="truncate">{parent.name}</span>
+                    </button>
+                  )}
 
                   {/* Site name + child count */}
                   <div className="mb-2 flex items-center gap-2">
@@ -473,7 +503,7 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
                     )}
                   </div>
                 </div>
-              </Link>
+              </div>
             );
           })
         )}

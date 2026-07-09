@@ -8,7 +8,7 @@ export default async function DocumentsPage() {
 
   const [counterparties, result, candidates] = await Promise.all([
     getDocumentCounterparties(),
-    getDocuments({ yearMonth: currentMonth }),
+    getDocuments({ yearMonth: currentMonth, limit: 200 }),
     getInvoiceCandidates(currentMonth),
   ]);
 

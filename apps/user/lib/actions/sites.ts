@@ -82,17 +82,29 @@ export async function getSites(
   const where: any = {
     companyId: user.companyId,
     deletedAt: null,
-    parentId: null, // 親現場のみ表示
+    // 子工事＋単独現場のみを一覧表示する。
+    // 子を持つ親プロジェクトはコンテナ扱いなので一覧から除外し、
+    // 各工事を実ステータス（未発注/発注済など）で並べられるようにする。
+    AND: [
+      {
+        OR: [
+          { parentId: { not: null } },
+          { parentId: null, children: { none: { deletedAt: null } } },
+        ],
+      },
+    ],
   };
 
-  // ステータスフィルタはDB側ではなく取得後に適用（子の実効ステータスで判定するため）
+  // ステータスフィルタはDB側ではなく取得後に適用（各工事の実ステータスで判定するため）
 
   if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { code: { contains: search, mode: "insensitive" } },
-      { address: { contains: search, mode: "insensitive" } },
-    ];
+    where.AND.push({
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { code: { contains: search, mode: "insensitive" } },
+        { address: { contains: search, mode: "insensitive" } },
+      ],
+    });
   }
 
   const sites = await prisma.factoryFloor.findMany({
@@ -100,21 +112,13 @@ export async function getSites(
     orderBy: { [sortBy]: sortOrder },
     include: {
       workCompany: { select: { name: true } },
-      children: { where: { deletedAt: null }, select: { status: true } },
-      _count: { select: { members: true, orders: true, children: true } },
+      parent: { select: { id: true, name: true } },
+      _count: { select: { members: true, orders: true } },
     },
   });
 
-  // 子の実効ステータスを算出し、フィルタを適用
-  const result = sites
-    .map((site) => {
-      const childStatuses = site.children.map((c) => c.status);
-      const effectiveStatus = computeEffectiveStatus(site.status, childStatuses);
-      // children フィールドを除外し effectiveStatus を付与
-      const { children: _children, ...rest } = site;
-      return { ...rest, status: effectiveStatus };
-    })
-    .filter((site) => !status || site.status === status);
+  // 各工事の実ステータスでフィルタ
+  const result = sites.filter((site) => !status || site.status === status);
 
   return serializeBigInt(result);
 }
@@ -193,6 +197,23 @@ export async function getSite(id: string) {
       orders: {
         where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
+        include: {
+          documents: {
+            where: {
+              type: "ORDER_SHEET",
+              status: { not: "VOID" },
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              documentNumber: true,
+              totalAmount: true,
+              pdfUrl: true,
+              issuedAt: true,
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
       },
       images: { where: { deletedAt: null } },
       pdfs: { where: { deletedAt: null } },

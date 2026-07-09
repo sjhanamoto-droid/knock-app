@@ -82,6 +82,37 @@ function formatJpDate(dateStr: string | Date | null | undefined): string {
   return `${yyyy}/${mm}/${dd}(${dow})`;
 }
 
+type DocItem = DocListResult["documents"][number];
+
+// 帳票を工事（現場）ごとにグルーピングする。表示順は取得順（issuedAt降順）を維持。
+function groupByWork(
+  docs: DocItem[]
+): { siteId: string; siteName: string; siteCode: string; docs: DocItem[] }[] {
+  const groups: {
+    siteId: string;
+    siteName: string;
+    siteCode: string;
+    docs: DocItem[];
+  }[] = [];
+  const index = new Map<string, number>();
+  for (const d of docs) {
+    const key = d.siteId ?? "__none__";
+    let i = index.get(key);
+    if (i === undefined) {
+      i = groups.length;
+      index.set(key, i);
+      groups.push({
+        siteId: key,
+        siteName: d.siteName || "工事未設定",
+        siteCode: d.siteCode ?? "",
+        docs: [],
+      });
+    }
+    groups[i].docs.push(d);
+  }
+  return groups;
+}
+
 /* ──────────── Main Component ──────────── */
 
 interface Props {
@@ -121,6 +152,7 @@ export function DocumentsClient({
       type: filter === "all" ? undefined : filter,
       yearMonth: currentMonth,
       counterpartyCompanyId: selectedCompanyId || undefined,
+      limit: 200,
     })
       .then(setResult)
       .catch(() => {})
@@ -130,6 +162,8 @@ export function DocumentsClient({
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      // URLで type が指定されている場合、初期データ(全件)と不一致なので取得し直す
+      if (filter !== "all") fetchDocuments();
       return;
     }
     fetchDocuments();
@@ -209,52 +243,6 @@ export function DocumentsClient({
       </header>
 
       <div className="flex flex-col gap-3 px-4 pt-3 pb-4">
-        {/* 取引先選択ファースト：先に取引先を選ぶ */}
-        {!selectedCompanyId ? (
-          <div className="flex flex-col gap-2">
-            <p className="px-1 pt-1 text-[13px] font-bold text-knock-text">取引先を選択してください</p>
-            {counterparties.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-10">
-                <span className="text-[13px] text-knock-text-muted">取引先がありません</span>
-              </div>
-            ) : (
-              counterparties.map((cp) => (
-                <button
-                  key={cp.id}
-                  onClick={() => setSelectedCompanyId(cp.id)}
-                  className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
-                  style={{ borderLeft: `4px solid ${accentColor}` }}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    <CompanyIcon />
-                    <span className="truncate text-[14px] font-bold text-knock-text">{cp.name}</span>
-                  </span>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M6 4L10 8L6 12" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              ))
-            )}
-          </div>
-        ) : (
-          <>
-            {/* 選択中の取引先ヘッダ */}
-            <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-              <span className="flex min-w-0 items-center gap-2">
-                <CompanyIcon />
-                <span className="truncate text-[13px] font-bold text-knock-text">
-                  {counterparties.find((c) => c.id === selectedCompanyId)?.name ?? "取引先"}
-                </span>
-              </span>
-              <button
-                onClick={() => setSelectedCompanyId("")}
-                className="shrink-0 text-[12px] font-bold"
-                style={{ color: accentColor }}
-              >
-                変更
-              </button>
-            </div>
-
         {/* Invoice Candidates Section */}
         {candidates.length > 0 && (
           <div className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
@@ -327,80 +315,133 @@ export function DocumentsClient({
           </button>
         </div>
 
-        {/* Document List */}
+        {/* 取引先フィルタ（任意） */}
+        {counterparties.length > 0 && (
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            <button
+              onClick={() => setSelectedCompanyId("")}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors ${
+                selectedCompanyId === "" ? "text-white" : "bg-gray-100 text-knock-text-secondary"
+              }`}
+              style={selectedCompanyId === "" ? { backgroundColor: accentColor } : undefined}
+            >
+              すべて
+            </button>
+            {counterparties.map((cp) => (
+              <button
+                key={cp.id}
+                onClick={() => setSelectedCompanyId(cp.id)}
+                className={`shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors ${
+                  selectedCompanyId === cp.id ? "text-white" : "bg-gray-100 text-knock-text-secondary"
+                }`}
+                style={selectedCompanyId === cp.id ? { backgroundColor: accentColor } : undefined}
+              >
+                {cp.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Document List（月内・工事ごと） */}
         {loading ? (
           <div className="flex items-center justify-center py-10">
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
           </div>
         ) : result && result.documents.length > 0 ? (
-          <div className="flex flex-col gap-3">
-            {result.documents.map((doc) => {
-              const counterpartyName = doc.isMyCompanyOrderer
-                ? doc.workerCompanyName
-                : doc.orderCompanyName;
-              const dateStr = formatJpDate(doc.issuedAt);
-              const amount =
-                doc.totalAmount != null
-                  ? `${Number(doc.totalAmount).toLocaleString("ja-JP")}円`
-                  : "-";
-              const docLabel =
-                documentTypeLabels[doc.type] ?? doc.type;
-              const docNumSuffix = doc.documentNumber.split("-").pop();
-              const title = `${docLabel} #${docNumSuffix}`;
-
-              return (
-                <Link
-                  key={doc.id}
-                  href={`/documents/${doc.id}`}
-                  className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.07)] border-l-4 border-[#3B82F6] transition-all active:scale-[0.98]"
-                >
-                  {/* Blue top bar */}
-                  <div className="relative flex h-10 items-center bg-[#3B82F6] px-3">
-                    {/* PDF badge */}
-                    <span className="absolute -bottom-3 left-3 flex h-7 w-12 items-center justify-center rounded-md bg-[#22C55E] text-[11px] font-bold text-white shadow-sm">
-                      PDF
+          <div className="flex flex-col gap-4">
+            {groupByWork(result.documents).map((group) => (
+              <div key={group.siteId} className="flex flex-col gap-2">
+                {/* 工事見出し */}
+                <div className="flex items-center gap-2 px-1">
+                  <span className="min-w-0 truncate text-[13px] font-bold text-knock-text">
+                    {group.siteName}
+                  </span>
+                  {group.siteCode && (
+                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-knock-text-secondary">
+                      工事番号 {group.siteCode}
                     </span>
-                    {/* Status badge */}
-                    <span
-                      className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        documentStatusColors[doc.status] ?? "bg-gray-100 text-gray-600"
-                      }`}
+                  )}
+                </div>
+
+                {group.docs.map((doc) => {
+                  const counterpartyName = doc.isMyCompanyOrderer
+                    ? doc.workerCompanyName
+                    : doc.orderCompanyName;
+                  const dateStr = formatJpDate(doc.issuedAt);
+                  const amount =
+                    doc.totalAmount != null
+                      ? `${Number(doc.totalAmount).toLocaleString("ja-JP")}円`
+                      : "-";
+                  const docLabel = documentTypeLabels[doc.type] ?? doc.type;
+                  const docNumSuffix = doc.documentNumber.split("-").pop();
+                  const title = `${docLabel} #${docNumSuffix}`;
+
+                  return (
+                    <Link
+                      key={doc.id}
+                      href={`/documents/${doc.id}`}
+                      className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.07)] border-l-4 border-[#3B82F6] transition-all active:scale-[0.98]"
                     >
-                      {documentStatusLabels[doc.status] ?? doc.status}
-                    </span>
-                  </div>
-
-                  {/* Card body */}
-                  <div className="flex flex-col gap-2 px-4 pt-5 pb-3">
-                    {/* Title */}
-                    <p className="text-[13px] font-bold leading-snug text-knock-text">
-                      {title}
-                    </p>
-
-                    {/* Date row */}
-                    {dateStr && (
-                      <div className="flex items-center gap-1.5">
-                        <CalendarIcon />
-                        <span className="text-[11px] text-knock-text-secondary">{dateStr}</span>
-                      </div>
-                    )}
-
-                    {/* Company + Amount row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <CompanyIcon />
-                        <span className="truncate text-[11px] text-knock-text-secondary">
-                          {counterpartyName ?? ""}
+                      {/* Blue top bar */}
+                      <div className="relative flex h-10 items-center bg-[#3B82F6] px-3">
+                        {/* PDF badge */}
+                        <span className="absolute -bottom-3 left-3 flex h-7 w-12 items-center justify-center rounded-md bg-[#22C55E] text-[11px] font-bold text-white shadow-sm">
+                          PDF
                         </span>
+                        {/* Badges */}
+                        <div className="ml-auto flex items-center gap-1.5">
+                          {doc.type === "ORDER_SHEET" && (
+                            <span
+                              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                                doc.isInvoiced ? "bg-[#22C55E] text-white" : "bg-amber-400 text-white"
+                              }`}
+                            >
+                              {doc.isInvoiced ? "請求済" : "請求前"}
+                            </span>
+                          )}
+                          <span
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                              documentStatusColors[doc.status] ?? "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {documentStatusLabels[doc.status] ?? doc.status}
+                          </span>
+                        </div>
                       </div>
-                      <span className="shrink-0 text-[13px] font-bold" style={{ color: accentColor }}>
-                        {amount}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+
+                      {/* Card body */}
+                      <div className="flex flex-col gap-2 px-4 pt-5 pb-3">
+                        {/* Title */}
+                        <p className="text-[13px] font-bold leading-snug text-knock-text">
+                          {title}
+                        </p>
+
+                        {/* Date row */}
+                        {dateStr && (
+                          <div className="flex items-center gap-1.5">
+                            <CalendarIcon />
+                            <span className="text-[11px] text-knock-text-secondary">{dateStr}</span>
+                          </div>
+                        )}
+
+                        {/* Company + Amount row */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <CompanyIcon />
+                            <span className="truncate text-[11px] text-knock-text-secondary">
+                              {counterpartyName ?? ""}
+                            </span>
+                          </div>
+                          <span className="shrink-0 text-[13px] font-bold" style={{ color: accentColor }}>
+                            {amount}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 py-10">
@@ -410,8 +451,6 @@ export function DocumentsClient({
             </svg>
             <span className="text-[13px] text-knock-text-muted">帳票がありません</span>
           </div>
-        )}
-          </>
         )}
       </div>
     </div>

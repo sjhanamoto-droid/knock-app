@@ -62,13 +62,42 @@ export async function getDocuments(filters?: {
         workerCompany: { select: { id: true, name: true } },
         factoryFloorOrder: {
           select: {
-            factoryFloor: { select: { id: true, name: true } },
+            factoryFloor: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+                parent: { select: { code: true } },
+              },
+            },
           },
         },
       },
     }),
     prisma.document.count({ where }),
   ]);
+
+  // 注文書ごとの「請求済み」判定に使う、請求済み発注IDの集合を作る。
+  // 請求書(INVOICE, 非VOID)の metadata.orderIds に、その請求書へまとめられた発注IDが入る。
+  const invoicedOrderIds = new Set<string>();
+  if (documents.some((d) => d.type === "ORDER_SHEET")) {
+    const invoices = await prisma.document.findMany({
+      where: {
+        type: "INVOICE",
+        status: { not: "VOID" },
+        deletedAt: null,
+        OR: [
+          { orderCompanyId: user.companyId },
+          { workerCompanyId: user.companyId },
+        ],
+      },
+      select: { metadata: true },
+    });
+    for (const inv of invoices) {
+      const ids = (inv.metadata as { orderIds?: string[] } | null)?.orderIds ?? [];
+      for (const id of ids) invoicedOrderIds.add(id);
+    }
+  }
 
   return {
     documents: documents.map((doc) => ({
@@ -81,8 +110,19 @@ export async function getDocuments(filters?: {
       pdfUrl: doc.pdfUrl,
       orderCompanyName: doc.orderCompany.name,
       workerCompanyName: doc.workerCompany.name,
+      siteId: doc.factoryFloorOrder?.factoryFloor?.id ?? null,
       siteName: doc.factoryFloorOrder?.factoryFloor?.name ?? "",
+      // 工事番号は子工事なら親のコードを継承する
+      siteCode:
+        doc.factoryFloorOrder?.factoryFloor?.code ??
+        doc.factoryFloorOrder?.factoryFloor?.parent?.code ??
+        "",
       isMyCompanyOrderer: doc.orderCompanyId === user.companyId,
+      // 請求書発行済みか（注文書のみ判定。請求前=false / 請求済=true）
+      isInvoiced:
+        doc.type === "ORDER_SHEET"
+          ? invoicedOrderIds.has(doc.factoryFloorOrderId)
+          : false,
     })),
     total,
     page,
