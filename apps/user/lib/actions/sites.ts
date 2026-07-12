@@ -123,6 +123,123 @@ export async function getSites(
   return serializeBigInt(result);
 }
 
+// ============ 親プロジェクト一覧（第1画面: 完了前/完了後） ============
+
+/**
+ * 発注者の現場一覧トップ。トップレベル（親プロジェクト＋単独現場）を返す。
+ * category: "before"(完了前) / "after"(完了後)。
+ * 完了後 = 子工事が全て完了(COMPLETED/DEAL_COMPLETED)。子が無い単独現場は自身が完了なら完了後。
+ */
+export async function getProjectSites(
+  category?: "before" | "after",
+  search?: string,
+  sortBy: SiteSortField = "createdAt",
+  sortOrder: SiteSortOrder = "desc"
+) {
+  const user = await requireSession();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
+    companyId: user.companyId,
+    deletedAt: null,
+    parentId: null, // トップレベルのみ
+  };
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { code: { contains: search, mode: "insensitive" } },
+      { address: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const sites = await prisma.factoryFloor.findMany({
+    where,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      workCompany: { select: { name: true } },
+      children: { where: { deletedAt: null }, select: { status: true } },
+    },
+  });
+
+  const result = sites
+    .map((site) => {
+      const childStatuses = site.children.map((c) => c.status);
+      const childCount = childStatuses.length;
+      const effectiveStatus = computeEffectiveStatus(site.status, childStatuses);
+      // 完了判定: 子ありなら全子がDONE、子なしなら自身がDONE
+      const completed =
+        childCount > 0
+          ? childStatuses.every((s) => DONE_STATUSES.has(s))
+          : DONE_STATUSES.has(site.status);
+      const { children: _children, ...rest } = site;
+      return { ...rest, status: effectiveStatus, childCount, completed };
+    })
+    .filter((s) => {
+      if (category === "before") return !s.completed;
+      if (category === "after") return s.completed;
+      return true;
+    });
+
+  return serializeBigInt(result);
+}
+
+// ============ 子工事一覧（第2画面: 親を選択後、ステータス別） ============
+
+/**
+ * 指定した親プロジェクト配下の子工事を、各子工事の実ステータス付きで返す。
+ */
+export async function getChildSites(
+  parentId: string,
+  status?: string,
+  search?: string,
+  sortBy: SiteSortField = "createdAt",
+  sortOrder: SiteSortOrder = "desc"
+) {
+  const user = await requireSession();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = {
+    companyId: user.companyId,
+    deletedAt: null,
+    parentId,
+  };
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { code: { contains: search, mode: "insensitive" } },
+      { address: { contains: search, mode: "insensitive" } },
+    ];
+  }
+
+  const sites = await prisma.factoryFloor.findMany({
+    where,
+    orderBy: { [sortBy]: sortOrder },
+    include: {
+      workCompany: { select: { name: true } },
+      parent: { select: { id: true, name: true } },
+    },
+  });
+
+  const result = sites.filter((site) => !status || site.status === status);
+  return serializeBigInt(result);
+}
+
+/** 子工事一覧画面のヘッダ用: 親プロジェクトの名前/コードを取得 */
+export async function getSiteName(id: string) {
+  const user = await requireSession();
+  const site = await prisma.factoryFloor.findFirst({
+    where: {
+      id,
+      OR: [{ companyId: user.companyId }, { workCompanyId: user.companyId }],
+      deletedAt: null,
+    },
+    select: { id: true, name: true, code: true },
+  });
+  return site;
+}
+
 // ============ 受注者向け一覧取得 ============
 
 export async function getContractorSites(
@@ -935,31 +1052,6 @@ export async function duplicateSite(id: string) {
   );
 
   return serializeBigInt(result);
-}
-
-// ============ 子現場一覧取得 ============
-
-export async function getChildSites(parentId: string) {
-  const user = await requireSession();
-
-  const sites = await prisma.factoryFloor.findMany({
-    where: {
-      parentId,
-      companyId: user.companyId,
-      deletedAt: null,
-    },
-    orderBy: { createdAt: "asc" },
-    include: {
-      workCompany: { select: { id: true, name: true } },
-      orders: {
-        where: { deletedAt: null },
-        select: { id: true, status: true, actualAmount: true },
-      },
-      _count: { select: { members: true } },
-    },
-  });
-
-  return serializeBigInt(sites);
 }
 
 // ============ プロジェクト予算管理 ============

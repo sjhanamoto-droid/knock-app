@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  getSites,
+  getProjectSites,
+  getChildSites,
   getContractorSites,
   type SiteSortField,
   type SiteSortOrder,
@@ -35,7 +36,15 @@ const CONTRACTOR_STATUS_TABS = [
   { value: "COMPLETED", label: "完了" },
 ];
 
-type Site = Awaited<ReturnType<typeof getSites>>[number];
+// 親プロジェクト一覧（第1画面）のカテゴリー分け
+const PROJECT_TABS = [
+  { value: "before", label: "完了前" },
+  { value: "after", label: "完了後" },
+];
+
+type ProjectItem = Awaited<ReturnType<typeof getProjectSites>>[number];
+type ChildItem = Awaited<ReturnType<typeof getChildSites>>[number];
+type Site = ProjectItem | ChildItem;
 
 /* ──────────── Icons ──────────── */
 
@@ -142,12 +151,24 @@ function ChevronRightIcon() {
 
 /* ──────────── Main Page ──────────── */
 
-export function SitesClient({ initialSites }: { initialSites: Site[] }) {
+export function SitesClient({
+  initialSites,
+  viewMode,
+  parentId,
+  parentName,
+}: {
+  initialSites: Site[];
+  viewMode: "project" | "child";
+  parentId?: string;
+  parentName?: string | null;
+}) {
   const router = useRouter();
   const { isOrderer, accentColor } = useMode();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sites, setSites] = useState<Site[]>(initialSites);
-  const [activeTab, setActiveTab] = useState("");
+  const [activeTab, setActiveTab] = useState(
+    viewMode === "project" ? "before" : ""
+  );
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -155,7 +176,13 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
   const [sortOrder, setSortOrder] = useState<SiteSortOrder>("desc");
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  const statusTabs = isOrderer ? ORDERER_STATUS_TABS : CONTRACTOR_STATUS_TABS;
+  // タブ: プロジェクト画面=完了前/完了後、子工事画面=ステータス別
+  const tabs =
+    viewMode === "project"
+      ? PROJECT_TABS
+      : isOrderer
+        ? ORDERER_STATUS_TABS
+        : CONTRACTOR_STATUS_TABS;
 
   const SORT_OPTIONS: { field: SiteSortField; order: SiteSortOrder; label: string }[] = [
     { field: "createdAt", order: "desc", label: "登録日（新しい順）" },
@@ -175,18 +202,35 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
   const fetchSites = useCallback(async () => {
     setLoading(true);
     try {
-      const fetcher = isOrderer ? getSites : getContractorSites;
-      const data = await fetcher(
-        activeTab || undefined,
-        debouncedSearch || undefined,
-        sortBy,
-        sortOrder
-      );
+      let data;
+      if (viewMode === "project") {
+        data = await getProjectSites(
+          (activeTab as "before" | "after") || undefined,
+          debouncedSearch || undefined,
+          sortBy,
+          sortOrder
+        );
+      } else if (parentId) {
+        data = await getChildSites(
+          parentId,
+          activeTab || undefined,
+          debouncedSearch || undefined,
+          sortBy,
+          sortOrder
+        );
+      } else {
+        data = await getContractorSites(
+          activeTab || undefined,
+          debouncedSearch || undefined,
+          sortBy,
+          sortOrder
+        );
+      }
       setSites(data as Site[]);
     } finally {
       setLoading(false);
     }
-  }, [activeTab, debouncedSearch, isOrderer, sortBy, sortOrder]);
+  }, [viewMode, parentId, activeTab, debouncedSearch, sortBy, sortOrder]);
 
   const isInitialMount = useRef(true);
   useEffect(() => {
@@ -216,12 +260,25 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white">
         <div className="flex items-center justify-between px-4 py-3">
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
-          >
-            <MenuIcon />
-          </button>
+          {viewMode === "child" && parentId ? (
+            <button
+              type="button"
+              onClick={() => router.push("/sites")}
+              aria-label="戻る"
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
+            >
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <path d="M14 4L7 11L14 18" stroke="#1A1A1A" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
+            >
+              <MenuIcon />
+            </button>
+          )}
           <div className="flex flex-col items-center">
             <h1 className="text-[17px] font-bold tracking-wide text-knock-text">
               現場
@@ -231,13 +288,38 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
               style={{ backgroundColor: accentColor }}
             />
           </div>
-          <Link
-            href="/notifications"
-            className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
-          >
-            <BellIcon />
-          </Link>
+          {viewMode === "child" && parentId ? (
+            <div className="h-10 w-10" />
+          ) : (
+            <Link
+              href="/notifications"
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-colors active:bg-gray-100"
+            >
+              <BellIcon />
+            </Link>
+          )}
         </div>
+
+        {/* 子工事画面: 現在のプロジェクト名（タップでも一覧へ戻れる） */}
+        {viewMode === "child" && parentId && (
+          <button
+            type="button"
+            onClick={() => router.push("/sites")}
+            className="flex w-full items-center gap-1.5 px-4 pb-2 text-left transition-opacity active:opacity-70"
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M1.8 4C1.8 3.3 2.3 2.8 3 2.8H6.3L7.8 4.5H13C13.7 4.5 14.2 5 14.2 5.7V12C14.2 12.7 13.7 13.2 13 13.2H3C2.3 13.2 1.8 12.7 1.8 12V4Z"
+                stroke="#6B6B6B"
+                strokeWidth="1.4"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="truncate text-[13px] font-bold text-knock-text">
+              {parentName ?? "プロジェクト"}
+            </span>
+          </button>
+        )}
 
         {/* Search bar */}
         <div className="px-4 pb-2">
@@ -320,7 +402,7 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
         </div>
 
         <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-hide">
-          {statusTabs.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.value}
               onClick={() => setActiveTab(tab.value)}
@@ -339,7 +421,11 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
       {/* 発注者: 新規作成FAB */}
       {isOrderer && (
         <Link
-          href="/sites/new"
+          href={
+            viewMode === "child" && parentId
+              ? `/sites/new?parentId=${parentId}`
+              : "/sites/new"
+          }
           className="fixed bottom-24 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all active:scale-95"
           style={{ backgroundColor: accentColor }}
         >
@@ -382,12 +468,95 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
           </div>
         ) : (
           sites.map((site) => {
+            // ── 親プロジェクトカード（第1画面）──
+            if (viewMode === "project") {
+              const p = site as ProjectItem;
+              const childCount = p.childCount ?? 0;
+              const hasChildren = childCount > 0;
+              const budget = p.budget;
+              return (
+                <div
+                  key={p.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() =>
+                    router.push(
+                      hasChildren ? `/sites?parentId=${p.id}` : `/sites/${p.id}`
+                    )
+                  }
+                  className="cursor-pointer overflow-hidden rounded-xl bg-white shadow-[0_1px_6px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
+                  style={{ borderLeft: `4px solid ${accentColor}` }}
+                >
+                  <div className="px-4 py-3">
+                    {/* Top row: 完了前/完了後 badge + chevron */}
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                          p.completed
+                            ? "bg-green-100 text-green-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {p.completed ? "完了後" : "完了前"}
+                      </span>
+                      <div
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                        style={{ backgroundColor: accentColor }}
+                      >
+                        <ChevronRightIcon />
+                      </div>
+                    </div>
+
+                    {/* Project name + child count */}
+                    <div className="mb-2 flex items-center gap-2">
+                      <p className="text-[14px] font-bold text-knock-text leading-snug">
+                        {p.name ?? "名称未設定"}
+                      </p>
+                      {hasChildren && (
+                        <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                          {childCount}工事
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex flex-col gap-1">
+                      {p.code && (
+                        <span className="text-[11px] text-gray-500">工事番号: {p.code}</span>
+                      )}
+                      {p.address && (
+                        <div className="flex items-center gap-1.5">
+                          <PinIcon />
+                          <span className="truncate text-[11px] text-gray-500">{p.address}</span>
+                        </div>
+                      )}
+                      {(p.startDayRequest || p.endDayRequest) && (
+                        <div className="flex items-center gap-1.5">
+                          <CalendarIcon />
+                          <span className="text-[11px] text-gray-500">
+                            {formatDate(p.startDayRequest)}
+                            {p.startDayRequest && p.endDayRequest && " ~ "}
+                            {formatDate(p.endDayRequest)}
+                          </span>
+                        </div>
+                      )}
+                      {budget != null && Number(budget) > 0 && (
+                        <div className="mt-0.5 flex items-center justify-end">
+                          <span className="text-[12px] font-semibold text-knock-text">
+                            予算 {formatAmount(Number(budget))}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // ── 子工事カード（第2画面 / 受注者）──
             const companyName =
               (site as { workCompany?: { name: string } | null }).workCompany?.name ??
               (site as { company?: { name: string } | null }).company?.name;
-            const parent = (site as {
-              parent?: { id: string; name: string | null } | null;
-            }).parent;
 
             return (
               <div
@@ -399,18 +568,15 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
                 style={{ borderLeft: `4px solid ${accentColor}` }}
               >
                 <div className="px-4 py-3">
-                  {/* Top row: status badge + chevron button */}
+                  {/* Top row: status badge + chevron */}
                   <div className="mb-2 flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                          factoryFloorStatusColors[site.status] ??
-                          "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {factoryFloorStatusLabels[site.status] ?? site.status}
-                      </span>
-                    </div>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                        factoryFloorStatusColors[site.status] ?? "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {factoryFloorStatusLabels[site.status] ?? site.status}
+                    </span>
                     <div
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
                       style={{ backgroundColor: accentColor }}
@@ -419,42 +585,11 @@ export function SitesClient({ initialSites }: { initialSites: Site[] }) {
                     </div>
                   </div>
 
-                  {/* Parent project name (親プロジェクト) */}
-                  {parent?.name && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/sites/${parent.id}`);
-                      }}
-                      className="mb-1.5 flex max-w-full items-center gap-1 text-[11px] font-medium"
-                      style={{ color: accentColor }}
-                    >
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                        <path
-                          d="M1.5 3.5C1.5 2.9 2 2.5 2.5 2.5H5.5L6.8 4H11.5C12 4 12.5 4.4 12.5 5V10.5C12.5 11.1 12 11.5 11.5 11.5H2.5C2 11.5 1.5 11.1 1.5 10.5V3.5Z"
-                          stroke="currentColor"
-                          strokeWidth="1.2"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <span className="truncate">{parent.name}</span>
-                    </button>
-                  )}
-
-                  {/* Site name + child count */}
-                  <div className="mb-2 flex items-center gap-2">
+                  {/* Work name */}
+                  <div className="mb-2">
                     <p className="text-[14px] font-bold text-knock-text leading-snug">
                       {site.name ?? "名称未設定"}
                     </p>
-                    {(() => {
-                      const cnt = (site._count as { children?: number })?.children ?? 0;
-                      return cnt > 0 ? (
-                        <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
-                          {cnt}工事
-                        </span>
-                      ) : null;
-                    })()}
                   </div>
 
                   {/* Details */}
