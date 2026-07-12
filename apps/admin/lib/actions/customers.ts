@@ -261,30 +261,54 @@ export async function updateUser(
     throw new Error("権限がありません");
   }
 
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data,
-    select: {
-      id: true,
-      lastName: true,
-      firstName: true,
-      lastNameKana: true,
-      firstNameKana: true,
-      email: true,
-      telNumber: true,
-      dateOfBirth: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      lastLoginAt: true,
-    },
-  });
+  // メールアドレス重複チェック（別ユーザーが同じメールを使用している場合はエラーを返す）
+  if (data.email) {
+    const existing = await prisma.user.findUnique({
+      where: { email: data.email },
+      select: { id: true },
+    });
+    if (existing && existing.id !== userId) {
+      return { error: "EMAIL_TAKEN" as const };
+    }
+  }
 
-  return {
-    ...updated,
-    createdAt: updated.createdAt.toISOString(),
-    lastLoginAt: updated.lastLoginAt?.toISOString() ?? null,
-  };
+  try {
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        lastName: true,
+        firstName: true,
+        lastNameKana: true,
+        firstNameKana: true,
+        email: true,
+        telNumber: true,
+        dateOfBirth: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+    });
+
+    return {
+      ...updated,
+      createdAt: updated.createdAt.toISOString(),
+      lastLoginAt: updated.lastLoginAt?.toISOString() ?? null,
+    };
+  } catch (err) {
+    // 同時実行などで pre-check をすり抜けたユニーク制約違反(P2002)の保険
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code?: string }).code === "P2002"
+    ) {
+      return { error: "EMAIL_TAKEN" as const };
+    }
+    throw err;
+  }
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {
@@ -323,44 +347,66 @@ export async function createUser(
 ) {
   await requireAdminSession();
 
+  // メールアドレス重複チェック（既存ユーザーと同じメールでは作成できない）
+  const existing = await prisma.user.findUnique({
+    where: { email: data.email },
+    select: { id: true },
+  });
+  if (existing) {
+    return { error: "EMAIL_TAKEN" as const };
+  }
+
   const hashedPassword = await bcrypt.hash(data.password, 12);
 
-  const user = await prisma.user.create({
-    data: {
-      companyId,
-      lastName: data.lastName,
-      firstName: data.firstName,
-      lastNameKana: data.lastNameKana || null,
-      firstNameKana: data.firstNameKana || null,
-      email: data.email,
-      password: hashedPassword,
-      telNumber: data.telNumber || null,
-      dateOfBirth: data.dateOfBirth || null,
-      role: data.role ?? "OTHER",
-      isActive: true,
-      policyStatus: true,
-    },
-    select: {
-      id: true,
-      lastName: true,
-      firstName: true,
-      lastNameKana: true,
-      firstNameKana: true,
-      email: true,
-      telNumber: true,
-      dateOfBirth: true,
-      role: true,
-      isActive: true,
-      createdAt: true,
-      lastLoginAt: true,
-    },
-  });
+  try {
+    const user = await prisma.user.create({
+      data: {
+        companyId,
+        lastName: data.lastName,
+        firstName: data.firstName,
+        lastNameKana: data.lastNameKana || null,
+        firstNameKana: data.firstNameKana || null,
+        email: data.email,
+        password: hashedPassword,
+        telNumber: data.telNumber || null,
+        dateOfBirth: data.dateOfBirth || null,
+        role: data.role ?? "OTHER",
+        isActive: true,
+        policyStatus: true,
+      },
+      select: {
+        id: true,
+        lastName: true,
+        firstName: true,
+        lastNameKana: true,
+        firstNameKana: true,
+        email: true,
+        telNumber: true,
+        dateOfBirth: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+    });
 
-  return {
-    ...user,
-    createdAt: user.createdAt.toISOString(),
-    lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
-  };
+    return {
+      ...user,
+      createdAt: user.createdAt.toISOString(),
+      lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+    };
+  } catch (err) {
+    // ユニーク制約違反(P2002)の保険
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code?: string }).code === "P2002"
+    ) {
+      return { error: "EMAIL_TAKEN" as const };
+    }
+    throw err;
+  }
 }
 
 export async function deleteCompany(id: string) {

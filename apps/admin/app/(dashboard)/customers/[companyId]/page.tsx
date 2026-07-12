@@ -900,6 +900,14 @@ function UserCreateForm({
         dateOfBirth: form.dateOfBirth || undefined,
         role: form.role as "REPRESENTATIVE" | "MANAGER" | "OTHER",
       });
+      if (created && "error" in created) {
+        alert(
+          created.error === "EMAIL_TAKEN"
+            ? "すでにメールアドレスが使われています"
+            : "ユーザーの作成に失敗しました"
+        );
+        return;
+      }
       onCreated(created as UserItem);
     } catch (err) {
       console.error("[UserCreate] error:", err);
@@ -1062,6 +1070,14 @@ function UserEditForm({
         role: form.role as "REPRESENTATIVE" | "MANAGER" | "OTHER",
         isActive: form.isActive,
       });
+      if (updated && "error" in updated) {
+        alert(
+          updated.error === "EMAIL_TAKEN"
+            ? "すでにメールアドレスが使われています"
+            : "保存に失敗しました"
+        );
+        return;
+      }
       onSaved(updated as UserItem);
     } catch (err) {
       console.error("[UserEdit] save error:", err);
