@@ -135,7 +135,7 @@ function SwitchIcon() {
 }
 
 export function SideMenu({ open, onClose, userName, companyName }: SideMenuProps) {
-  const { mode, companyType, canSwitch, switchMode, accentColor, isOrderer } = useMode();
+  const { mode, canSwitch, switchMode, accentColor, isOrderer } = useMode();
   const router = useRouter();
   const [switching, setSwitching] = useState(false);
 
@@ -240,29 +240,7 @@ export function SideMenu({ open, onClose, userName, companyName }: SideMenuProps
           </div>
         )}
 
-        {/* Create Other Type Account (single-type only) */}
-        {!canSwitch && companyType && companyType !== "BOTH" && (
-          <div className="border-b border-gray-100 px-5 py-3">
-            <Link
-              href="/add-type"
-              onClick={onClose}
-              className="flex w-full items-center justify-between rounded-xl bg-gray-50 px-4 py-3 transition-colors active:bg-gray-100"
-            >
-              <div className="flex items-center gap-2.5">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <circle cx="9" cy="9" r="7" stroke="#6B6B6B" strokeWidth="1.4" />
-                  <path d="M9 6V12M6 9H12" stroke="#6B6B6B" strokeWidth="1.4" strokeLinecap="round" />
-                </svg>
-                <span className="text-[13px] font-medium text-gray-700">
-                  {companyType === "CONTRACTOR" ? "発注者アカウントを作成" : "受注者アカウントを作成"}
-                </span>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M6 3L11 8L6 13" stroke="#C0C0C0" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-          </div>
-        )}
+        {/* 相手方（発注者/受注者）アカウント作成ボタンは要望により非表示 */}
 
         {/* Menu Sections */}
         <nav className="flex-1 overflow-y-auto px-3 py-2">
