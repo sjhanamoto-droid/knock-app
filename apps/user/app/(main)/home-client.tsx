@@ -178,7 +178,14 @@ export function HomeClient({ transactions, summary, badgeCounts, kycStep }: Home
   // Filter transactions for selected date
   const selectedDateStr = `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;
   const filteredTransactions = transactions.filter((tx) => {
-    if (!tx.startDayRequest && !tx.endDayRequest) return true;
+    if (!tx.startDayRequest && !tx.endDayRequest) {
+      // 工事期間が未設定の取引: 完了したらホームから消す（未完了は常時表示）
+      const done =
+        ["COMPLETED", "DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(
+          tx.siteStatus
+        ) || tx.completionStatus === "CLOSED";
+      return !done;
+    }
     const start = tx.startDayRequest ? new Date(tx.startDayRequest) : null;
     const end = tx.endDayRequest ? new Date(tx.endDayRequest) : null;
     if (start && end) {
