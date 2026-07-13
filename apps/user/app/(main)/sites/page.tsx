@@ -34,7 +34,7 @@ export default async function SitesPage({
         key={`child-${parentId}`}
         viewMode="child"
         parentId={parentId}
-        parentName={parent?.name ?? null}
+        parentInfo={parent}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         initialSites={sites as any}
       />

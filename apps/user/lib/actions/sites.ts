@@ -226,7 +226,7 @@ export async function getChildSites(
   return serializeBigInt(result);
 }
 
-/** 子工事一覧画面のヘッダ用: 親プロジェクトの名前/コードを取得 */
+/** 子工事一覧画面の簡易現場詳細用: 親プロジェクトの主要情報を取得 */
 export async function getSiteName(id: string) {
   const user = await requireSession();
   const site = await prisma.factoryFloor.findFirst({
@@ -235,9 +235,17 @@ export async function getSiteName(id: string) {
       OR: [{ companyId: user.companyId }, { workCompanyId: user.companyId }],
       deletedAt: null,
     },
-    select: { id: true, name: true, code: true },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      address: true,
+      budget: true,
+      startDayRequest: true,
+      endDayRequest: true,
+    },
   });
-  return site;
+  return site ? serializeBigInt(site) : null;
 }
 
 // ============ 受注者向け一覧取得 ============

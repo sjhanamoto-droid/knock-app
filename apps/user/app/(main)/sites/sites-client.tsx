@@ -46,6 +46,17 @@ type ProjectItem = Awaited<ReturnType<typeof getProjectSites>>[number];
 type ChildItem = Awaited<ReturnType<typeof getChildSites>>[number];
 type Site = ProjectItem | ChildItem;
 
+// 子工事画面の簡易現場詳細に使う親プロジェクト情報
+type ParentInfo = {
+  id: string;
+  name: string | null;
+  code: string | null;
+  address: string | null;
+  budget: number | string | bigint | null;
+  startDayRequest: string | Date | null;
+  endDayRequest: string | Date | null;
+};
+
 /* ──────────── Icons ──────────── */
 
 function MenuIcon() {
@@ -155,12 +166,12 @@ export function SitesClient({
   initialSites,
   viewMode,
   parentId,
-  parentName,
+  parentInfo,
 }: {
   initialSites: Site[];
   viewMode: "project" | "child";
   parentId?: string;
-  parentName?: string | null;
+  parentInfo?: ParentInfo | null;
 }) {
   const router = useRouter();
   const { isOrderer, accentColor } = useMode();
@@ -257,8 +268,12 @@ export function SitesClient({
     <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
       <SideMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white">
+      {/* Header（子工事画面では固定解除して一緒にスクロール） */}
+      <header
+        className={`bg-white ${
+          viewMode === "child" && parentId ? "" : "sticky top-0 z-40"
+        }`}
+      >
         <div className="flex items-center justify-between px-4 py-3">
           {viewMode === "child" && parentId ? (
             <button
@@ -300,56 +315,86 @@ export function SitesClient({
           )}
         </div>
 
-        {/* 子工事画面: 現在のプロジェクト名（タップでも一覧へ戻れる） */}
-        {viewMode === "child" && parentId && (
-          <button
-            type="button"
-            onClick={() => router.push("/sites")}
-            className="flex w-full items-center gap-1.5 px-4 pb-2 text-left transition-opacity active:opacity-70"
-          >
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M1.8 4C1.8 3.3 2.3 2.8 3 2.8H6.3L7.8 4.5H13C13.7 4.5 14.2 5 14.2 5.7V12C14.2 12.7 13.7 13.2 13 13.2H3C2.3 13.2 1.8 12.7 1.8 12V4Z"
-                stroke="#6B6B6B"
-                strokeWidth="1.4"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span className="truncate text-[13px] font-bold text-knock-text">
-              {parentName ?? "プロジェクト"}
-            </span>
-          </button>
-        )}
-
-        {/* Search bar */}
-        <div className="px-4 pb-2">
-          <div className="relative">
-            <SearchIcon />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="現場名検索"
-              className="w-full rounded-full bg-[#F0F0F0] py-2.5 pl-9 pr-9 text-[13px] text-knock-text placeholder:text-gray-400 focus:outline-none"
-            />
-            {search && (
+        {viewMode === "child" && parentId ? (
+          /* 子工事画面: 簡易現場詳細 + 詳細を見る（検索は非表示） */
+          <div className="px-4 pb-2">
+            <div className="rounded-2xl bg-white p-3.5 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+              <p className="text-[14px] font-bold leading-snug text-knock-text">
+                {parentInfo?.name ?? "プロジェクト"}
+              </p>
+              <div className="mt-1.5 flex flex-col gap-1">
+                {parentInfo?.code && (
+                  <span className="text-[11px] text-gray-500">
+                    工事番号: {parentInfo.code}
+                  </span>
+                )}
+                {parentInfo?.address && (
+                  <div className="flex items-center gap-1.5">
+                    <PinIcon />
+                    <span className="truncate text-[11px] text-gray-500">
+                      {parentInfo.address}
+                    </span>
+                  </div>
+                )}
+                {(parentInfo?.startDayRequest || parentInfo?.endDayRequest) && (
+                  <div className="flex items-center gap-1.5">
+                    <CalendarIcon />
+                    <span className="text-[11px] text-gray-500">
+                      {formatDate(parentInfo?.startDayRequest)}
+                      {parentInfo?.startDayRequest &&
+                        parentInfo?.endDayRequest &&
+                        " ~ "}
+                      {formatDate(parentInfo?.endDayRequest)}
+                    </span>
+                  </div>
+                )}
+                {parentInfo?.budget != null && Number(parentInfo.budget) > 0 && (
+                  <span className="text-[12px] font-semibold text-knock-text">
+                    予算 {formatAmount(Number(parentInfo.budget))}
+                  </span>
+                )}
+              </div>
               <button
                 type="button"
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                onClick={() => router.push(`/sites/${parentId}`)}
+                className="mt-3 w-full rounded-xl py-2.5 text-[13px] font-bold text-white transition-opacity active:opacity-80"
+                style={{ backgroundColor: accentColor }}
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path
-                    d="M3 3L11 11M11 3L3 11"
-                    stroke="currentColor"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
+                詳細を見る
               </button>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Search bar */
+          <div className="px-4 pb-2">
+            <div className="relative">
+              <SearchIcon />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="現場名検索"
+                className="w-full rounded-full bg-[#F0F0F0] py-2.5 pl-9 pr-9 text-[13px] text-knock-text placeholder:text-gray-400 focus:outline-none"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                >
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M3 3L11 11M11 3L3 11"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Sort + Status Tabs */}
         <div className="flex items-center justify-between px-4 pb-2">
@@ -488,7 +533,7 @@ export function SitesClient({
                   style={{ borderLeft: `4px solid ${accentColor}` }}
                 >
                   <div className="px-4 py-3">
-                    {/* Top row: 完了前/完了後 badge + chevron */}
+                    {/* Top row: 完了前/完了後 badge + 詳細ボタン + chevron */}
                     <div className="mb-2 flex items-start justify-between gap-2">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
@@ -499,11 +544,32 @@ export function SitesClient({
                       >
                         {p.completed ? "完了後" : "完了前"}
                       </span>
-                      <div
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                        style={{ backgroundColor: accentColor }}
-                      >
-                        <ChevronRightIcon />
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/sites/${p.id}`);
+                          }}
+                          aria-label="プロジェクト詳細"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white transition-colors active:bg-gray-100"
+                        >
+                          <svg width="15" height="15" viewBox="0 0 22 22" fill="none">
+                            <rect x="5" y="3" width="12" height="16" rx="2" stroke="#4B5563" strokeWidth="1.7" />
+                            <path
+                              d="M8 8H14M8 11H14M8 14H12"
+                              stroke="#4B5563"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                        <div
+                          className="flex h-7 w-7 items-center justify-center rounded-full"
+                          style={{ backgroundColor: accentColor }}
+                        >
+                          <ChevronRightIcon />
+                        </div>
                       </div>
                     </div>
 
