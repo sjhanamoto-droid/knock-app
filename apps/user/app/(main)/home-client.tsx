@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { SideMenu } from "@/components/side-menu";
 import { useMode } from "@/lib/hooks/use-mode";
@@ -44,49 +44,76 @@ function CalendarWeekView({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const base = new Date(selectedDate);
-  base.setHours(0, 0, 0, 0);
-  const dow = base.getDay();
-  const startOfWeek = new Date(base);
-  startOfWeek.setDate(base.getDate() - dow);
+  const selectedMidnight = new Date(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    selectedDate.getDate()
+  ).getTime();
 
+  // 横スクロール用に、前2週間〜先約3.5ヶ月の連続した日付を生成
+  const rangeStart = new Date(today);
+  rangeStart.setDate(today.getDate() - 14);
   const days: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
+  for (let i = 0; i < 120; i++) {
+    const d = new Date(rangeStart);
+    d.setDate(rangeStart.getDate() + i);
     days.push(d);
   }
 
   const yearMonth = `${selectedDate.getFullYear()}年${selectedDate.getMonth() + 1}月`;
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<HTMLDivElement>(null);
+
+  // 初回表示で選択日（今日）を中央付近にスクロール
+  useEffect(() => {
+    const c = scrollRef.current;
+    const el = selectedRef.current;
+    if (c && el) {
+      c.scrollLeft = el.offsetLeft - c.clientWidth / 2 + el.clientWidth / 2;
+    }
+    // マウント時のみ
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="rounded-2xl bg-white px-4 py-3 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
       <p className="mb-2 text-[13px] font-bold text-knock-text">{yearMonth}</p>
-      <div className="grid grid-cols-7 gap-0.5">
-        {DAY_LABELS.map((label, i) => {
-          const isSun = i === 0;
-          const isSat = i === 6;
+      <div
+        ref={scrollRef}
+        className="relative -mx-1 flex gap-1 overflow-x-auto px-1 pb-1 scrollbar-hide"
+      >
+        {days.map((d) => {
+          const dow = d.getDay();
+          const isSelected = d.getTime() === selectedMidnight;
+          const isToday = d.getTime() === today.getTime();
           return (
-            <div key={label} className="flex flex-col items-center">
+            <div
+              key={d.getTime()}
+              ref={isSelected ? selectedRef : undefined}
+              className="flex w-9 shrink-0 flex-col items-center"
+            >
               <span
                 className="mb-1 text-[10px] font-semibold"
-                style={{ color: isSun ? "#EF4444" : isSat ? "#3B82F6" : "#6B6B6B" }}
+                style={{
+                  color: dow === 0 ? "#EF4444" : dow === 6 ? "#3B82F6" : "#6B6B6B",
+                }}
               >
-                {label}
+                {DAY_LABELS[dow]}
               </span>
               <button
                 type="button"
-                onClick={() => onSelectDate(days[i])}
+                onClick={() => onSelectDate(d)}
                 className="flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-semibold transition-colors"
                 style={
-                  days[i].getTime() === new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()).getTime()
+                  isSelected
                     ? { backgroundColor: accentColor, color: "#fff" }
-                    : days[i].getTime() === today.getTime()
-                    ? { color: accentColor, fontWeight: 700 }
-                    : { color: "#1A1A1A" }
+                    : isToday
+                      ? { color: accentColor, fontWeight: 700 }
+                      : { color: "#1A1A1A" }
                 }
               >
-                {days[i].getDate()}
+                {d.getDate()}
               </button>
             </div>
           );
@@ -177,15 +204,16 @@ export function HomeClient({ transactions, summary, badgeCounts, kycStep }: Home
 
   // Filter transactions for selected date
   const selectedDateStr = `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;
+  const isCompletedTx = (tx: TransactionItem) =>
+    ["COMPLETED", "DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(
+      tx.siteStatus
+    ) || tx.completionStatus === "CLOSED";
+
   const filteredTransactions = transactions.filter((tx) => {
-    if (!tx.startDayRequest && !tx.endDayRequest) {
-      // 工事期間が未設定の取引: 完了したらホームから消す（未完了は常時表示）
-      const done =
-        ["COMPLETED", "DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(
-          tx.siteStatus
-        ) || tx.completionStatus === "CLOSED";
-      return !done;
-    }
+    // 施工が未完了の工事は、期間の内外を問わず常に表示
+    // （1つの親に複数工事があっても、未完了のものは全て表示する）
+    if (!isCompletedTx(tx)) return true;
+    // 完了済みの工事は、工事期間内に選択日が入る場合のみ表示（期間未設定なら非表示）
     const start = tx.startDayRequest ? new Date(tx.startDayRequest) : null;
     const end = tx.endDayRequest ? new Date(tx.endDayRequest) : null;
     if (start && end) {
@@ -196,7 +224,7 @@ export function HomeClient({ transactions, summary, badgeCounts, kycStep }: Home
       s.setHours(0, 0, 0, 0);
       return selectedDate.getTime() === s.getTime();
     }
-    return true;
+    return false;
   });
 
   return (

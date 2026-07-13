@@ -55,7 +55,8 @@ export async function getActiveTransactions() {
       },
     },
     orderBy: { updatedAt: "desc" },
-    take: 10,
+    // 未完了の工事を取りこぼさないよう多めに取得（クライアント側で期間/完了フィルタ）
+    take: 50,
   });
 
   // 発注済以降のステータス
