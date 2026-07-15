@@ -42,6 +42,7 @@ export async function getActiveTransactions() {
           endDayRequest: true,
           company: { select: { id: true, name: true } },
           workCompany: { select: { id: true, name: true } },
+          parent: { select: { id: true, name: true } },
           chatRooms: {
             where: {
               type: "SITE_INFO",
@@ -73,6 +74,8 @@ export async function getActiveTransactions() {
       (order.inspectionData as { type?: string } | null)?.type === "ADDITIONAL_ORDER",
     siteId: order.factoryFloor.id,
     siteName: order.factoryFloor.name ?? "名称未設定",
+    parentSiteId: order.factoryFloor.parent?.id ?? null,
+    parentSiteName: order.factoryFloor.parent?.name ?? null,
     siteStatus: order.factoryFloor.status,
     address: order.factoryFloor.address,
     startDayRequest: order.factoryFloor.startDayRequest,

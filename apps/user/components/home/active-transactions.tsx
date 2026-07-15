@@ -10,6 +10,8 @@ interface Transaction {
   isAdditional?: boolean;
   siteId: string;
   siteName: string;
+  parentSiteId: string | null;
+  parentSiteName: string | null;
   siteStatus: string;
   address: string | null;
   startDayRequest: Date | null;
@@ -93,7 +95,6 @@ function SiteCard({
   accentColor: string;
 }) {
   const statusLabel = factoryFloorStatusLabels[tx.siteStatus] ?? tx.siteStatus;
-  const personName = isOrderer ? tx.contractorName : tx.ordererName;
   const dateStr =
     tx.startDayRequest || tx.endDayRequest
       ? `${formatDateShort(tx.startDayRequest)}${tx.startDayRequest && tx.endDayRequest ? " 〜 " : ""}${formatDateShort(tx.endDayRequest)}`
@@ -132,18 +133,18 @@ function SiteCard({
           className="flex flex-1 items-center gap-3 min-w-0 transition-all active:opacity-70"
         >
           <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-            {/* Status badge + person name row */}
+            {/* Status badge + 親工事名 row */}
             <div className="flex items-center justify-between gap-2">
               <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                   factoryFloorStatusColors[tx.siteStatus] ?? "bg-gray-100 text-gray-600"
                 }`}
               >
                 {statusLabel}
               </span>
-              {personName && (
-                <span className="shrink-0 text-[11px] text-knock-text-secondary">
-                  {personName}
+              {tx.parentSiteName && (
+                <span className="min-w-0 flex-1 truncate text-right text-[11px] text-knock-text-secondary">
+                  {tx.parentSiteName}
                 </span>
               )}
             </div>

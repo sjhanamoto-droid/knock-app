@@ -91,10 +91,12 @@ function CalendarWeekView({
             <div
               key={d.getTime()}
               ref={isSelected ? selectedRef : undefined}
-              className="flex w-9 shrink-0 flex-col items-center"
+              className="flex shrink-0 flex-col items-center"
+              // 常に7日分がちょうど画面幅に収まる幅（残りは横スクロール）
+              style={{ width: "calc((100% - 24px) / 7)" }}
             >
               <span
-                className="mb-1 text-[10px] font-semibold"
+                className="mb-1 text-[11px] font-semibold"
                 style={{
                   color: dow === 0 ? "#EF4444" : dow === 6 ? "#3B82F6" : "#6B6B6B",
                 }}
@@ -104,7 +106,7 @@ function CalendarWeekView({
               <button
                 type="button"
                 onClick={() => onSelectDate(d)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-semibold transition-colors"
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[15px] font-semibold transition-colors"
                 style={
                   isSelected
                     ? { backgroundColor: accentColor, color: "#fff" }
