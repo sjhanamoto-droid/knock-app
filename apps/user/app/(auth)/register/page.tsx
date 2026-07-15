@@ -14,6 +14,7 @@ import {
   completeRegistrationAsLoggedIn,
 } from "@/lib/actions/registration";
 import { getAddressFromPostalCode } from "@knock/utils";
+import { TermsAgreementScreen } from "@/components/terms-of-service";
 
 /* ──────────── Schemas ──────────── */
 
@@ -128,6 +129,7 @@ const inputClass = "w-full px-4 py-4 text-[15px] outline-none";
 /* ──────────── Main Page ──────────── */
 
 export default function RegisterPage() {
+  const [agreedToTerms, setAgreedToTerms] = useState(false); // 利用規約への同意
   const [step, setStep] = useState(0); // 0 = type select, 1-3 = registration steps
   const [userType, setUserType] = useState<"ORDERER" | "CONTRACTOR" | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -243,6 +245,18 @@ export default function RegisterPage() {
       <div className="min-h-screen bg-white flex items-center justify-center">
         <p className="text-[15px]" style={{ color: "#6B6B6B" }}>読み込み中...</p>
       </div>
+    );
+  }
+
+  /* ──── 利用規約への同意（新規登録の最初に表示） ──── */
+  // 登録途中で復帰したユーザーは登録開始時に同意済みのためスキップ
+  if (!agreedToTerms && !isReturningUser) {
+    return (
+      <TermsAgreementScreen
+        onAgree={() => setAgreedToTerms(true)}
+        onBack={() => router.push("/login")}
+        agreeLabel="利用規約に同意して登録に進む"
+      />
     );
   }
 
