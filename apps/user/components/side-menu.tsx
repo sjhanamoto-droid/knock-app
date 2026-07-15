@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useMode } from "@/lib/hooks/use-mode";
+import { KnockLogoImage } from "@/components/knock-logo";
 
 interface SideMenuProps {
   open: boolean;
@@ -134,57 +135,6 @@ function SwitchIcon() {
   );
 }
 
-// Knock ロゴ（コンパクト版）
-function KnockLogo() {
-  return (
-    <div className="relative flex items-end" aria-label="Knock">
-      <span
-        className="absolute text-[7px] font-bold leading-none"
-        style={{
-          color: "#F5A623",
-          bottom: "100%",
-          left: 0,
-          marginBottom: "1px",
-          letterSpacing: "0.04em",
-        }}
-      >
-        ノック
-      </span>
-      <span
-        className="select-none text-[26px] font-black leading-none tracking-tight"
-        style={{ color: "#1A2340" }}
-      >
-        Kn
-      </span>
-      <span className="relative inline-flex items-end">
-        <span
-          className="select-none text-[26px] font-black leading-none tracking-tight"
-          style={{ color: "#1A2340" }}
-        >
-          o
-        </span>
-        <span
-          className="absolute rounded-full"
-          style={{
-            width: "5px",
-            height: "5px",
-            backgroundColor: "#F5A623",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -45%)",
-          }}
-        />
-      </span>
-      <span
-        className="select-none text-[26px] font-black leading-none tracking-tight"
-        style={{ color: "#1A2340" }}
-      >
-        ck
-      </span>
-    </div>
-  );
-}
-
 export function SideMenu({ open, onClose, userName, companyName }: SideMenuProps) {
   const { mode, canSwitch, switchMode, accentColor, isOrderer } = useMode();
   const router = useRouter();
@@ -244,7 +194,7 @@ export function SideMenu({ open, onClose, userName, companyName }: SideMenuProps
         <div className="border-b border-gray-100 px-5 pb-4 pt-[env(safe-area-inset-top,12px)]">
           {/* Knock ロゴ + 閉じる */}
           <div className="flex items-center justify-between pt-3">
-            <KnockLogo />
+            <KnockLogoImage width={92} />
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"

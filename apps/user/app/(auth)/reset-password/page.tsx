@@ -3,54 +3,11 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { resetPassword } from "@/lib/actions/password-reset";
+import { KnockLogoImage } from "@/components/knock-logo";
 
 const KnockLogo = () => (
   <div className="flex flex-col items-center mb-12">
-    <div className="relative flex items-end">
-      <span
-        className="absolute text-[11px] font-bold leading-none"
-        style={{ color: "#F5A623", bottom: "100%", left: 0, marginBottom: "2px", letterSpacing: "0.04em" }}
-      >
-        ノック
-      </span>
-      <span
-        className="text-[52px] font-black leading-none tracking-tight select-none"
-        style={{ color: "#1A2340" }}
-      >
-        K
-      </span>
-      <span
-        className="text-[52px] font-black leading-none tracking-tight select-none"
-        style={{ color: "#1A2340" }}
-      >
-        n
-      </span>
-      <span className="relative inline-flex items-end">
-        <span
-          className="text-[52px] font-black leading-none tracking-tight select-none"
-          style={{ color: "#1A2340" }}
-        >
-          o
-        </span>
-        <span
-          className="absolute rounded-full"
-          style={{
-            width: "10px",
-            height: "10px",
-            backgroundColor: "#F5A623",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -45%)",
-          }}
-        />
-      </span>
-      <span
-        className="text-[52px] font-black leading-none tracking-tight select-none"
-        style={{ color: "#1A2340" }}
-      >
-        ck
-      </span>
-    </div>
+    <KnockLogoImage width={200} priority />
   </div>
 );
 

@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@knock/types";
+import { KnockLogoImage } from "@/components/knock-logo";
 import { login } from "@/lib/actions/auth";
 import { useState, useEffect } from "react";
 
@@ -57,56 +58,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-12">
-          {/* Logo mark: "ノック" above the K, then "nock" */}
-          <div className="relative flex items-end">
-            {/* Katakana above K */}
-            <span
-              className="absolute text-[11px] font-bold leading-none"
-              style={{ color: "#F5A623", bottom: "100%", left: 0, marginBottom: "2px", letterSpacing: "0.04em" }}
-            >
-              ノック
-            </span>
-            {/* Main wordmark */}
-            <span
-              className="text-[52px] font-black leading-none tracking-tight select-none"
-              style={{ color: "#1A2340" }}
-            >
-              K
-            </span>
-            <span
-              className="text-[52px] font-black leading-none tracking-tight select-none"
-              style={{ color: "#1A2340" }}
-            >
-              n
-            </span>
-            {/* "o" with orange dot overlay */}
-            <span className="relative inline-flex items-end">
-              <span
-                className="text-[52px] font-black leading-none tracking-tight select-none"
-                style={{ color: "#1A2340" }}
-              >
-                o
-              </span>
-              {/* Orange dot in the center of the "o" */}
-              <span
-                className="absolute rounded-full"
-                style={{
-                  width: "10px",
-                  height: "10px",
-                  backgroundColor: "#F5A623",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -45%)",
-                }}
-              />
-            </span>
-            <span
-              className="text-[52px] font-black leading-none tracking-tight select-none"
-              style={{ color: "#1A2340" }}
-            >
-              ck
-            </span>
-          </div>
+          <KnockLogoImage width={220} priority />
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

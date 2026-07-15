@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
+import { KnockLogoImage } from "@/components/knock-logo";
 
 const COMPANY_INFO: { label: string; value: string }[] = [
   { label: "運営会社", value: "株式会社ディオ" },
@@ -9,57 +10,6 @@ const COMPANY_INFO: { label: string; value: string }[] = [
   { label: "設立", value: "平成20年4月14日（2008年）" },
   { label: "所在地", value: "〒170-0013\n東京都豊島区東池袋4-14-5 黒柳製本ビル3階" },
 ];
-
-// Knock ロゴ
-function KnockLogo() {
-  return (
-    <div className="relative flex items-end" aria-label="Knock">
-      <span
-        className="absolute text-[9px] font-bold leading-none"
-        style={{
-          color: "#F5A623",
-          bottom: "100%",
-          left: 0,
-          marginBottom: "2px",
-          letterSpacing: "0.04em",
-        }}
-      >
-        ノック
-      </span>
-      <span
-        className="select-none text-[34px] font-black leading-none tracking-tight"
-        style={{ color: "#1A2340" }}
-      >
-        Kn
-      </span>
-      <span className="relative inline-flex items-end">
-        <span
-          className="select-none text-[34px] font-black leading-none tracking-tight"
-          style={{ color: "#1A2340" }}
-        >
-          o
-        </span>
-        <span
-          className="absolute rounded-full"
-          style={{
-            width: "6px",
-            height: "6px",
-            backgroundColor: "#F5A623",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -45%)",
-          }}
-        />
-      </span>
-      <span
-        className="select-none text-[34px] font-black leading-none tracking-tight"
-        style={{ color: "#1A2340" }}
-      >
-        ck
-      </span>
-    </div>
-  );
-}
 
 export default function OperatingCompanyPage() {
   const router = useRouter();
@@ -114,7 +64,7 @@ export default function OperatingCompanyPage() {
             <p className="text-[12px] font-bold text-knock-text-secondary">製品名</p>
             <p className="mt-0.5 text-[15px] font-bold text-knock-text">Knock</p>
           </div>
-          <KnockLogo />
+          <KnockLogoImage width={140} />
         </div>
       </div>
     </div>
