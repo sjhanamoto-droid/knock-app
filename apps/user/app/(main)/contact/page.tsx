@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
 
 export default function ContactPage() {
@@ -115,6 +116,17 @@ export default function ContactPage() {
             </button>
           </form>
         </div>
+
+        {/* 運営会社 */}
+        <Link
+          href="/contact/company"
+          className="flex items-center justify-between rounded-2xl bg-white px-5 py-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-colors active:bg-gray-50"
+        >
+          <span className="text-[14px] font-bold text-knock-text">運営会社</span>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M6 4L11 9L6 14" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
       </div>
     </div>
   );
