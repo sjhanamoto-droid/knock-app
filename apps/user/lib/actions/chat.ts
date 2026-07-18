@@ -124,6 +124,46 @@ export async function getChatRoom(roomId: string) {
   return { room, messages, myUserId: user.id, myCompanyId: user.companyId, myCompanyType: user.companyType };
 }
 
+/**
+ * 工事下請基本契約書用: 交渉ルームの当事者会社名を取得
+ * 元請負人＝発注者(orderCompany) / 下請負人＝受注者(workerCompany)
+ */
+export async function getContractParties(roomId: string) {
+  const user = await requireSession();
+
+  const room = await prisma.chatRoom.findFirst({
+    where: {
+      id: roomId,
+      deletedAt: null,
+      members: { some: { userId: user.id, deletedAt: null } },
+    },
+    select: {
+      createdAt: true,
+      orderCompany: { select: { name: true } },
+      workerCompany: { select: { name: true } },
+    },
+  });
+
+  if (!room) throw new Error("チャットルームが見つかりません");
+
+  return {
+    ordererName: room.orderCompany?.name ?? "",
+    contractorName: room.workerCompany?.name ?? "",
+    // マッチング日＝交渉ルーム作成日
+    matchedAt: room.createdAt,
+  };
+}
+
+/**
+ * 工事下請基本契約書のPDF（data URI）を生成して返す。
+ * 交渉ルームの会社名・作成日（マッチング日）を差し込む。
+ */
+export async function getContractPdf(roomId: string) {
+  const { ordererName, contractorName, matchedAt } = await getContractParties(roomId);
+  const { generateSubcontractPdf } = await import("@/lib/services/subcontract-pdf");
+  return generateSubcontractPdf({ ordererName, contractorName, matchedAt });
+}
+
 export async function sendMessage(roomId: string, message: string) {
   const user = await requireSession();
 

@@ -9,6 +9,7 @@ import {
   rejectInvitation,
 } from "@/lib/actions/invitations";
 import { ConfirmDialog, useToast } from "@knock/ui";
+import { ContractConsentDialog } from "@/components/contract-consent-dialog";
 import { useMode } from "@/lib/hooks/use-mode";
 
 type InvitationData = NonNullable<Awaited<ReturnType<typeof getInvitation>>>;
@@ -289,16 +290,14 @@ export function InvitationDetailClient({ initialInvitation, invitedId }: Props) 
         </div>
       </div>
 
-      {/* 承認ダイアログ */}
-      <ConfirmDialog
+      {/* 承認ダイアログ（工事下請基本契約書への同意） */}
+      <ContractConsentDialog
         open={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
         onConfirm={handleApprove}
-        title="リクエストを承認"
-        message={`${company.name} とのつながりを承認します。チャットルームが作成されます。`}
-        confirmLabel={processing ? "処理中..." : "承認する"}
-        cancelLabel="キャンセル"
-        variant="primary"
+        message={`${company.name} とのつながりを承認すると、公示されている「工事下請基本契約書」に発注者・受注者の双方が同意したものとして取り扱われます。内容に同意して承認しますか？`}
+        confirmLabel="はい（同意して承認）"
+        processing={processing}
       />
 
       {/* 拒否ダイアログ */}

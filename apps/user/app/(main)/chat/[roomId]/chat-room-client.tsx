@@ -385,6 +385,20 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
                         {isOrderer ? "発注一覧" : "受注一覧"}
                       </button>
                     )}
+                    {/* 交渉ルーム: 工事下請基本契約書（発注者・受注者ともに閲覧可） */}
+                    {isNegotiation && (
+                      <button
+                        onClick={() => { router.push(`/chat/${roomId}/contract`); setShowMenu(false); }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M4 1H10L14 5V14C14 14.55 13.55 15 13 15H3C2.45 15 2 14.55 2 14V3C2 1.9 2.9 1 4 1Z" stroke="#666" strokeWidth="1.2" fill="none"/>
+                          <path d="M10 1V5H14" stroke="#666" strokeWidth="1.2" fill="none"/>
+                          <path d="M5 8.5H11M5 11H9" stroke="#666" strokeWidth="1.2" strokeLinecap="round"/>
+                        </svg>
+                        工事下請基本契約書
+                      </button>
+                    )}
                     {/* 現場ルーム: 帳票確認 */}
                     {isSiteInfo && (
                       <button

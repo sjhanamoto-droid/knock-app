@@ -9,6 +9,7 @@ import {
   rejectInvitation,
 } from "@/lib/actions/invitations";
 import { ConfirmDialog, useToast } from "@knock/ui";
+import { ContractConsentDialog } from "@/components/contract-consent-dialog";
 
 type ContractorData = NonNullable<Awaited<ReturnType<typeof getContractor>>>;
 
@@ -516,28 +517,24 @@ export function ContractorDetailClient({ initialContractor, companyId }: Props) 
         </div>
       )}
 
-      {/* 送信確認ダイアログ */}
-      <ConfirmDialog
+      {/* 送信確認ダイアログ（工事下請基本契約書への同意） */}
+      <ContractConsentDialog
         open={showConfirm}
         onClose={() => setShowConfirm(false)}
         onConfirm={handleSendRequest}
-        title="連絡リクエスト"
-        message={`${contractor.name} に連絡リクエストを送信します。相手が承認するとチャットが開始されます。`}
-        confirmLabel={sending ? "送信中..." : "送信する"}
-        cancelLabel="キャンセル"
-        variant="primary"
+        message={`${contractor.name} とつながると、公示されている「工事下請基本契約書」に発注者・受注者の双方が同意したものとして取り扱われます。内容に同意のうえ、連絡リクエストを送信しますか？`}
+        confirmLabel="はい（同意して送信）"
+        processing={sending}
       />
 
-      {/* 承認ダイアログ */}
-      <ConfirmDialog
+      {/* 承認ダイアログ（工事下請基本契約書への同意） */}
+      <ContractConsentDialog
         open={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
         onConfirm={handleApprove}
-        title="リクエストを承認"
-        message={`${contractor.name} とのつながりを承認します。チャットルームが作成されます。`}
-        confirmLabel={processing ? "処理中..." : "承認する"}
-        cancelLabel="キャンセル"
-        variant="primary"
+        message={`${contractor.name} とのつながりを承認すると、公示されている「工事下請基本契約書」に発注者・受注者の双方が同意したものとして取り扱われます。内容に同意して承認しますか？`}
+        confirmLabel="はい（同意して承認）"
+        processing={processing}
       />
 
       {/* 拒否ダイアログ */}
