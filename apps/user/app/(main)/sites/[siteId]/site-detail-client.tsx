@@ -271,7 +271,7 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                           </svg>
                           {duplicating ? "複製中..." : "複製"}
                         </button>
-                        {["DRAFT", "NOT_ORDERED"].includes(site.status) && (
+                        {(isParentSite || ["DRAFT", "NOT_ORDERED"].includes(site.status)) && (
                           <Link
                             href={`/sites/${site.id}/edit`}
                             onClick={() => setShowActionMenu(false)}
@@ -623,9 +623,26 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
           <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
             {/* Site name header */}
             <div className="px-4 pt-4 pb-3">
-              <h2 className="text-[16px] font-bold text-knock-text">
-                {site.name ?? "名称未設定"}
-              </h2>
+              {site.parent ? (
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <p className={labelClass}>現場名</p>
+                    <p className="mt-0.5 text-[16px] font-bold text-knock-text">
+                      {site.parent.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className={labelClass}>工事名</p>
+                    <p className="mt-0.5 text-[16px] font-bold text-knock-text">
+                      {site.name ?? "名称未設定"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <h2 className="text-[16px] font-bold text-knock-text">
+                  {site.name ?? "名称未設定"}
+                </h2>
+              )}
               {site.code && (
                 <p className="mt-0.5 text-[12px] text-knock-text-secondary">
                   コード: {site.code}
