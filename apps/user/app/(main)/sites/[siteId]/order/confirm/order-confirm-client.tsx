@@ -216,7 +216,23 @@ export function OrderConfirmClient({ siteId, companyId, initialSite, initialCont
               <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-knock-text-secondary">
                 現場情報
               </p>
-              <p className="text-[15px] font-bold text-knock-text">{site.name}</p>
+              {site.parent ? (
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <span className={labelClass}>現場名</span>
+                    <p className="text-[15px] font-bold text-knock-text">{site.parent.name}</p>
+                  </div>
+                  <div>
+                    <span className={labelClass}>工事名</span>
+                    <p className="text-[15px] font-bold text-knock-text">{site.name}</p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <span className={labelClass}>現場名</span>
+                  <p className="text-[15px] font-bold text-knock-text">{site.name}</p>
+                </div>
+              )}
               <div className="mt-2 flex flex-col gap-1.5">
                 {site.address && (
                   <div>
