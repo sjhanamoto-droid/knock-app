@@ -518,7 +518,7 @@ export async function createSite(data: CreateFactoryFloorInput & {
       const computedTotal = data.priceDetails.reduce((sum: number, d: { quantity: number; priceUnit: number }) => {
         return sum + Math.ceil((Number(d.quantity) || 0) * (Number(d.priceUnit) || 0));
       }, 0);
-      if (computedTotal > 0) {
+      if (computedTotal !== 0) {
         await tx.factoryFloor.update({
           where: { id: site.id },
           data: { totalAmount: BigInt(computedTotal) },
@@ -602,7 +602,7 @@ export async function createSite(data: CreateFactoryFloorInput & {
           const computedTotal = child.priceDetails.reduce((sum, d) => {
             return sum + Math.ceil((Number(d.quantity) || 0) * (Number(d.priceUnit) || 0));
           }, 0);
-          if (computedTotal > 0) {
+          if (computedTotal !== 0) {
             await tx.factoryFloor.update({
               where: { id: childSite.id },
               data: { totalAmount: BigInt(computedTotal) },
@@ -854,7 +854,7 @@ export async function updateSite(
           const computedTotal = child.priceDetails.reduce((sum, d) => {
             return sum + Math.ceil((Number(d.quantity) || 0) * (Number(d.priceUnit) || 0));
           }, 0);
-          if (computedTotal > 0) {
+          if (computedTotal !== 0) {
             await tx.factoryFloor.update({
               where: { id: childSite.id },
               data: { totalAmount: BigInt(computedTotal) },

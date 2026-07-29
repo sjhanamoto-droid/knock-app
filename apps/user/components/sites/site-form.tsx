@@ -446,8 +446,10 @@ export default function SiteForm({
                       {child.workCompany?.name && (
                         <p>業者: {child.workCompany.name}</p>
                       )}
-                      {child.totalAmount != null && Number(child.totalAmount) > 0 && (
-                        <p>金額: {Math.floor(Number(child.totalAmount) * 1.1).toLocaleString("ja-JP")}円（税込）</p>
+                      {child.totalAmount != null && Number(child.totalAmount) !== 0 && (
+                        <p className={Number(child.totalAmount) < 0 ? "font-bold text-knock-red" : undefined}>
+                          金額: {(Number(child.totalAmount) + Math.floor(Number(child.totalAmount) * 0.1)).toLocaleString("ja-JP")}円（税込）
+                        </p>
                       )}
                       {(child.startDayRequest || child.endDayRequest) && (
                         <p>
@@ -691,7 +693,6 @@ export default function SiteForm({
                                         }}
                                         className={`${inputClass} pr-8`}
                                         placeholder="0"
-                                        min="0"
                                       />
                                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">円</span>
                                     </div>
@@ -718,7 +719,7 @@ export default function SiteForm({
                           })}
                           <div className="rounded-xl bg-knock-accent/5 px-4 py-3 text-right">
                             <span className="text-[13px] text-gray-600">合計: </span>
-                            <span className="text-[16px] font-bold text-knock-accent">
+                            <span className={`text-[16px] font-bold ${childTotal < 0 ? "text-knock-red" : "text-knock-accent"}`}>
                               {formatNumber(childTotal)}円
                             </span>
                           </div>
@@ -1048,7 +1049,6 @@ export default function SiteForm({
                             ref={field.ref}
                             className={`${inputClass} pr-8`}
                             placeholder="0"
-                            min="0"
                           />
                         )}
                       />
@@ -1080,7 +1080,7 @@ export default function SiteForm({
             {/* 合計 */}
             <div className="rounded-xl bg-knock-accent/5 px-4 py-3 text-right">
               <span className="text-[13px] text-gray-600">合計: </span>
-              <span className="text-[16px] font-bold text-knock-accent">
+              <span className={`text-[16px] font-bold ${grandTotal < 0 ? "text-knock-red" : "text-knock-accent"}`}>
                 {formatNumber(grandTotal)}円
               </span>
             </div>

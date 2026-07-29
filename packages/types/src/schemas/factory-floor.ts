@@ -7,7 +7,8 @@ export const priceOrderDetailSchema = z.object({
   name: z.string().min(1, "項目名を入力してください"),
   quantity: z.coerce.number().min(0.1, "数量は0.1以上にしてください"),
   unitId: z.string().optional(),
-  priceUnit: z.coerce.number().int().min(0, "単価は0以上にしてください"),
+  // マイナスハッチ（値引き行）に対応するため負値も許可
+  priceUnit: z.coerce.number().int(),
   specifications: z.string().optional(),
 });
 

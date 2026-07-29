@@ -689,9 +689,9 @@ export function SitesClient({
                       </div>
                     )}
 
-                    {site.totalAmount != null && Number(site.totalAmount) > 0 && (
+                    {site.totalAmount != null && Number(site.totalAmount) !== 0 && (
                       <div className="mt-0.5 flex items-center justify-end">
-                        <span className="text-[12px] font-semibold text-knock-text">
+                        <span className={`text-[12px] font-semibold ${Number(site.totalAmount) < 0 ? "text-knock-red" : "text-knock-text"}`}>
                           {formatAmount(
                             Number(site.totalAmount) +
                               Math.floor(Number(site.totalAmount) * 0.1)

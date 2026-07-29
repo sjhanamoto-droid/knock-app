@@ -476,9 +476,9 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                     ) : (
                       <span className="text-[12px] text-gray-400">業者未選択</span>
                     )}
-                    {child.totalAmount != null && Number(child.totalAmount) > 0 && (
-                      <span className="text-[12px] font-semibold text-knock-text">
-                        {fmtAmount(Math.floor(Number(child.totalAmount) * 1.1))}
+                    {child.totalAmount != null && Number(child.totalAmount) !== 0 && (
+                      <span className={`text-[12px] font-semibold ${Number(child.totalAmount) < 0 ? "text-knock-red" : "text-knock-text"}`}>
+                        {fmtAmount(Number(child.totalAmount) + Math.floor(Number(child.totalAmount) * 0.1))}
                       </span>
                     )}
                   </div>
@@ -727,7 +727,7 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                       <div className={dividerClass} />
                       <div className="flex items-center justify-between">
                         <p className="text-[12px] font-bold text-knock-text">合計金額（税込）</p>
-                        <p className="text-[16px] font-bold text-knock-accent">
+                        <p className={`text-[16px] font-bold ${amt + amtTax < 0 ? "text-knock-red" : "text-knock-accent"}`}>
                           {fmtAmount(amt + amtTax)}
                         </p>
                       </div>
@@ -890,7 +890,7 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                         </div>
                         <div className="mt-1 flex justify-between border-t border-gray-200/50 pt-1">
                           <span className="text-[13px] font-bold text-knock-text">合計金額（税込）</span>
-                          <span className="text-[16px] font-bold text-knock-accent">
+                          <span className={`text-[16px] font-bold ${priceDetailsSubtotal + pdTax < 0 ? "text-knock-red" : "text-knock-accent"}`}>
                             {fmtAmount(priceDetailsSubtotal + pdTax)}
                           </span>
                         </div>
