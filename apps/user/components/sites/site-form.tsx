@@ -372,6 +372,17 @@ export default function SiteForm({
   return (
     <form
       onSubmit={handleSubmit(onFormSubmit)}
+      onKeyDown={(e) => {
+        // 入力欄でのEnter誤送信を防止（送信は下部の「工事を追加/更新」ボタンのクリック時のみ）
+        // textarea は改行を許可するため対象外
+        if (
+          e.key === "Enter" &&
+          e.target instanceof HTMLElement &&
+          e.target.tagName === "INPUT"
+        ) {
+          e.preventDefault();
+        }
+      }}
       className="flex flex-col gap-4 px-4 pb-8"
     >
       {serverError && (
