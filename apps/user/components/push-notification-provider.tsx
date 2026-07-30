@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { getUnreadCount } from "@/lib/actions/notifications";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -44,19 +45,40 @@ export function PushNotificationProvider() {
     }
   }, []);
 
+  // OSアイコンのバッジ数を、アプリ内の未読通知数（ホームのベルバッジと同じ値）に同期する。
+  // これで「ホームは1件なのにアイコンのバッジは9」といった数量の食い違いを防ぐ。
+  const syncBadge = useCallback(async () => {
+    if (typeof navigator === "undefined") return;
+    const nav = navigator as unknown as {
+      setAppBadge?: (n?: number) => Promise<void>;
+      clearAppBadge?: () => Promise<void>;
+    };
+    if (!nav.setAppBadge && !nav.clearAppBadge) return;
+    try {
+      const count = await getUnreadCount();
+      if (count > 0) await nav.setAppBadge?.(count);
+      else await nav.clearAppBadge?.();
+    } catch {
+      // 未ログイン等で取得できない場合はバッジを変更しない
+    }
+  }, []);
+
+  // 起動時＋アプリ復帰(visibilitychange)時にバッジを未読数へ同期
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    syncBadge();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncBadge();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [syncBadge]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
     if (!VAPID_PUBLIC_KEY) return;
     if (!("Notification" in window) || !("PushManager" in window)) return;
-
-    // アプリ起動時にバッジをクリア
-    if ("clearAppBadge" in navigator) {
-      (navigator as unknown as { clearAppBadge: () => Promise<void> }).clearAppBadge();
-    }
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.active?.postMessage("clear-badge");
-    });
 
     const perm = Notification.permission;
     if (perm === "granted") {

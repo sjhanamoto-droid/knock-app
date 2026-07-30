@@ -29,8 +29,13 @@ self.addEventListener("push", (event) => {
 
   event.waitUntil(
     self.registration.showNotification(title, options).then(() => {
-      // ホーム画面アイコンのバッジカウントを更新
+      // ホーム画面アイコンのバッジ数はアプリ内の未読通知数に揃える。
+      // サーバーから未読件数(badgeCount)が来ていればそれを使い、
+      // 無い場合のみ表示中の通知数にフォールバックする。
       if (navigator.setAppBadge) {
+        if (typeof data.badgeCount === "number") {
+          return navigator.setAppBadge(data.badgeCount);
+        }
         return self.registration
           .getNotifications()
           .then((notifications) => navigator.setAppBadge(notifications.length));
