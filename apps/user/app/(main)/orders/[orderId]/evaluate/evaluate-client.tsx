@@ -231,8 +231,11 @@ export function EvaluateClient({ initialOrder, orderId, viewerCompanyId }: Props
 
       <div className="flex flex-col gap-4 px-4 pt-3 pb-8">
         <div className="text-center">
+          {floor.parent && (
+            <p className="text-[12px] text-knock-text-secondary">現場名: {floor.parent.name}</p>
+          )}
           <p className="text-[14px] text-knock-text">
-            {floor.name}の取引が完了しました
+            {floor.parent ? "工事名: " : ""}{floor.name}の取引が完了しました
           </p>
           {!myEvaluation && (
             <p className="mt-1 text-[15px] font-bold text-knock-text">

@@ -116,6 +116,14 @@ export function ChatOrderClient({ initialSite, initialTemplates, initialPartnerN
           {/* Divider */}
           <div className="border-t border-gray-200" />
 
+          {/* 現場名（選択中の工事の親現場） */}
+          {site?.parent && (
+            <div className="flex items-center justify-between border-b border-gray-200 py-4">
+              <span className="text-[15px] font-medium text-knock-text">現場名</span>
+              <span className="text-[15px] text-knock-text">{site.parent.name}</span>
+            </div>
+          )}
+
           {/* 工事名 — V1: label left, value+arrow right */}
           <button
             onClick={() =>

@@ -12,11 +12,13 @@ export default async function AdditionalOrderPage({ params }: { params: Promise<
 
   const factoryFloorId = chatData.room.factoryFloor?.id ?? null;
   const siteName = chatData.room.factoryFloor?.name ?? null;
+  const projectName = chatData.room.factoryFloor?.parent?.name ?? null;
 
   return (
     <AdditionalOrderClient
       factoryFloorId={factoryFloorId}
       siteName={siteName}
+      projectName={projectName}
       initialUnits={unitList}
       roomId={roomId}
     />

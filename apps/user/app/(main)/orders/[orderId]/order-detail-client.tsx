@@ -97,9 +97,20 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
         {/* ステータス & 現場名 */}
         <div className={`${cardClass} border-l-4`} style={{ borderLeftColor: accentColor }}>
           <div className="flex items-start justify-between">
-            <h2 className="text-[16px] font-bold text-knock-text">
-              {order.factoryFloor.name ?? "名称未設定"}
-            </h2>
+            {order.factoryFloor.parent ? (
+              <div className="min-w-0">
+                <p className="text-[12px] text-knock-text-secondary">
+                  現場名: {order.factoryFloor.parent.name}
+                </p>
+                <h2 className="text-[16px] font-bold text-knock-text">
+                  工事名: {order.factoryFloor.name ?? "名称未設定"}
+                </h2>
+              </div>
+            ) : (
+              <h2 className="text-[16px] font-bold text-knock-text">
+                {order.factoryFloor.name ?? "名称未設定"}
+              </h2>
+            )}
             {order.status && (
               <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${orderStatusColors[order.status] ?? "bg-gray-100 text-gray-600"}`}>
                 {orderStatusLabels[order.status] ?? order.status}

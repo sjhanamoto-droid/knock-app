@@ -77,6 +77,7 @@ export async function getChatRoom(roomId: string) {
           name: true,
           status: true,
           companyId: true,
+          parent: { select: { name: true } },
           orders: {
             where: { deletedAt: null },
             orderBy: { createdAt: "desc" },

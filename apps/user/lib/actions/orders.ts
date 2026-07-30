@@ -32,6 +32,7 @@ export async function getOrders(status?: string) {
           id: true, name: true, status: true, companyId: true, workCompanyId: true,
           company: { select: { id: true, name: true } },
           workCompany: { select: { id: true, name: true } },
+          parent: { select: { name: true } },
         },
       },
     },
@@ -69,6 +70,7 @@ export async function getOrder(id: string) {
           workCompany: {
             select: { id: true, name: true },
           },
+          parent: { select: { name: true } },
           priceDetails: {
             where: { deletedAt: null },
             include: { unit: true },
@@ -780,6 +782,7 @@ export async function getWorkCompletion(factoryFloorId: string) {
     select: {
       id: true,
       name: true,
+      parent: { select: { name: true } },
       companyId: true,
       workCompanyId: true,
       status: true,
@@ -828,6 +831,7 @@ export async function getWorkCompletion(factoryFloorId: string) {
   return {
     id: floor.id,
     name: floor.name,
+    parentName: floor.parent?.name ?? null,
     status: floor.status,
     isOrderer: floor.companyId === user.companyId,
     orders: floor.orders.map((o) => {
@@ -988,6 +992,21 @@ export async function approveCloseFloor(factoryFloorId: string, completedDay: st
   const completed = new Date(completedDay + "T00:00:00");
 
   const result = await prisma.$transaction(async (tx) => {
+    // 相互評価は「初めての業者さんとの初めての工事」完了時のみ依頼する。
+    // この受注者との過去の完了(CLOSED)取引がまだ無ければ初回とみなす
+    // （この時点では toClose はまだ CLOSE_REQUESTED のため、CLOSED件数＝過去の取引数）。
+    const priorClosedCount = floor.workCompanyId
+      ? await tx.factoryFloorOrder.count({
+          where: {
+            deletedAt: null,
+            completionStatus: "CLOSED",
+            workCompanyId: floor.workCompanyId,
+            factoryFloor: { companyId: user.companyId, deletedAt: null },
+          },
+        })
+      : 0;
+    const isFirstTransaction = priorClosedCount === 0;
+
     await tx.notification.updateMany({
       where: { userId: user.id, targetId: floor.id, seenFlag: false },
       data: { seenFlag: true },
@@ -1039,24 +1058,26 @@ export async function approveCloseFloor(factoryFloorId: string, completedDay: st
       }
     }
 
-    // 4. 双方に相互評価を依頼（評価ページは発注単位のため代表の発注IDを使用）
-    const evalTargetOrderId = toClose[0].id;
-    const evalCompanyIds = [user.companyId, workCompanyId].filter(Boolean) as string[];
-    const evalUsers = await tx.user.findMany({
-      where: { companyId: { in: evalCompanyIds }, isActive: true, deletedAt: null },
-      select: { id: true },
-    });
-    if (evalUsers.length > 0) {
-      await tx.notification.createMany({
-        data: evalUsers.map((u) => ({
-          userId: u.id,
-          title: "取引相手を評価してください",
-          content: `${floor.name}の取引が完了しました。取引相手の評価をお願いします。`,
-          type: 35,
-          factoryFloorId: floor.id,
-          targetId: evalTargetOrderId,
-        })),
+    // 4. 双方に相互評価を依頼（初回取引のみ・評価ページは発注単位のため代表の発注IDを使用）
+    if (isFirstTransaction) {
+      const evalTargetOrderId = toClose[0].id;
+      const evalCompanyIds = [user.companyId, workCompanyId].filter(Boolean) as string[];
+      const evalUsers = await tx.user.findMany({
+        where: { companyId: { in: evalCompanyIds }, isActive: true, deletedAt: null },
+        select: { id: true },
       });
+      if (evalUsers.length > 0) {
+        await tx.notification.createMany({
+          data: evalUsers.map((u) => ({
+            userId: u.id,
+            title: "取引相手を評価してください",
+            content: `${floor.name}の取引が完了しました。取引相手の評価をお願いします。`,
+            type: 35,
+            factoryFloorId: floor.id,
+            targetId: evalTargetOrderId,
+          })),
+        });
+      }
     }
 
     return { factoryFloorId: floor.id };
@@ -1172,7 +1193,7 @@ export async function getOrderDetail(orderId: string) {
             },
           },
           priceDetails: { where: { deletedAt: null }, include: { unit: true } },
-          parent: { select: { code: true } },
+          parent: { select: { code: true, name: true } },
         },
       },
       completionReport: true,
@@ -1544,6 +1565,7 @@ export async function getAdditionalOrderDetail(orderId: string) {
           workCompanyId: true,
           company: { select: { id: true, name: true } },
           workCompany: { select: { id: true, name: true } },
+          parent: { select: { name: true } },
         },
       },
     },

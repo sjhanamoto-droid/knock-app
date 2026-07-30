@@ -23,6 +23,8 @@ interface OrderSheetPreviewProps {
   orderCompany: CompanyInfo | null;
   workerCompany: CompanyInfo | null;
   siteName: string | null;
+  /** 親プロジェクト（現場）名。子工事のときのみ渡す。渡すと現場名＋工事名を表示する。 */
+  projectName?: string | null;
   siteCode: string | null;
   siteAddress: string | null;
   startDate: string | Date | null;
@@ -64,6 +66,7 @@ export function OrderSheetPreview({
   orderCompany,
   workerCompany,
   siteName,
+  projectName,
   siteCode,
   siteAddress,
   startDate,
@@ -139,14 +142,35 @@ export function OrderSheetPreview({
           {/* 現場情報 */}
           <div className="rounded-lg bg-gray-50 p-3">
             <div className="flex flex-col gap-1.5">
-              <div>
-                <span className="text-[11px] font-bold text-gray-500">
-                  現場名
-                </span>
-                <p className="text-[13px] font-semibold text-gray-900">
-                  {siteName ?? "未設定"}
-                </p>
-              </div>
+              {projectName ? (
+                <>
+                  <div>
+                    <span className="text-[11px] font-bold text-gray-500">
+                      現場名
+                    </span>
+                    <p className="text-[13px] font-semibold text-gray-900">
+                      {projectName}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-bold text-gray-500">
+                      工事名
+                    </span>
+                    <p className="text-[13px] font-semibold text-gray-900">
+                      {siteName ?? "未設定"}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <span className="text-[11px] font-bold text-gray-500">
+                    現場名
+                  </span>
+                  <p className="text-[13px] font-semibold text-gray-900">
+                    {siteName ?? "未設定"}
+                  </p>
+                </div>
+              )}
               {siteCode && (
                 <div>
                   <span className="text-[11px] font-bold text-gray-500">

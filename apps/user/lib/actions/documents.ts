@@ -67,7 +67,7 @@ export async function getDocuments(filters?: {
                 id: true,
                 name: true,
                 code: true,
-                parent: { select: { code: true } },
+                parent: { select: { code: true, name: true } },
               },
             },
           },
@@ -112,6 +112,7 @@ export async function getDocuments(filters?: {
       workerCompanyName: doc.workerCompany.name,
       siteId: doc.factoryFloorOrder?.factoryFloor?.id ?? null,
       siteName: doc.factoryFloorOrder?.factoryFloor?.name ?? "",
+      parentSiteName: doc.factoryFloorOrder?.factoryFloor?.parent?.name ?? null,
       // 工事番号は子工事なら親のコードを継承する
       siteCode:
         doc.factoryFloorOrder?.factoryFloor?.code ??
@@ -166,6 +167,7 @@ export async function getDocumentDetail(documentId: string) {
             select: {
               id: true, name: true, address: true,
               startDayRequest: true, endDayRequest: true,
+              parent: { select: { name: true } },
               priceDetails: { where: { deletedAt: null }, include: { unit: true } },
             },
           },

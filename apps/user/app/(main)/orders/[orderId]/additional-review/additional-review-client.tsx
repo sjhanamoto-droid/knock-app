@@ -194,8 +194,19 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
           <div className="flex flex-col gap-2">
             <div>
-              <span className="text-[12px] font-bold text-knock-text-secondary">現場</span>
-              <p className="text-[14px] font-semibold text-knock-text">{order.factoryFloor.name ?? ""}</p>
+              {order.factoryFloor.parent ? (
+                <>
+                  <span className="text-[12px] font-bold text-knock-text-secondary">現場名</span>
+                  <p className="text-[14px] font-semibold text-knock-text">{order.factoryFloor.parent.name}</p>
+                  <span className="mt-1 block text-[12px] font-bold text-knock-text-secondary">工事名</span>
+                  <p className="text-[14px] font-semibold text-knock-text">{order.factoryFloor.name ?? ""}</p>
+                </>
+              ) : (
+                <>
+                  <span className="text-[12px] font-bold text-knock-text-secondary">現場</span>
+                  <p className="text-[14px] font-semibold text-knock-text">{order.factoryFloor.name ?? ""}</p>
+                </>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>

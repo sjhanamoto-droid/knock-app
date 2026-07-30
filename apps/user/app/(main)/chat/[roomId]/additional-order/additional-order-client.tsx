@@ -22,11 +22,12 @@ function emptyItem(): Item {
 interface Props {
   factoryFloorId: string | null;
   siteName: string | null;
+  projectName?: string | null;
   initialUnits: Unit[];
   roomId: string;
 }
 
-export function AdditionalOrderClient({ factoryFloorId, siteName, initialUnits, roomId }: Props) {
+export function AdditionalOrderClient({ factoryFloorId, siteName, projectName, initialUnits, roomId }: Props) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -147,10 +148,21 @@ export function AdditionalOrderClient({ factoryFloorId, siteName, initialUnits, 
 
       {/* Content */}
       <div className="flex flex-col gap-4 px-4 pt-4 pb-8">
-        {/* 現場名 */}
+        {/* 現場名・工事名 */}
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.06)]">
-          <p className="text-[12px] font-bold text-knock-text-secondary">現場名</p>
-          <p className="mt-1 text-[15px] font-bold text-knock-text">{siteName ?? "—"}</p>
+          {projectName ? (
+            <>
+              <p className="text-[12px] font-bold text-knock-text-secondary">現場名</p>
+              <p className="mt-1 text-[15px] font-bold text-knock-text">{projectName}</p>
+              <p className="mt-2 text-[12px] font-bold text-knock-text-secondary">工事名</p>
+              <p className="mt-1 text-[15px] font-bold text-knock-text">{siteName ?? "—"}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-[12px] font-bold text-knock-text-secondary">現場名</p>
+              <p className="mt-1 text-[15px] font-bold text-knock-text">{siteName ?? "—"}</p>
+            </>
+          )}
         </div>
 
         {/* Items */}

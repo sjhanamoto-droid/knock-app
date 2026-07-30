@@ -113,6 +113,11 @@ export function ChatOrdersClient({ initialOrders, initialIsOrderer }: Props) {
 
                   {/* Site name */}
                   <div className="min-w-0 flex-1">
+                    {order.factoryFloor.parent && (
+                      <p className="truncate text-[11px] text-knock-text-secondary">
+                        現場名: {order.factoryFloor.parent.name}
+                      </p>
+                    )}
                     <p className="truncate text-[15px] font-medium text-knock-text">
                       {order.factoryFloor.name ?? "無題の現場"}
                     </p>

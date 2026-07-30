@@ -164,6 +164,11 @@ export function OrdersClient({ initialOrders }: Props) {
               >
                 {/* Text content */}
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  {order.factoryFloor.parent && (
+                    <span className="truncate text-[11px] text-knock-text-secondary">
+                      現場名: {order.factoryFloor.parent.name}
+                    </span>
+                  )}
                   <span className="truncate text-[14px] font-semibold text-knock-text">
                     {order.factoryFloor.name ?? "名称未設定"}
                   </span>

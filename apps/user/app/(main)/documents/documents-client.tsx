@@ -87,10 +87,11 @@ type DocItem = DocListResult["documents"][number];
 // 帳票を工事（現場）ごとにグルーピングする。表示順は取得順（issuedAt降順）を維持。
 function groupByWork(
   docs: DocItem[]
-): { siteId: string; siteName: string; siteCode: string; docs: DocItem[] }[] {
+): { siteId: string; siteName: string; parentSiteName: string | null; siteCode: string; docs: DocItem[] }[] {
   const groups: {
     siteId: string;
     siteName: string;
+    parentSiteName: string | null;
     siteCode: string;
     docs: DocItem[];
   }[] = [];
@@ -104,6 +105,7 @@ function groupByWork(
       groups.push({
         siteId: key,
         siteName: d.siteName || "工事未設定",
+        parentSiteName: d.parentSiteName ?? null,
         siteCode: d.siteCode ?? "",
         docs: [],
       });
@@ -351,16 +353,23 @@ export function DocumentsClient({
           <div className="flex flex-col gap-4">
             {groupByWork(result.documents).map((group) => (
               <div key={group.siteId} className="flex flex-col gap-2">
-                {/* 工事見出し */}
-                <div className="flex items-center gap-2 px-1">
-                  <span className="min-w-0 truncate text-[13px] font-bold text-knock-text">
-                    {group.siteName}
-                  </span>
-                  {group.siteCode && (
-                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-knock-text-secondary">
-                      工事番号 {group.siteCode}
+                {/* 工事見出し（現場名＋工事名） */}
+                <div className="flex flex-col gap-0.5 px-1">
+                  {group.parentSiteName && (
+                    <span className="truncate text-[11px] text-knock-text-secondary">
+                      現場名: {group.parentSiteName}
                     </span>
                   )}
+                  <div className="flex items-center gap-2">
+                    <span className="min-w-0 truncate text-[13px] font-bold text-knock-text">
+                      {group.siteName}
+                    </span>
+                    {group.siteCode && (
+                      <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-knock-text-secondary">
+                        工事番号 {group.siteCode}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {group.docs.map((doc) => {

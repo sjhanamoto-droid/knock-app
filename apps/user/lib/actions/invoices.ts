@@ -467,7 +467,7 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
       id: true,
       completedDay: true,
       workCompanyId: true,
-      factoryFloor: { select: { name: true, companyId: true } },
+      factoryFloor: { select: { name: true, companyId: true, parent: { select: { name: true } } } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: { id: true, documentNumber: true, totalAmount: true, metadata: true },
@@ -539,6 +539,7 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
           o.factoryFloor.name ??
           ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
           "",
+        parentSiteName: o.factoryFloor.parent?.name ?? null,
         workerCompanyId: o.workCompanyId,
         workerCompanyName: availWorkerNameById.get(o.workCompanyId) ?? "",
       };

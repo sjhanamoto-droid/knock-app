@@ -122,7 +122,9 @@ export function TrustScoreClient({ initialScore, initialEvals }: Props) {
                     </span>
                   </div>
                   <span className="text-[11px] text-knock-text-muted">
-                    {ev.factoryFloorOrder.factoryFloor.name}
+                    {ev.factoryFloorOrder.factoryFloor.parent
+                      ? `${ev.factoryFloorOrder.factoryFloor.parent.name} / ${ev.factoryFloorOrder.factoryFloor.name}`
+                      : ev.factoryFloorOrder.factoryFloor.name}
                   </span>
                   {ev.comment && (
                     <p className="mt-1 text-[12px] text-knock-text-secondary">

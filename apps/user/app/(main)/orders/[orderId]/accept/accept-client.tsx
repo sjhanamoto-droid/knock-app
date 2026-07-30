@@ -206,8 +206,19 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
             </div>
 
             <div>
-              <span className="text-[12px] font-bold text-knock-text-secondary">現場</span>
-              <p className="text-[14px] font-semibold text-knock-text">{floor.name ?? "名称未設定"}</p>
+              {floor.parent ? (
+                <>
+                  <span className="text-[12px] font-bold text-knock-text-secondary">現場名</span>
+                  <p className="text-[14px] font-semibold text-knock-text">{floor.parent.name}</p>
+                  <span className="mt-1 block text-[12px] font-bold text-knock-text-secondary">工事名</span>
+                  <p className="text-[14px] font-semibold text-knock-text">{floor.name ?? "名称未設定"}</p>
+                </>
+              ) : (
+                <>
+                  <span className="text-[12px] font-bold text-knock-text-secondary">現場</span>
+                  <p className="text-[14px] font-semibold text-knock-text">{floor.name ?? "名称未設定"}</p>
+                </>
+              )}
               <p className="text-[12px] text-knock-text-secondary">{floor.address ?? ""}</p>
             </div>
 

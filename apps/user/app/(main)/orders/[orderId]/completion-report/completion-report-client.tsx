@@ -193,9 +193,14 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
       </header>
 
       <div className="flex flex-col gap-4 bg-[#F5F5F5] px-4 pt-3 pb-8">
-        <p className="text-[13px] text-knock-text-secondary">
-          {floor.name ?? ""} / {(isOrderer ? floor.workCompany?.name : floor.company?.name) ?? ""}
-        </p>
+        <div className="flex flex-col gap-0.5">
+          {floor.parent && (
+            <p className="text-[13px] text-knock-text-secondary">現場名: {floor.parent.name}</p>
+          )}
+          <p className="text-[13px] text-knock-text-secondary">
+            {floor.parent ? "工事名: " : ""}{floor.name ?? ""} / {(isOrderer ? floor.workCompany?.name : floor.company?.name) ?? ""}
+          </p>
+        </div>
 
         {isOrderer || !canEditReport ? (
           /* ===== 発注者 / 受注者(完了後): 施工報告の確認（閲覧のみ） ===== */

@@ -128,7 +128,14 @@ export function WorkCompletionClient({ data, floorId }: Props) {
       </header>
 
       <div className="flex flex-col gap-4 bg-[#F5F5F5] px-4 pt-3 pb-8">
-        <p className="text-[13px] text-knock-text-secondary">{data.name ?? ""}</p>
+        {data.parentName ? (
+          <div className="flex flex-col gap-0.5">
+            <p className="text-[13px] text-knock-text-secondary">現場名: {data.parentName}</p>
+            <p className="text-[13px] font-semibold text-knock-text">工事名: {data.name ?? ""}</p>
+          </div>
+        ) : (
+          <p className="text-[13px] text-knock-text-secondary">{data.name ?? ""}</p>
+        )}
 
         {/* 注文書一覧 */}
         <div className="flex flex-col gap-3">

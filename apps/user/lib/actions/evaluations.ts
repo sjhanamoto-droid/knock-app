@@ -148,7 +148,7 @@ export async function getReceivedEvaluations(page = 1, limit = 20) {
         evaluatorCompany: { select: { id: true, name: true } },
         factoryFloorOrder: {
           select: {
-            factoryFloor: { select: { name: true } },
+            factoryFloor: { select: { name: true, parent: { select: { name: true } } } },
           },
         },
       },

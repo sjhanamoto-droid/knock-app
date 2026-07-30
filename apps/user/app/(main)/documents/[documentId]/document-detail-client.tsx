@@ -191,10 +191,25 @@ export function DocumentDetailClient({ initialDoc }: Props) {
             className="rounded-2xl border-l-4 bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]"
             style={{ borderLeftColor: accentColor }}
           >
-            <h3 className="mb-2 text-[12px] font-bold text-knock-text-secondary">現場</h3>
-            <p className="text-[14px] font-semibold text-knock-text">
-              {doc.factoryFloorOrder.factoryFloor.name}
-            </p>
+            {doc.factoryFloorOrder.factoryFloor.parent ? (
+              <>
+                <h3 className="mb-2 text-[12px] font-bold text-knock-text-secondary">現場名</h3>
+                <p className="text-[14px] font-semibold text-knock-text">
+                  {doc.factoryFloorOrder.factoryFloor.parent.name}
+                </p>
+                <h3 className="mb-2 mt-2 text-[12px] font-bold text-knock-text-secondary">工事名</h3>
+                <p className="text-[14px] font-semibold text-knock-text">
+                  {doc.factoryFloorOrder.factoryFloor.name}
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="mb-2 text-[12px] font-bold text-knock-text-secondary">現場</h3>
+                <p className="text-[14px] font-semibold text-knock-text">
+                  {doc.factoryFloorOrder.factoryFloor.name}
+                </p>
+              </>
+            )}
             <p className="text-[12px] text-knock-text-secondary">
               {doc.factoryFloorOrder.factoryFloor.address}
             </p>

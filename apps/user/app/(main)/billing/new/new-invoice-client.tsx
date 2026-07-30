@@ -265,6 +265,11 @@ export function NewInvoiceClient({ initialNotes, initialYear, initialMonth }: Pr
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
+                        {note.parentSiteName && (
+                          <p className="text-[11px] text-knock-text-secondary truncate">
+                            現場名: {note.parentSiteName}
+                          </p>
+                        )}
                         <p className="text-[13px] font-bold text-[#1A2340] truncate">
                           {note.siteName || note.documentNumber}
                         </p>
