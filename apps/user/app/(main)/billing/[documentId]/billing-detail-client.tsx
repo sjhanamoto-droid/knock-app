@@ -116,7 +116,7 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
     setAddedRows((prev) =>
       prev.some((r) => r.orderId === row.orderId)
         ? prev
-        : [...prev, { orderId: row.orderId, siteName: row.siteName, siteCode: row.siteCode, documentNumber: "", amount: row.amount, orderSheetPdfUrl: null }]
+        : [...prev, { orderId: row.orderId, siteName: row.siteName, parentSiteName: row.parentSiteName, siteCode: row.siteCode, documentNumber: "", amount: row.amount, orderSheetPdfUrl: null }]
     );
   }
 
@@ -297,6 +297,9 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
                       className="flex min-w-0 flex-1 items-center justify-between text-left"
                     >
                       <div className="min-w-0">
+                        {row.parentSiteName && (
+                          <p className="truncate text-[11px] text-knock-text-secondary">現場名: {row.parentSiteName}</p>
+                        )}
                         <p className="truncate text-[13px] font-medium text-[#1A2340]">{row.siteName || "─"}</p>
                         <p className="truncate text-[11px] text-knock-text-secondary">
                           {row.siteCode ? `工事番号: ${row.siteCode} / ` : ""}{row.documentNumber || "注文書を表示"}
@@ -330,6 +333,9 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
                 {addedRows.map((row) => (
                   <div key={row.orderId} className="flex items-center gap-2 rounded-xl bg-green-50 px-3 py-2.5">
                     <div className="min-w-0 flex-1">
+                      {row.parentSiteName && (
+                        <p className="truncate text-[11px] text-knock-text-secondary">現場名: {row.parentSiteName}</p>
+                      )}
                       <div className="flex items-center gap-1.5">
                         <span className="rounded bg-green-500 px-1.5 py-0.5 text-[9px] font-bold text-white">追加</span>
                         <p className="truncate text-[13px] font-medium text-[#1A2340]">{row.siteName || "─"}</p>
@@ -479,6 +485,9 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
                     className="flex w-full items-center justify-between rounded-xl bg-gray-50 px-3 py-3 text-left transition-all active:scale-[0.98]"
                   >
                     <div className="min-w-0">
+                      {a.parentSiteName && (
+                        <p className="truncate text-[11px] text-knock-text-secondary">現場名: {a.parentSiteName}</p>
+                      )}
                       <p className="truncate text-[13px] font-medium text-[#1A2340]">{a.siteName || "─"}</p>
                       <p className="truncate text-[11px] text-knock-text-secondary">
                         {a.siteCode ? `工事番号: ${a.siteCode} / ` : ""}{a.completedDay ? `締め: ${new Date(a.completedDay).toLocaleDateString("ja-JP")}` : ""}

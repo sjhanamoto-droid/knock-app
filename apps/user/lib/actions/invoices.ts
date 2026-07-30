@@ -636,7 +636,7 @@ export async function getInvoiceOrderRows(documentId: string) {
     where: { id: { in: orderIds } },
     select: {
       id: true,
-      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true } } } },
+      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         orderBy: { createdAt: "desc" },
@@ -651,6 +651,7 @@ export async function getInvoiceOrderRows(documentId: string) {
     return {
       orderId: id,
       siteName: o?.factoryFloor.name ?? "",
+      parentSiteName: o?.factoryFloor.parent?.name ?? "",
       siteCode: o?.factoryFloor.code ?? o?.factoryFloor.parent?.code ?? "",
       documentNumber: sheet?.documentNumber ?? "",
       amount: (o?.documents ?? []).reduce((s, d) => s + Number(d.totalAmount ?? 0), 0),
@@ -682,7 +683,7 @@ export async function getAddableOrders(documentId: string) {
     },
     select: {
       id: true, completedDay: true,
-      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true } } } },
+      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: { totalAmount: true },
@@ -709,6 +710,7 @@ export async function getAddableOrders(documentId: string) {
     .map((o) => ({
       orderId: o.id,
       siteName: o.factoryFloor.name ?? "",
+      parentSiteName: o.factoryFloor.parent?.name ?? "",
       siteCode: o.factoryFloor.code ?? o.factoryFloor.parent?.code ?? "",
       amount: o.documents.reduce((s, d) => s + Number(d.totalAmount ?? 0), 0),
       completedDay: o.completedDay?.toISOString() ?? null,
