@@ -21,8 +21,10 @@ export default async function EditSitePage({ params }: Props) {
     notFound();
   }
 
-  // 発注依頼(ORDER_REQUESTED)以降は編集不可。直接アクセス時は詳細画面へ戻す。
-  if (!["NOT_ORDERED", "DRAFT"].includes(site.status)) {
+  // 親プロジェクト(子工事を持つ)は予算管理(工事発注予算・追加発注予算)のため、
+  // 施工中でも編集を許可する。単独現場・子工事は発注依頼以降は編集不可。
+  const isParentProject = site.parentId == null && (site.children?.length ?? 0) > 0;
+  if (!isParentProject && !["NOT_ORDERED", "DRAFT"].includes(site.status)) {
     redirect(`/sites/${siteId}`);
   }
 

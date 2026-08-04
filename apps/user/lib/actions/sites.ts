@@ -670,9 +670,13 @@ export async function updateSite(
   });
   if (!existing) throw new Error("現場が見つかりません");
 
-  // 発注依頼(ORDER_REQUESTED)以降のステータスでは編集を禁止する。
-  // 依頼後に内容が変わることを防ぐため、編集は未発注(NOT_ORDERED/DRAFT)時のみ許可。
-  if (!["NOT_ORDERED", "DRAFT"].includes(existing.status)) {
+  // 親プロジェクト(子工事を持つ)は予算管理(工事発注予算・追加発注予算)のため、施工中でも編集可。
+  // 単独現場・子工事は、発注依頼(ORDER_REQUESTED)以降の内容変更を防ぐため未発注時のみ許可。
+  const childCount = await prisma.factoryFloor.count({
+    where: { parentId: id, deletedAt: null },
+  });
+  const isParentProject = existing.parentId == null && childCount > 0;
+  if (!isParentProject && !["NOT_ORDERED", "DRAFT"].includes(existing.status)) {
     throw new Error("発注依頼後の現場は編集できません");
   }
 
