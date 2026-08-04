@@ -80,22 +80,28 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
       .finally(() => setLoading(false));
   }, [yearMonth]);
 
-  function prevMonth() {
-    if (selectedMonth === 1) {
-      setSelectedYear((y) => y - 1);
-      setSelectedMonth(12);
-    } else {
-      setSelectedMonth((m) => m - 1);
+  // 月を変えたらブラウザURL(?ym)も同期し、詳細から戻った際（アプリ内の戻る・端末の戻る両方）に
+  // 開いていた月を復元できるようにする。履歴を汚さないよう replaceState を使う。
+  function syncMonthUrl(y: number, m: number) {
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/billing?ym=${y}${String(m).padStart(2, "0")}`);
     }
   }
 
+  function prevMonth() {
+    const y = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+    const m = selectedMonth === 1 ? 12 : selectedMonth - 1;
+    setSelectedYear(y);
+    setSelectedMonth(m);
+    syncMonthUrl(y, m);
+  }
+
   function nextMonth() {
-    if (selectedMonth === 12) {
-      setSelectedYear((y) => y + 1);
-      setSelectedMonth(1);
-    } else {
-      setSelectedMonth((m) => m + 1);
-    }
+    const y = selectedMonth === 12 ? selectedYear + 1 : selectedYear;
+    const m = selectedMonth === 12 ? 1 : selectedMonth + 1;
+    setSelectedYear(y);
+    setSelectedMonth(m);
+    syncMonthUrl(y, m);
   }
 
   return (
@@ -200,7 +206,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
                   return (
                     <Link
                       key={inv.id}
-                      href={`/billing/${inv.id}`}
+                      href={`/billing/${inv.id}?ym=${yearMonth}`}
                       className="block rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.99]"
                     >
                       <div className="flex items-start justify-between mb-2">

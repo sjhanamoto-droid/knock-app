@@ -77,12 +77,17 @@ const labelClass = "text-[12px] text-knock-text-secondary";
 interface Props {
   initialDoc: DocDetail;
   documentId: string;
+  // 一覧で開いていた月(YYYYMM)。戻るときにこの月へ復元する。
+  backYm?: string | null;
 }
 
-export function BillingDetailClient({ initialDoc, documentId }: Props) {
+export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
   const router = useRouter();
   const { accentColor } = useMode();
   const { toast } = useToast();
+  // 一覧で開いていた月(YYYYMM)。詳細内の再作成/再集計・戻る操作で保持する。
+  const validYm = backYm && /^\d{6}$/.test(backYm) ? backYm : null;
+  const ymQuery = validYm ? `?ym=${validYm}` : "";
   const [doc, setDoc] = useState<DocDetail>(initialDoc);
   const [actionLoading, setActionLoading] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"confirm" | "paid" | null>(null);
@@ -147,7 +152,7 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
     try {
       const res = await rebuildInvoiceFromOrders(documentId, stagedIds);
       toast("請求書を作り直しました");
-      router.replace(`/billing/${res.id}`);
+      router.replace(`/billing/${res.id}${ymQuery}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -194,7 +199,7 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
     try {
       const newId = await recalculateInvoice(documentId);
       toast("再集計しました");
-      router.replace(`/billing/${newId}`);
+      router.replace(`/billing/${newId}${ymQuery}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
@@ -218,7 +223,7 @@ export function BillingDetailClient({ initialDoc, documentId }: Props) {
       {/* ヘッダー */}
       <div className="sticky top-0 z-30 bg-white px-4 py-3 text-center shadow-sm">
         <button
-          onClick={() => router.back()}
+          onClick={() => (validYm ? router.push(`/billing?ym=${validYm}`) : router.back())}
           className="absolute left-3 top-1/2 -translate-y-1/2 p-1"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
