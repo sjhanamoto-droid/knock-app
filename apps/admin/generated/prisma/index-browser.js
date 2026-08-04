@@ -743,6 +743,7 @@ exports.Prisma.FactoryFloorScalarFieldEnum = {
   orderCompleteNumber: 'orderCompleteNumber',
   parentId: 'parentId',
   budget: 'budget',
+  additionalBudgets: 'additionalBudgets',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
   deletedAt: 'deletedAt'

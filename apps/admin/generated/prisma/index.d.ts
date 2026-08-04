@@ -57296,6 +57296,7 @@ export namespace Prisma {
     orderCompleteNumber: number
     parentId: number
     budget: number
+    additionalBudgets: number
     createdAt: number
     updatedAt: number
     deletedAt: number
@@ -57422,6 +57423,7 @@ export namespace Prisma {
     orderCompleteNumber?: true
     parentId?: true
     budget?: true
+    additionalBudgets?: true
     createdAt?: true
     updatedAt?: true
     deletedAt?: true
@@ -57541,6 +57543,7 @@ export namespace Prisma {
     orderCompleteNumber: number | null
     parentId: string | null
     budget: bigint | null
+    additionalBudgets: JsonValue | null
     createdAt: Date
     updatedAt: Date
     deletedAt: Date | null
@@ -57592,6 +57595,7 @@ export namespace Prisma {
     orderCompleteNumber?: boolean
     parentId?: boolean
     budget?: boolean
+    additionalBudgets?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     deletedAt?: boolean
@@ -57638,6 +57642,7 @@ export namespace Prisma {
     orderCompleteNumber?: boolean
     parentId?: boolean
     budget?: boolean
+    additionalBudgets?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     deletedAt?: boolean
@@ -57674,6 +57679,7 @@ export namespace Prisma {
     orderCompleteNumber?: boolean
     parentId?: boolean
     budget?: boolean
+    additionalBudgets?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     deletedAt?: boolean
@@ -57710,12 +57716,13 @@ export namespace Prisma {
     orderCompleteNumber?: boolean
     parentId?: boolean
     budget?: boolean
+    additionalBudgets?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     deletedAt?: boolean
   }
 
-  export type FactoryFloorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdUserId" | "companyId" | "workCompanyId" | "status" | "code" | "name" | "contentRequest" | "startDayRequest" | "endDayRequest" | "finishDay" | "address" | "deliveryDest" | "latitude" | "longitude" | "totalAmount" | "totalAdvancePayment" | "paymentType" | "paymentLatterMonth" | "paymentLatterDay" | "remarks" | "expenses" | "orderNumber" | "orderCompleteNumber" | "parentId" | "budget" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["factoryFloor"]>
+  export type FactoryFloorOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "createdUserId" | "companyId" | "workCompanyId" | "status" | "code" | "name" | "contentRequest" | "startDayRequest" | "endDayRequest" | "finishDay" | "address" | "deliveryDest" | "latitude" | "longitude" | "totalAmount" | "totalAdvancePayment" | "paymentType" | "paymentLatterMonth" | "paymentLatterDay" | "remarks" | "expenses" | "orderNumber" | "orderCompleteNumber" | "parentId" | "budget" | "additionalBudgets" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["factoryFloor"]>
   export type FactoryFloorInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     createdUser?: boolean | UserDefaultArgs<ExtArgs>
     company?: boolean | CompanyDefaultArgs<ExtArgs>
@@ -57789,6 +57796,7 @@ export namespace Prisma {
       orderCompleteNumber: number | null
       parentId: string | null
       budget: bigint | null
+      additionalBudgets: Prisma.JsonValue | null
       createdAt: Date
       updatedAt: Date
       deletedAt: Date | null
@@ -58254,6 +58262,7 @@ export namespace Prisma {
     readonly orderCompleteNumber: FieldRef<"FactoryFloor", 'Int'>
     readonly parentId: FieldRef<"FactoryFloor", 'String'>
     readonly budget: FieldRef<"FactoryFloor", 'BigInt'>
+    readonly additionalBudgets: FieldRef<"FactoryFloor", 'Json'>
     readonly createdAt: FieldRef<"FactoryFloor", 'DateTime'>
     readonly updatedAt: FieldRef<"FactoryFloor", 'DateTime'>
     readonly deletedAt: FieldRef<"FactoryFloor", 'DateTime'>
@@ -67856,6 +67865,7 @@ export namespace Prisma {
     orderCompleteNumber: 'orderCompleteNumber',
     parentId: 'parentId',
     budget: 'budget',
+    additionalBudgets: 'additionalBudgets',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     deletedAt: 'deletedAt'
@@ -72441,6 +72451,7 @@ export namespace Prisma {
     orderCompleteNumber?: IntNullableFilter<"FactoryFloor"> | number | null
     parentId?: StringNullableFilter<"FactoryFloor"> | string | null
     budget?: BigIntNullableFilter<"FactoryFloor"> | bigint | number | null
+    additionalBudgets?: JsonNullableFilter<"FactoryFloor">
     createdAt?: DateTimeFilter<"FactoryFloor"> | Date | string
     updatedAt?: DateTimeFilter<"FactoryFloor"> | Date | string
     deletedAt?: DateTimeNullableFilter<"FactoryFloor"> | Date | string | null
@@ -72486,6 +72497,7 @@ export namespace Prisma {
     orderCompleteNumber?: SortOrderInput | SortOrder
     parentId?: SortOrderInput | SortOrder
     budget?: SortOrderInput | SortOrder
+    additionalBudgets?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     deletedAt?: SortOrderInput | SortOrder
@@ -72534,6 +72546,7 @@ export namespace Prisma {
     orderCompleteNumber?: IntNullableFilter<"FactoryFloor"> | number | null
     parentId?: StringNullableFilter<"FactoryFloor"> | string | null
     budget?: BigIntNullableFilter<"FactoryFloor"> | bigint | number | null
+    additionalBudgets?: JsonNullableFilter<"FactoryFloor">
     createdAt?: DateTimeFilter<"FactoryFloor"> | Date | string
     updatedAt?: DateTimeFilter<"FactoryFloor"> | Date | string
     deletedAt?: DateTimeNullableFilter<"FactoryFloor"> | Date | string | null
@@ -72579,6 +72592,7 @@ export namespace Prisma {
     orderCompleteNumber?: SortOrderInput | SortOrder
     parentId?: SortOrderInput | SortOrder
     budget?: SortOrderInput | SortOrder
+    additionalBudgets?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     deletedAt?: SortOrderInput | SortOrder
@@ -72619,6 +72633,7 @@ export namespace Prisma {
     orderCompleteNumber?: IntNullableWithAggregatesFilter<"FactoryFloor"> | number | null
     parentId?: StringNullableWithAggregatesFilter<"FactoryFloor"> | string | null
     budget?: BigIntNullableWithAggregatesFilter<"FactoryFloor"> | bigint | number | null
+    additionalBudgets?: JsonNullableWithAggregatesFilter<"FactoryFloor">
     createdAt?: DateTimeWithAggregatesFilter<"FactoryFloor"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"FactoryFloor"> | Date | string
     deletedAt?: DateTimeNullableWithAggregatesFilter<"FactoryFloor"> | Date | string | null
@@ -77533,6 +77548,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -77578,6 +77594,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -77615,6 +77632,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77660,6 +77678,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77701,6 +77720,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -77729,6 +77749,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77761,6 +77782,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -81756,6 +81778,7 @@ export namespace Prisma {
     orderCompleteNumber?: SortOrder
     parentId?: SortOrder
     budget?: SortOrder
+    additionalBudgets?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     deletedAt?: SortOrder
@@ -88007,6 +88030,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -88050,6 +88074,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -88569,6 +88594,7 @@ export namespace Prisma {
     orderCompleteNumber?: IntNullableFilter<"FactoryFloor"> | number | null
     parentId?: StringNullableFilter<"FactoryFloor"> | string | null
     budget?: BigIntNullableFilter<"FactoryFloor"> | bigint | number | null
+    additionalBudgets?: JsonNullableFilter<"FactoryFloor">
     createdAt?: DateTimeFilter<"FactoryFloor"> | Date | string
     updatedAt?: DateTimeFilter<"FactoryFloor"> | Date | string
     deletedAt?: DateTimeNullableFilter<"FactoryFloor"> | Date | string | null
@@ -88993,6 +89019,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -89036,6 +89063,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -89083,6 +89111,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -89126,6 +89155,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -94370,6 +94400,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -94414,6 +94445,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -94970,6 +95002,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -95014,6 +95047,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -100534,6 +100568,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -100578,6 +100613,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -100858,6 +100894,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -100902,6 +100939,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -103910,6 +103948,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -103954,6 +103993,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -103995,6 +104035,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -104038,6 +104079,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -104821,6 +104863,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -104865,6 +104908,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -105168,6 +105212,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -105212,6 +105257,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -105347,6 +105393,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -105391,6 +105438,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -105427,6 +105475,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -105471,6 +105520,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -105774,6 +105824,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -105818,6 +105869,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -105969,6 +106021,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106013,6 +106066,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106065,6 +106119,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106109,6 +106164,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106145,6 +106201,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106189,6 +106246,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106241,6 +106299,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106285,6 +106344,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106321,6 +106381,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106365,6 +106426,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106444,6 +106506,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106488,6 +106551,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106557,6 +106621,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106601,6 +106666,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -106714,6 +106780,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -106758,6 +106825,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -107276,6 +107344,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -107401,6 +107470,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -107444,6 +107514,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -107484,6 +107555,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -107837,6 +107909,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -107868,6 +107941,7 @@ export namespace Prisma {
     orderCompleteNumber?: number | null
     parentId?: string | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -108285,6 +108359,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -108328,6 +108403,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -108368,6 +108444,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -108396,6 +108473,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -108439,6 +108517,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -108479,6 +108558,7 @@ export namespace Prisma {
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     parentId?: NullableStringFieldUpdateOperationsInput | string | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -110246,6 +110326,7 @@ export namespace Prisma {
     orderNumber?: number | null
     orderCompleteNumber?: number | null
     budget?: bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
     deletedAt?: Date | string | null
@@ -110372,6 +110453,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -110415,6 +110497,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -110455,6 +110538,7 @@ export namespace Prisma {
     orderNumber?: NullableIntFieldUpdateOperationsInput | number | null
     orderCompleteNumber?: NullableIntFieldUpdateOperationsInput | number | null
     budget?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    additionalBudgets?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

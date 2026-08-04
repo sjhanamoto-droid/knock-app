@@ -46,6 +46,15 @@ function toNumberOrNull(v: any): number | null {
   return Number(v);
 }
 
+// 追加発注予算(税抜・複数行)を正規化する。空行(名称・金額とも空/0)は除外。
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toBudgetJson(v: any): { name: string; amount: number }[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((r) => ({ name: String(r?.name ?? ""), amount: Number(r?.amount) || 0 }))
+    .filter((r) => r.name.trim() !== "" || r.amount !== 0);
+}
+
 // ============ 一覧取得 ============
 
 export type SiteSortField = "createdAt" | "startDayRequest" | "endDayRequest";
@@ -241,6 +250,7 @@ export async function getSiteName(id: string) {
       code: true,
       address: true,
       budget: true,
+      additionalBudgets: true,
       startDayRequest: true,
       endDayRequest: true,
     },
@@ -487,6 +497,7 @@ export async function createSite(data: CreateFactoryFloorInput & {
         paymentLatterDay: toNumberOrNull(data.paymentLatterDay),
         parentId: data.parentId || null,
         budget: toBigIntOrNull(data.budget),
+        additionalBudgets: toBudgetJson(data.additionalBudgets),
         latitude: geo?.latitude ?? null,
         longitude: geo?.longitude ?? null,
       },
@@ -703,6 +714,7 @@ export async function updateSite(
         paymentLatterMonth: toNumberOrNull(data.paymentLatterMonth) ?? undefined,
         paymentLatterDay: toNumberOrNull(data.paymentLatterDay) ?? undefined,
         budget: toBigIntOrNull(data.budget) ?? undefined,
+        additionalBudgets: data.additionalBudgets !== undefined ? toBudgetJson(data.additionalBudgets) : undefined,
         ...(geoUpdate ? { latitude: geoUpdate.latitude, longitude: geoUpdate.longitude } : {}),
       },
     });
@@ -1016,6 +1028,7 @@ export async function duplicateSite(id: string) {
           paymentLatterMonth: original.paymentLatterMonth,
           paymentLatterDay: original.paymentLatterDay,
           budget: original.budget,
+          additionalBudgets: toBudgetJson(original.additionalBudgets),
           latitude: original.latitude,
           longitude: original.longitude,
         },
@@ -1074,7 +1087,7 @@ export async function getProjectSummary(parentId: string) {
       deletedAt: null,
       parentId: null,
     },
-    select: { id: true, budget: true },
+    select: { id: true, budget: true, additionalBudgets: true },
   });
   if (!parent) throw new Error("プロジェクトが見つかりません");
 
@@ -1125,10 +1138,20 @@ export async function getProjectSummary(parentId: string) {
     }, 0);
   }, 0);
 
-  const budget = parent.budget ? Number(parent.budget) : 0;
+  // 予算内訳（すべて税抜）。全体予算＝予算合計＝工事発注予算＋Σ追加発注予算。
+  const workOrderBudget = parent.budget ? Number(parent.budget) : 0;
+  const additionalBudgets = toBudgetJson(parent.additionalBudgets);
+  const additionalBudgetTotal = additionalBudgets.reduce((s, b) => s + b.amount, 0);
+  const budgetTotal = workOrderBudget + additionalBudgetTotal; // 税抜（＝全体予算）
+  // 発注/実績は税込のため、進捗バー比較用に税込換算した予算合計も返す
+  const budget = Math.floor(budgetTotal * 1.1);
 
   return {
-    budget,
+    budget,                 // 税込・進捗バー基準（＝予算合計×1.1）
+    workOrderBudget,        // 工事発注予算（税抜）
+    additionalBudgets,      // 追加発注予算 [{ name, amount(税抜) }]
+    additionalBudgetTotal,  // 追加発注予算 合計（税抜）
+    budgetTotal,            // 予算合計＝全体予算（税抜）
     plannedTotal,
     orderedTotal,
     actualTotal,

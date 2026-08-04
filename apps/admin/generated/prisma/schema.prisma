@@ -1172,7 +1172,8 @@ model FactoryFloor {
   children FactoryFloor[] @relation("SiteHierarchy")
 
   // ── プロジェクト予算管理（親現場で使用） ──
-  budget BigInt?
+  budget            BigInt? // 工事発注予算（税抜）
+  additionalBudgets Json? // 追加発注予算 [{ name, amount(税抜) }]。全体予算＝budget＋Σamount
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

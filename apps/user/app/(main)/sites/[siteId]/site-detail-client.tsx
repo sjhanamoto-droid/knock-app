@@ -58,6 +58,12 @@ function fmtAmount(n: number | bigint | null | undefined): string {
   return `${Number(n).toLocaleString("ja-JP")}円`;
 }
 
+// 予算管理は税抜金額をメイン表示する。保存値(税込)から税抜を復元する（税込÷1.1）。
+function exTaxAmount(n: number | bigint | null | undefined): number {
+  if (n == null) return 0;
+  return Math.round(Number(n) / 1.1);
+}
+
 // 発注（工事）の完了状況ラベル。2026-06-12改修以降、完了は発注ごとの
 // completionStatus で管理する（NONE=未完了 / CLOSE_REQUESTED=締め依頼中 / CLOSED=締め完了）。
 function completionStatusMeta(
@@ -517,17 +523,60 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
               </div>
               <div className="px-4 pb-4">
                 <div className={dividerClass} />
-                {/* 全体予算（固定） */}
-                <div className="flex items-center justify-between">
-                  <p className={labelClass}>全体予算（税込）</p>
-                  <p className="text-[15px] font-bold text-knock-text">{fmtAmount(projectSummary.budget)}</p>
+                {/* 予算内訳（税抜メイン＋税込を上に小さく） */}
+                <div className="flex flex-col gap-2">
+                  {/* 工事発注予算 */}
+                  <div className="flex items-start justify-between">
+                    <p className={labelClass}>工事発注予算</p>
+                    <div className="text-right">
+                      <p className="text-[10px] text-gray-400">税込 {fmtAmount(Math.floor(projectSummary.workOrderBudget * 1.1))}</p>
+                      <p className="text-[14px] font-bold text-knock-text">
+                        {fmtAmount(projectSummary.workOrderBudget)}
+                        <span className="ml-0.5 text-[10px] font-normal text-gray-400">（税抜）</span>
+                      </p>
+                    </div>
+                  </div>
+                  {/* 追加発注予算（内訳あり） */}
+                  <div>
+                    <div className="flex items-start justify-between">
+                      <p className={labelClass}>追加発注予算</p>
+                      <div className="text-right">
+                        <p className="text-[10px] text-gray-400">税込 {fmtAmount(Math.floor(projectSummary.additionalBudgetTotal * 1.1))}</p>
+                        <p className="text-[14px] font-bold text-knock-text">
+                          {fmtAmount(projectSummary.additionalBudgetTotal)}
+                          <span className="ml-0.5 text-[10px] font-normal text-gray-400">（税抜）</span>
+                        </p>
+                      </div>
+                    </div>
+                    {projectSummary.additionalBudgets.length > 0 && (
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        {projectSummary.additionalBudgets.map((b, i) => (
+                          <div key={i} className="flex items-center justify-between text-[11px] text-gray-500">
+                            <span className="truncate">・{b.name || "（名称未設定）"}</span>
+                            <span className="shrink-0">{fmtAmount(b.amount)}（税抜）</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className={dividerClass} />
+                  {/* 予算合計（＝全体予算） */}
+                  <div className="flex items-start justify-between">
+                    <p className="text-[13px] font-bold text-knock-text">予算合計（＝全体予算）</p>
+                    <div className="text-right">
+                      <p className="text-[10px] text-gray-400">税込 {fmtAmount(Math.floor(projectSummary.budgetTotal * 1.1))}</p>
+                      <p className="text-[16px] font-bold text-knock-text">
+                        {fmtAmount(projectSummary.budgetTotal)}
+                        <span className="ml-0.5 text-[10px] font-normal text-gray-400">（税抜）</span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* 発注予定 / 発注 / 実績 を切り替え（タブ＋横スワイプ） */}
                 {(() => {
                   const budget = projectSummary.budget;
                   const panels = [
-                    { key: "planned", label: "発注予定", sub: "全工事の予定合計", value: projectSummary.plannedTotal, color: "#9CA3AF" },
                     { key: "ordered", label: "発注", sub: "発注済みの合計", value: projectSummary.orderedTotal, color: accentColor },
                     { key: "actual", label: "実績", sub: "実際の金額", value: projectSummary.actualTotal, color: "#16A34A" },
                   ];
@@ -567,19 +616,23 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                             <div key={p.key} className="w-full shrink-0 snap-center">
                               <div className="flex items-end justify-between">
                                 <div>
-                                  <p className="text-[13px] font-bold text-knock-text">{p.label}（税込）</p>
+                                  <p className="text-[13px] font-bold text-knock-text">{p.label}</p>
                                   <p className="text-[10px] text-gray-400">{p.sub}</p>
                                 </div>
-                                <p className="text-[20px] font-bold" style={{ color: p.color }}>
-                                  {fmtAmount(p.value)}
-                                </p>
+                                <div className="text-right">
+                                  <p className="text-[10px] text-gray-400">税込 {fmtAmount(p.value)}</p>
+                                  <p className="text-[20px] font-bold" style={{ color: p.color }}>
+                                    {fmtAmount(exTaxAmount(p.value))}
+                                    <span className="ml-0.5 text-[10px] font-normal text-gray-400">（税抜）</span>
+                                  </p>
+                                </div>
                               </div>
                               {budget > 0 && (
                                 <div className="mt-2">
                                   <div className="mb-1 flex items-center justify-between text-[11px]">
                                     <span className="text-gray-500">予算に対して {pct}%</span>
                                     <span className={remaining >= 0 ? "font-bold text-green-600" : "font-bold text-red-600"}>
-                                      残り {remaining >= 0 ? "" : "-"}{fmtAmount(Math.abs(remaining))}
+                                      残り {remaining >= 0 ? "" : "-"}{fmtAmount(Math.abs(exTaxAmount(budget) - exTaxAmount(p.value)))}（税抜）
                                     </span>
                                   </div>
                                   <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">

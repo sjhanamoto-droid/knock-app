@@ -84,6 +84,8 @@ type SiteData = {
   address?: string | null;
   parentId?: string | null;
   budget?: number | bigint | null;
+  // getSite は Json(JsonValue) を返すため型は緩めにし、defaultValues で正規化する
+  additionalBudgets?: unknown;
   startDayRequest?: string | Date | null;
   endDayRequest?: string | Date | null;
   occupations?: {
@@ -243,6 +245,12 @@ export default function SiteForm({
       priceDetails: defaultPriceDetails,
       parentId: parentId ?? undefined,
       budget: initialData?.budget != null ? Number(initialData.budget) : "",
+      additionalBudgets: Array.isArray(initialData?.additionalBudgets)
+        ? (initialData!.additionalBudgets as { name?: string; amount?: number }[]).map((b) => ({
+            name: b?.name ?? "",
+            amount: Number(b?.amount) || 0,
+          }))
+        : [],
     },
   });
 
@@ -250,6 +258,24 @@ export default function SiteForm({
     control,
     name: "priceDetails",
   });
+
+  const {
+    fields: budgetFields,
+    append: appendBudget,
+    remove: removeBudget,
+  } = useFieldArray({
+    control,
+    name: "additionalBudgets",
+  });
+
+  // 予算合計（税抜）＝ 工事発注予算 ＋ Σ追加発注予算。税込は×1.1。
+  const workOrderBudgetInput = Number(watch("budget")) || 0;
+  const additionalBudgetsWatch = watch("additionalBudgets") ?? [];
+  const additionalBudgetTotal = additionalBudgetsWatch.reduce(
+    (s: number, b: { amount?: unknown }) => s + (Number(b?.amount) || 0),
+    0
+  );
+  const budgetTotalExcl = workOrderBudgetInput + additionalBudgetTotal;
 
   const priceDetails = watch("priceDetails") ?? [];
 
@@ -848,21 +874,93 @@ export default function SiteForm({
             </div>
           )}
 
-          {/* 全体予算（親現場のみ） */}
+          {/* 予算管理（親現場のみ）: 工事発注予算＋追加発注予算＝予算合計（全体予算）。金額は税抜入力 */}
           {!isChildSite && (
-            <div>
-              <label className={labelClass}>全体予算（受注金額）</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  {...register("budget")}
-                  className={`${inputClass} pr-8`}
-                  placeholder="0"
-                  min="0"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">
-                  円
-                </span>
+            <div className="flex flex-col gap-3">
+              {/* 工事発注予算 */}
+              <div>
+                <label className={labelClass}>工事発注予算（税抜）</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    {...register("budget")}
+                    className={`${inputClass} pr-8`}
+                    placeholder="0"
+                    min="0"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-gray-400">
+                    円
+                  </span>
+                </div>
+                <p className="mt-1 text-right text-[11px] text-gray-400">
+                  税込 {formatNumber(Math.floor(workOrderBudgetInput * 1.1))}円
+                </p>
+              </div>
+
+              {/* 追加発注予算（複数行・修正からも追加可） */}
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <label className={labelClass}>追加発注予算（税抜）</label>
+                  <button
+                    type="button"
+                    onClick={() => appendBudget({ name: "", amount: 0 })}
+                    className="rounded-lg bg-knock-accent/10 px-3 py-1 text-[12px] font-bold text-knock-accent transition-colors active:bg-knock-accent/20"
+                  >
+                    ＋ 行を追加
+                  </button>
+                </div>
+                {budgetFields.length === 0 ? (
+                  <p className="py-2 text-center text-[12px] text-gray-400">追加発注予算はありません</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {budgetFields.map((f, i) => (
+                      <div key={f.id} className="flex items-center gap-2">
+                        <input
+                          {...register(`additionalBudgets.${i}.name`)}
+                          className={`${inputClass} min-w-0 flex-1`}
+                          placeholder="名称（例: 追加工事A）"
+                        />
+                        <div className="relative w-32 shrink-0">
+                          <input
+                            type="number"
+                            {...register(`additionalBudgets.${i}.amount`)}
+                            className={`${inputClass} pr-6`}
+                            placeholder="0"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
+                            円
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeBudget(i)}
+                          className="shrink-0 text-[12px] text-knock-red"
+                        >
+                          削除
+                        </button>
+                      </div>
+                    ))}
+                    <p className="text-right text-[11px] text-gray-400">
+                      追加合計（税抜） {formatNumber(additionalBudgetTotal)}円
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 予算合計（＝全体予算） */}
+              <div className="rounded-xl bg-knock-accent/5 px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-bold text-knock-text">予算合計（＝全体予算）</span>
+                  <div className="text-right">
+                    <p className="text-[10px] text-gray-400">
+                      税込 {formatNumber(Math.floor(budgetTotalExcl * 1.1))}円
+                    </p>
+                    <p className="text-[16px] font-bold text-knock-accent">
+                      {formatNumber(budgetTotalExcl)}円
+                      <span className="ml-0.5 text-[10px] font-normal text-gray-400">（税抜）</span>
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}

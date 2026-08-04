@@ -21,12 +21,23 @@ export const occupationSelectionSchema = z.object({
 
 export type OccupationSelectionInput = z.infer<typeof occupationSelectionSchema>;
 
+// 追加発注予算（親プロジェクトの予算内訳・複数行）。金額は税抜。
+export const additionalBudgetSchema = z.object({
+  name: z.string().optional().default(""),
+  amount: z.coerce.number().int(),
+});
+
+export type AdditionalBudgetInput = z.infer<typeof additionalBudgetSchema>;
+
 // ============ Main schemas ============
 
 export const createFactoryFloorSchema = z.object({
   // 親子関係
   parentId: z.string().optional(),
+  // 工事発注予算（税抜）
   budget: z.coerce.number().int().min(0).optional().or(z.literal("")),
+  // 追加発注予算（税抜・複数行）。全体予算＝budget＋Σamount
+  additionalBudgets: z.array(additionalBudgetSchema).optional().default([]),
 
   // 基本情報
   name: z.string().min(1, "現場名を入力してください"),
