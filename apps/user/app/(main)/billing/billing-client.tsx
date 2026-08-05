@@ -157,35 +157,32 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
                 </p>
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                {visibleCandidates.map((c) => {
-                  // 発注者ロールなら相手＝受注者名、受注者ロールなら相手＝発注者名を表示
-                  const counterparty = c.role === "orderer" ? c.workerCompanyName : c.orderCompanyName;
-                  const subLabel =
-                    c.role === "orderer"
-                      ? "締め完了 / 受注者へ代理発行できます"
-                      : "締め完了 / 請求書を作成できます";
-                  return (
-                    <button
-                      key={`${c.workerCompanyId}::${c.orderCompanyId}`}
-                      onClick={() => router.push("/billing/new")}
-                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-4 text-left shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
-                      style={{ borderLeft: `4px solid ${accentColor}` }}
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-[14px] font-bold text-[#1A2340]">
-                          {counterparty}
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-knock-text-secondary">
-                          {subLabel}
-                        </p>
-                      </div>
-                      <span className="shrink-0 text-[12px] font-bold" style={{ color: accentColor }}>
-                        作成 ›
-                      </span>
-                    </button>
-                  );
-                })}
+              // 取引先が何社でも縦一覧にせず 1 行に集約。横スクロールのチップをタップして作成へ進む
+              // （ドロップダウンは使わない）。相手先名だけを見せ、代理発行の案内は行下に 1 行だけ添える。
+              <div
+                className="rounded-2xl bg-white p-3 shadow-[0_1px_8px_rgba(0,0,0,0.06)]"
+                style={{ borderLeft: `4px solid ${accentColor}` }}
+              >
+                <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {visibleCandidates.map((c) => {
+                    // 発注者ロールなら相手＝受注者名、受注者ロールなら相手＝発注者名を表示
+                    const counterparty = c.role === "orderer" ? c.workerCompanyName : c.orderCompanyName;
+                    return (
+                      <button
+                        key={`${c.workerCompanyId}::${c.orderCompanyId}`}
+                        onClick={() => router.push("/billing/new")}
+                        className="flex shrink-0 items-center gap-1 rounded-full border bg-white px-4 py-2 text-[13px] font-bold transition-all active:scale-[0.96]"
+                        style={{ borderColor: accentColor, color: accentColor }}
+                      >
+                        <span className="max-w-[160px] truncate">{counterparty}</span>
+                        <span className="text-[12px]">›</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 px-1 text-[11px] text-knock-text-secondary">
+                  取引先をタップして請求書を作成（受注者へ代理発行できます）
+                </p>
               </div>
             )}
           </div>
