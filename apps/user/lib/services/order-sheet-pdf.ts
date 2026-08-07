@@ -92,10 +92,6 @@ function drawRecipient(doc: jsPDF, data: OrderSheetPdfData, startY: number): num
     doc.text(`FAX: ${data.workerCompanyFax}`, ML, y);
     y += 5.5;
   }
-  if (data.contactPersonName) {
-    doc.text(`ご担当: ${data.contactPersonName} 様`, ML, y);
-    y += 5.5;
-  }
 
   return y;
 }
@@ -122,6 +118,11 @@ function drawIssuerBlock(doc: jsPDF, data: OrderSheetPdfData, startY: number): n
   }
   if (data.orderCompanyAddress) {
     doc.text(data.orderCompanyAddress, blockX, y);
+    y += 5;
+  }
+  // 担当者（現場作成者＝発注者側の担当）は発注者の住所の直下に表示する
+  if (data.contactPersonName) {
+    doc.text(`担当者: ${data.contactPersonName}`, blockX, y);
     y += 5;
   }
   if (data.orderCompanyTel) {
