@@ -83,7 +83,9 @@ interface Props {
 
 export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
   const router = useRouter();
-  const { accentColor } = useMode();
+  // 受注者モード(CONTRACTOR)では請求書を「確認のみ」にするため、発注者向けの操作ボタン
+  // （確定・再集計・支払い完了・発注の追加/削除・再作成）は isOrderer のときだけ表示する。
+  const { accentColor, isOrderer } = useMode();
   const { toast } = useToast();
   // 一覧で開いていた月(YYYYMM)。詳細内の再作成/再集計・戻る操作で保持する。
   const validYm = backYm && /^\d{6}$/.test(backYm) ? backYm : null;
@@ -212,7 +214,9 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
   const lineItems = (metadata?.lineItems as { documentNumber: string; siteName: string; siteCode?: string; amount: number }[]) ?? [];
 
   // 発注の追加/削除は「確認待ち(DRAFT)」のみ。確定済み(ISSUED)・支払済み・無効は編集不可。
+  // さらに発注者モードのみ編集可（受注者モードは確認のみ）。
   const editable = doc.status === "DRAFT";
+  const canEdit = editable && isOrderer;
   const currentRows = orderRows.filter((r) => !removedIds.has(r.orderId));
   const addedIds = new Set(addedRows.map((r) => r.orderId));
   const dirty = removedIds.size > 0 || addedRows.length > 0;
@@ -315,7 +319,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       </span>
                     </button>
-                    {editable && (
+                    {canEdit && (
                       <button type="button" onClick={() => removeCurrent(row.orderId)} className="shrink-0 rounded-full p-1 active:bg-gray-200" aria-label="削除">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4L12 12M12 4L4 12" stroke="#EF4444" strokeWidth="1.8" strokeLinecap="round" /></svg>
                       </button>
@@ -372,7 +376,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
             )}
 
             {/* 発注を追加する */}
-            {editable && orderRows.length > 0 && (
+            {canEdit && orderRows.length > 0 && (
               <button
                 type="button"
                 onClick={openPicker}
@@ -385,7 +389,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
             )}
 
             {/* 追加/削除がある場合のみ、請求書を作り直す */}
-            {editable && dirty && (
+            {canEdit && dirty && (
               <button
                 type="button"
                 onClick={handleRebuild}
@@ -435,8 +439,8 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
           </button>
         )}
 
-        {/* アクションボタン */}
-        {doc.status === "DRAFT" && (
+        {/* アクションボタン（発注者モードのみ。受注者は確認のみ） */}
+        {doc.status === "DRAFT" && isOrderer && (
           <div className="flex flex-col gap-3">
             <button
               onClick={() => setConfirmAction("confirm")}
@@ -456,7 +460,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
           </div>
         )}
 
-        {doc.status === "ISSUED" && (
+        {doc.status === "ISSUED" && isOrderer && (
           <button
             onClick={() => setConfirmAction("paid")}
             disabled={actionLoading}

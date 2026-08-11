@@ -23,9 +23,20 @@ interface Props {
   initialNotes: DeliveryNote[];
   initialYear: number;
   initialMonth: number;
+  // 一覧で選択した取引先。指定時はこの取引先の納品書だけを表示する。
+  workerCompanyId?: string;
+  orderCompanyId?: string;
+  counterpartyName?: string;
 }
 
-export function NewInvoiceClient({ initialNotes, initialYear, initialMonth }: Props) {
+export function NewInvoiceClient({
+  initialNotes,
+  initialYear,
+  initialMonth,
+  workerCompanyId,
+  orderCompanyId,
+  counterpartyName,
+}: Props) {
   const router = useRouter();
   const { accentColor } = useMode();
   const { toast } = useToast();
@@ -56,11 +67,11 @@ export function NewInvoiceClient({ initialNotes, initialYear, initialMonth }: Pr
 
   const fetchNotes = useCallback(() => {
     setLoading(true);
-    getAvailableDeliveryNotes(yearMonth)
+    getAvailableDeliveryNotes(yearMonth, workerCompanyId, orderCompanyId)
       .then(setNotes)
       .catch(() => toast("納品書の取得に失敗しました"))
       .finally(() => setLoading(false));
-  }, [yearMonth]);
+  }, [yearMonth, workerCompanyId, orderCompanyId]);
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -135,6 +146,11 @@ export function NewInvoiceClient({ initialNotes, initialYear, initialMonth }: Pr
   );
   const hasMultipleWorkers = selectedWorkerIds.size > 1;
 
+  // 請求先の表示名。取引先で絞り込んでいる場合のみ表示（URLの会社名→納品書から補完）。
+  const billToName = workerCompanyId
+    ? counterpartyName || notes[0]?.workerCompanyName || Array.from(selectedNotes.values())[0]?.workerCompanyName || ""
+    : "";
+
   function openConfirm() {
     if (selectedCount === 0) return;
     if (hasMultipleWorkers) {
@@ -180,6 +196,20 @@ export function NewInvoiceClient({ initialNotes, initialYear, initialMonth }: Pr
       </div>
 
       <div className="space-y-4 p-4">
+        {/* 請求先（一覧で選択した取引先） */}
+        {billToName && (
+          <div
+            className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]"
+            style={{ borderLeft: `4px solid ${accentColor}` }}
+          >
+            <p className="text-[11px] text-knock-text-secondary">請求先</p>
+            <p className="mt-0.5 text-[15px] font-bold text-[#1A2340]">{billToName}</p>
+            <p className="mt-1 text-[11px] text-knock-text-secondary">
+              この取引先の締め完了・未請求の納品書のみを表示しています
+            </p>
+          </div>
+        )}
+
         {/* 請求日 */}
         <div className="rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
           <label className="mb-2 block text-[13px] font-bold text-[#1A2340]">

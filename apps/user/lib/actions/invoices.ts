@@ -439,8 +439,14 @@ export async function markInvoicePaid(documentId: string) {
 
 /**
  * 未請求の締切(CLOSED)発注一覧を取得（月別フィルター）
+ * workerCompanyId / orderCompanyId を渡すと、その取引先ペアの発注のみに絞り込む
+ * （請求書作成時に「選んだ会社」の納品書だけを表示するため）。
  */
-export async function getAvailableDeliveryNotes(yearMonth: string) {
+export async function getAvailableDeliveryNotes(
+  yearMonth: string,
+  workerCompanyId?: string,
+  orderCompanyId?: string,
+) {
   const user = await requireSession();
 
   const year = parseInt(yearMonth.substring(0, 4));
@@ -519,13 +525,16 @@ export async function getAvailableDeliveryNotes(yearMonth: string) {
     }
   }
 
-  // 未請求かつ締め月が対象月で、注文書(ORDER_SHEET)がある発注のみ返却
+  // 未請求かつ締め月が対象月で、注文書(ORDER_SHEET)がある発注のみ返却。
+  // 取引先ペアが指定されていれば、その受注者/発注者の発注だけに絞る。
   return orders
     .filter(
       (o) =>
         o.documents.length > 0 &&
         !invoicedOrderIds.has(o.id) &&
         !!o.completedDay &&
+        (!workerCompanyId || o.workCompanyId === workerCompanyId) &&
+        (!orderCompanyId || o.factoryFloor.companyId === orderCompanyId) &&
         getBillingMonth(o.completedDay, availClosingByOrderer.get(o.factoryFloor.companyId) ?? null) === yearMonth
     )
     .map((o) => {

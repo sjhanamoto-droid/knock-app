@@ -10,9 +10,10 @@ import { useToast } from "@knock/ui";
 type InvoiceItem = Awaited<ReturnType<typeof getBillingList>>[number];
 type Candidate = Awaited<ReturnType<typeof getInvoiceCandidates>>[number];
 
-// 受注者(worker)側からの手動作成の「入口」を一時的に非表示にするフラグ。
-// false: 受注者の「締め完了・請求可能な取引先」を隠す（発注者ロールのみ表示）。
-// true にすれば受注者側も再表示され、元の挙動に戻る（機能・アクションはそのまま残置）。
+// 受注者(CONTRACTORモード)側からの請求書「作成」導線を非表示にするフラグ。
+// false: 受注者モードでは「締め完了・請求可能な取引先」セクション（作成の入口）ごと非表示にし、
+//        受注者は作成済み請求書の確認のみ行える。発注者モードでは従来どおり表示。
+// true にすれば受注者モードでも作成導線を再表示し、元の挙動に戻る（機能・アクションはそのまま残置）。
 const ALLOW_CONTRACTOR_MANUAL_CREATE = false;
 
 const statusLabels: Record<string, string> = {
@@ -46,7 +47,7 @@ interface Props {
 
 export function BillingClient({ initialInvoices, initialCandidates, initialYear, initialMonth }: Props) {
   const router = useRouter();
-  const { accentColor } = useMode();
+  const { accentColor, isOrderer } = useMode();
   const { toast } = useToast();
 
   const [selectedYear, setSelectedYear] = useState(initialYear);
@@ -59,7 +60,9 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
   const isInitialMount = useRef(true);
   const yearMonth = `${selectedYear}${String(selectedMonth).padStart(2, "0")}`;
 
-  // フラグOFFの間は受注者ロール("worker")の候補を隠し、発注者ロール("orderer")のみ表示。
+  // 受注者モードでは作成セクションごと非表示（発注者モードのみ作成導線を表示）。
+  const showCreateSection = ALLOW_CONTRACTOR_MANUAL_CREATE || isOrderer;
+  // 作成セクション内でも受注者ロール("worker")の候補は隠し、発注者ロール("orderer")のみ表示。
   const visibleCandidates = candidates.filter(
     (c) => ALLOW_CONTRACTOR_MANUAL_CREATE || c.role === "orderer"
   );
@@ -145,7 +148,8 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
         </div>
       ) : (
         <div className="flex flex-col gap-5 px-4">
-          {/* 締め完了・請求可能な取引先 */}
+          {/* 締め完了・請求可能な取引先（受注者モードでは非表示：確認のみ） */}
+          {showCreateSection && (
           <div>
             <p className="px-1 pb-2 text-[13px] font-bold text-[#1A2340]">
               締め完了・請求可能な取引先
@@ -170,7 +174,11 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
                     return (
                       <button
                         key={`${c.workerCompanyId}::${c.orderCompanyId}`}
-                        onClick={() => router.push("/billing/new")}
+                        onClick={() =>
+                          router.push(
+                            `/billing/new?worker=${c.workerCompanyId}&order=${c.orderCompanyId}&name=${encodeURIComponent(counterparty)}`
+                          )
+                        }
                         className="flex shrink-0 items-center gap-1 rounded-full border bg-white px-4 py-2 text-[13px] font-bold transition-all active:scale-[0.96]"
                         style={{ borderColor: accentColor, color: accentColor }}
                       >
@@ -186,6 +194,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
               </div>
             )}
           </div>
+          )}
 
           {/* この月の請求書 */}
           <div>
