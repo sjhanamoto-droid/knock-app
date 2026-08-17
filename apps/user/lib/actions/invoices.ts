@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
 import { generateInvoice, generateInvoiceFromOrders } from "@/lib/services/document-generator";
 import { getBillingMonth } from "@/lib/helpers/billing-period";
+import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
 
 /**
  * 請求書候補を取得
@@ -68,24 +69,10 @@ export async function getInvoiceCandidates(yearMonth: string) {
   });
   const candidateWorkerNameById = new Map(candidateWorkers.map((c) => [c.id, c.name]));
 
-  // 既存の請求書（同月）を取得
-  const existingInvoices = await prisma.document.findMany({
-    where: {
-      type: "INVOICE",
-      // 受注者・発注者どちら側で既に請求済みでも重複作成させない
-      OR: [
-        { workerCompanyId: user.companyId },
-        { orderCompanyId: user.companyId },
-      ],
-      yearMonth,
-      deletedAt: null,
-    },
-    select: { workerCompanyId: true, orderCompanyId: true },
-  });
-
-  const invoicedPairs = new Set(
-    existingInvoices.map((inv) => `${inv.workerCompanyId}::${inv.orderCompanyId}`)
-  );
+  // 既に非VOIDの請求書に含まれている「発注」を除外（発注単位）。
+  // ペア×月単位でロックすると、未請求の締め済み発注が残っていても取引先ごと
+  // 候補から消えてしまうため、生成/納品書選択と同じ「発注単位」に揃える。
+  const invoicedOrderIds = await getInvoicedOrderIds({ companyIdEitherSide: user.companyId });
 
   // (workerCompanyId, orderCompanyId) ペアごとに集計
   const pairMap = new Map<
@@ -114,8 +101,10 @@ export async function getInvoiceCandidates(yearMonth: string) {
     ) {
       continue;
     }
+    // 発注単位で二重請求を除外（既に非VOIDの請求書に含まれている発注はスキップ）
+    if (invoicedOrderIds.has(order.id)) continue;
+
     const key = `${order.workCompanyId}::${orderCompanyId}`;
-    if (invoicedPairs.has(key)) continue;
 
     // 発注の注文書(通常1件)の totalAmount を合算
     const orderTotal = order.documents.reduce((sum, d) => sum + Number(d.totalAmount ?? 0), 0);
@@ -269,7 +258,11 @@ export async function recalculateInvoice(documentId: string) {
 
   // 先に新しい請求書を生成する。請求対象が無い等で generateInvoice が失敗した場合でも
   // 既存のドラフトを失わないよう、「生成成功後に」旧請求書を無効化する。
-  const newDocId = await generateInvoice(doc.workerCompanyId, doc.orderCompanyId, doc.yearMonth);
+  // 生成時点では旧請求書(documentId)がまだ非VOIDのため、自分自身の発注を二重請求ガードで
+  // 誤って除外しないよう excludeInvoiceIds に渡す（他の請求書の発注は従来どおり除外される）。
+  const newDocId = await generateInvoice(doc.workerCompanyId, doc.orderCompanyId, doc.yearMonth, [
+    documentId,
+  ]);
 
   // ドラフト状態 + 支払期日の引き継ぎと旧請求書の無効化を原子的に実行
   await prisma.$transaction(async (tx) => {
@@ -502,28 +495,8 @@ export async function getAvailableDeliveryNotes(
   });
   const availWorkerNameById = new Map(availWorkers.map((c) => [c.id, c.name]));
 
-  // 既存の請求書に含まれている発注IDを収集（新方式 orderIds / 旧方式 deliveryNoteIds）
-  const existingInvoices = await prisma.document.findMany({
-    where: {
-      type: "INVOICE",
-      OR: [
-        { orderCompanyId: user.companyId },
-        { workerCompanyId: user.companyId },
-      ],
-      deletedAt: null,
-      status: { not: "VOID" },
-    },
-    select: { metadata: true },
-  });
-
-  const invoicedOrderIds = new Set<string>();
-  for (const inv of existingInvoices) {
-    const meta = inv.metadata as Record<string, unknown> | null;
-    const ids = (meta?.orderIds as string[]) ?? [];
-    for (const id of ids) {
-      invoicedOrderIds.add(id);
-    }
-  }
+  // 既存(非VOID)の請求書に含まれている発注IDを収集（候補表示・生成と同一基準の発注単位）
+  const invoicedOrderIds = await getInvoicedOrderIds({ companyIdEitherSide: user.companyId });
 
   // 未請求かつ締め月が対象月で、注文書(ORDER_SHEET)がある発注のみ返却。
   // 取引先ペアが指定されていれば、その受注者/発注者の発注だけに絞る。
@@ -702,18 +675,7 @@ export async function getAddableOrders(documentId: string) {
     orderBy: { completedDay: "desc" },
   });
 
-  const invs = await prisma.document.findMany({
-    where: {
-      type: "INVOICE", deletedAt: null, status: { not: "VOID" },
-      OR: [{ orderCompanyId: user.companyId }, { workerCompanyId: user.companyId }],
-    },
-    select: { metadata: true },
-  });
-  const invoiced = new Set<string>();
-  for (const inv of invs) {
-    const ids = ((inv.metadata as Record<string, unknown> | null)?.orderIds as string[]) ?? [];
-    ids.forEach((i) => invoiced.add(i));
-  }
+  const invoiced = await getInvoicedOrderIds({ companyIdEitherSide: user.companyId });
 
   return orders
     .filter((o) => o.documents.length > 0 && !invoiced.has(o.id))
@@ -758,7 +720,9 @@ export async function rebuildInvoiceFromOrders(documentId: string, orderIds: str
   if (mismatch) throw new Error("この請求書と異なる取引先の発注は追加できません");
 
   const billingDate = doc.issuedAt ?? new Date();
-  const newDocId = await generateInvoiceFromOrders(ids, billingDate);
+  // 生成時点で旧請求書(documentId)はまだ非VOIDのため、自分自身の発注が二重請求ガードで
+  // 落ちないよう excludeInvoiceIds に渡す（他の請求書に載る発注は除外される）。
+  const newDocId = await generateInvoiceFromOrders(ids, billingDate, [documentId]);
 
   await prisma.$transaction(async (tx) => {
     await tx.document.update({

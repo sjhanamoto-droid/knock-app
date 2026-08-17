@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderSheetPdf, type OrderSheetPdfData } from "./order-sheet-pdf";
 import { generateInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
 import { getBillingPeriod, getBillingMonth } from "@/lib/helpers/billing-period";
+import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
 
 /**
  * 帳票番号の自動採番
@@ -269,6 +270,7 @@ export async function generateInvoice(
   workerCompanyId: string,
   orderCompanyId: string,
   yearMonth: string, // YYYYMM
+  excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(再集計中の自分自身)
 ): Promise<string> {
   // 発注者の締め日に基づく請求期間で集計（締め日 null は月末締め）
   const orderCompanyForPeriod = await prisma.company.findUnique({
@@ -310,7 +312,16 @@ export async function generateInvoice(
   });
 
   // 注文書(ORDER_SHEET)が無い発注は請求対象外
-  const billableOrders = orders.filter((o) => o.documents.length > 0);
+  const ordersWithSheet = orders.filter((o) => o.documents.length > 0);
+
+  // 二重請求ガード: すでに非VOIDの請求書に含まれている発注は除外する。
+  // excludeInvoiceIds = 再集計中の自分自身(まだ非VOID)は除外対象から外す。
+  const invoicedOrderIds = await getInvoicedOrderIds({
+    workerCompanyId,
+    orderCompanyId,
+    excludeInvoiceIds,
+  });
+  const billableOrders = ordersWithSheet.filter((o) => !invoicedOrderIds.has(o.id));
 
   if (billableOrders.length === 0) {
     throw new Error("対象月に請求対象の工事がありません");
@@ -426,6 +437,7 @@ export async function generateInvoice(
 export async function generateInvoiceFromOrders(
   orderIds: string[],
   billingDate: Date,
+  excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(作り直し中の自分自身)
 ): Promise<string> {
   const orders = await prisma.factoryFloorOrder.findMany({
     where: {
@@ -454,19 +466,32 @@ export async function generateInvoiceFromOrders(
   });
 
   // 注文書(ORDER_SHEET)が無い発注は請求対象外
-  const billableOrders = orders.filter((o) => o.documents.length > 0);
+  const ordersWithSheet = orders.filter((o) => o.documents.length > 0);
 
-  if (billableOrders.length === 0) {
+  if (ordersWithSheet.length === 0) {
     throw new Error("請求対象の工事がありません");
   }
 
   // 全て同一の (workerCompanyId, orderCompanyId) であることを検証
-  const workerCompanyId = billableOrders[0].workCompanyId;
-  const orderCompanyId = billableOrders[0].factoryFloor.companyId;
-  for (const order of billableOrders) {
+  const workerCompanyId = ordersWithSheet[0].workCompanyId;
+  const orderCompanyId = ordersWithSheet[0].factoryFloor.companyId;
+  for (const order of ordersWithSheet) {
     if (order.workCompanyId !== workerCompanyId || order.factoryFloor.companyId !== orderCompanyId) {
       throw new Error("異なる取引先の工事が混在しています");
     }
+  }
+
+  // 二重請求ガード: すでに非VOIDの請求書に含まれている発注は除外する。
+  // excludeInvoiceIds = 作り直し中の自分自身(まだ非VOID)は除外対象から外す。
+  const invoicedOrderIds = await getInvoicedOrderIds({
+    workerCompanyId,
+    orderCompanyId,
+    excludeInvoiceIds,
+  });
+  const billableOrders = ordersWithSheet.filter((o) => !invoicedOrderIds.has(o.id));
+
+  if (billableOrders.length === 0) {
+    throw new Error("選択した工事はすべて請求済みです");
   }
 
   // 請求月は「発行日」ではなく工事の締め月（完了日＋発注者の締め日）で決める。
