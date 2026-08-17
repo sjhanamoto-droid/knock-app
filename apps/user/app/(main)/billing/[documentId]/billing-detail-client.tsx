@@ -123,7 +123,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
     setAddedRows((prev) =>
       prev.some((r) => r.orderId === row.orderId)
         ? prev
-        : [...prev, { orderId: row.orderId, siteName: row.siteName, parentSiteName: row.parentSiteName, siteCode: row.siteCode, documentNumber: "", amount: row.amount, orderSheetPdfUrl: null }]
+        : [...prev, { orderId: row.orderId, siteName: row.siteName, parentSiteName: row.parentSiteName, siteCode: row.siteCode, documentNumber: "", subtotal: row.subtotal, amount: row.amount, orderSheetPdfUrl: null }]
     );
   }
 
@@ -315,7 +315,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
                         </p>
                       </div>
                       <span className="ml-2 flex shrink-0 items-center gap-1 text-[13px] font-bold text-[#1A2340]">
-                        ¥{row.amount.toLocaleString()}
+                        ¥{row.subtotal.toLocaleString()}
                         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 4L10 8L6 12" stroke="#9CA3AF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       </span>
                     </button>
@@ -351,7 +351,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
                       </div>
                       {row.siteCode && <p className="text-[11px] text-knock-text-secondary">工事番号: {row.siteCode}</p>}
                     </div>
-                    <span className="shrink-0 text-[13px] font-bold text-[#1A2340]">¥{row.amount.toLocaleString()}</span>
+                    <span className="shrink-0 text-[13px] font-bold text-[#1A2340]">¥{row.subtotal.toLocaleString()}</span>
                     <button type="button" onClick={() => removeAdded(row.orderId)} className="shrink-0 rounded-full p-1 active:bg-gray-200" aria-label="取り消し">
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4L12 12M12 4L4 12" stroke="#9CA3AF" strokeWidth="1.8" strokeLinecap="round" /></svg>
                     </button>
@@ -503,7 +503,7 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
                       </p>
                     </div>
                     <span className="ml-2 flex shrink-0 items-center gap-1 text-[13px] font-bold" style={{ color: accentColor }}>
-                      ¥{a.amount.toLocaleString()}
+                      ¥{a.subtotal.toLocaleString()}
                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
                     </span>
                   </button>

@@ -363,7 +363,8 @@ export async function generateInvoice(
         ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
         "",
       siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
-      amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+      // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
     };
   });
 
@@ -420,7 +421,8 @@ export async function generateInvoice(
               ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
               "",
             siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
-            amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+            // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
           };
         }),
       },
@@ -543,7 +545,8 @@ export async function generateInvoiceFromOrders(
         ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
         "",
       siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
-      amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+      // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
     };
   });
 
@@ -599,7 +602,8 @@ export async function generateInvoiceFromOrders(
               ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
               "",
             siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
-            amount: order.documents.reduce((sum, s) => sum + Number(s.totalAmount ?? 0), 0),
+            // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
           };
         }),
       },

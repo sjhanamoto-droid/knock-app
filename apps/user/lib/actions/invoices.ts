@@ -623,7 +623,7 @@ export async function getInvoiceOrderRows(documentId: string) {
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         orderBy: { createdAt: "desc" },
-        select: { pdfUrl: true, documentNumber: true, totalAmount: true },
+        select: { pdfUrl: true, documentNumber: true, subtotal: true, totalAmount: true },
       },
     },
   });
@@ -637,6 +637,8 @@ export async function getInvoiceOrderRows(documentId: string) {
       parentSiteName: o?.factoryFloor.parent?.name ?? "",
       siteCode: o?.factoryFloor.code ?? o?.factoryFloor.parent?.code ?? "",
       documentNumber: sheet?.documentNumber ?? "",
+      // subtotal=税抜(表内の明細表示用) / amount=税込合計(再作成プレビューの合計用)
+      subtotal: (o?.documents ?? []).reduce((s, d) => s + Number(d.subtotal ?? 0), 0),
       amount: (o?.documents ?? []).reduce((s, d) => s + Number(d.totalAmount ?? 0), 0),
       orderSheetPdfUrl: sheet?.pdfUrl ?? null,
     };
@@ -669,7 +671,7 @@ export async function getAddableOrders(documentId: string) {
       factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
-        select: { totalAmount: true },
+        select: { subtotal: true, totalAmount: true },
       },
     },
     orderBy: { completedDay: "desc" },
@@ -684,6 +686,8 @@ export async function getAddableOrders(documentId: string) {
       siteName: o.factoryFloor.name ?? "",
       parentSiteName: o.factoryFloor.parent?.name ?? "",
       siteCode: o.factoryFloor.code ?? o.factoryFloor.parent?.code ?? "",
+      // subtotal=税抜(表内の明細表示用) / amount=税込合計(再作成プレビューの合計用)
+      subtotal: o.documents.reduce((s, d) => s + Number(d.subtotal ?? 0), 0),
       amount: o.documents.reduce((s, d) => s + Number(d.totalAmount ?? 0), 0),
       completedDay: o.completedDay?.toISOString() ?? null,
     }));
