@@ -34,16 +34,17 @@ export default async function SubcontractContractPage({
         <p className="text-[12px] text-center mb-4" style={{ color: "#9CA3AF" }}>
           マッチングした発注者・受注者間で取り交わす基本契約書です
         </p>
+
+        {/* 最上部: PDFダウンロード */}
+        <div className="mb-4">
+          <ContractDownloadButton roomId={roomId} />
+        </div>
+
         <SubcontractAgreementView
           ordererName={ordererName}
           contractorName={contractorName}
           matchedAt={matchedAt}
         />
-
-        {/* 最下部: PDFダウンロード */}
-        <div className="mt-5">
-          <ContractDownloadButton roomId={roomId} />
-        </div>
       </div>
     </div>
   );
