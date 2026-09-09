@@ -220,6 +220,14 @@ export function WorkCompletionClient({ data }: Props) {
                     </button>
                   )}
 
+                  {/* この工事(現場)の詳細へ。発注内容・注文書・完了状況は現場詳細でまとめて確認できる */}
+                  <button
+                    onClick={() => router.push(`/sites/${data.id}`)}
+                    className="w-full rounded-xl border border-gray-300 py-2.5 text-[13px] font-bold text-knock-text transition-all active:scale-[0.98] active:bg-gray-50"
+                  >
+                    この工事の詳細を見る
+                  </button>
+
                   {expanded && (
                     <div className="mt-1 flex flex-col gap-2 border-t border-gray-100 pt-3">
                       <p className="text-[12px] font-bold text-knock-text-secondary">
