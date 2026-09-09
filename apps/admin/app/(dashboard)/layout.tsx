@@ -8,6 +8,7 @@ const navItems = [
   { href: "/", label: "ダッシュボード", icon: "dashboard" },
   { href: "/customers", label: "顧客管理", icon: "customers" },
   { href: "/sites", label: "現場管理", icon: "sites" },
+  { href: "/billing-adjust", label: "請求月の調整", icon: "billing" },
   { href: "/announcements", label: "お知らせ配信", icon: "announcement" },
   { href: "/settings", label: "設定", icon: "settings" },
 ];
@@ -39,6 +40,14 @@ function NavIcon({ type, active }: { type: string; active: boolean }) {
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
           <rect x="3" y="7" width="14" height="10" rx="1.5" stroke={color} strokeWidth="1.5" />
           <path d="M7 7V5C7 3.895 7.895 3 9 3H11C12.105 3 13 3.895 13 5V7" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      );
+    case "billing":
+      return (
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="3" y="4" width="14" height="13" rx="1.5" stroke={color} strokeWidth="1.5" />
+          <path d="M3 8H17M7 2.5V5.5M13 2.5V5.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M7.5 12.5L9.5 14.5L13 11" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case "settings":
