@@ -287,37 +287,27 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
           </Link>
         )}
 
-        {/* アクション: 受注者 - 施工報告 / 工事完了 */}
+        {/* アクション: 受注者 - 施工報告（提出＝この発注書の完了） / 現場全体の完了状況 */}
         {!isOrderer && order.status === "CONFIRMED" && order.completionStatus !== "CLOSED" && (
           <>
             <Link
               href={`/orders/${order.id}/completion-report`}
               className="rounded-xl bg-green-500 py-3.5 text-center text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
             >
-              施工報告
+              施工報告を提出して完了する
             </Link>
             <Link
               href={`/work-completion/${order.factoryFloor.id}`}
               className="rounded-xl border-2 py-3.5 text-center text-[14px] font-bold transition-all active:scale-[0.98]"
               style={{ borderColor: accentColor, color: accentColor }}
             >
-              工事完了
+              他の発注書・完了状況を確認
             </Link>
           </>
         )}
 
-        {/* アクション: 発注者 - 工事完了の確認（締め依頼中） */}
-        {isOrderer && order.status === "CONFIRMED" && order.completionStatus === "CLOSE_REQUESTED" && (
-          <Link
-            href={`/work-completion/${order.factoryFloor.id}`}
-            className="rounded-xl bg-blue-500 py-3.5 text-center text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
-          >
-            工事完了の確認
-          </Link>
-        )}
-
         {/* アクション: 相互評価（取引完了後・発注者/受注者の両方）
-            新フローでは締め完了で order.completionStatus が CLOSED になる。
+            新フローでは施工報告の提出(＝完了)で order.completionStatus が CLOSED になる。
             旧フローのステータスも後方互換で許容する。 */}
         {(order.completionStatus === "CLOSED" ||
           ["DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(

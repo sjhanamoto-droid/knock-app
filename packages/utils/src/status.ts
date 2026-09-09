@@ -167,10 +167,11 @@ export const compensationTypeLabels: Record<string, string> = {
   NEGOTIABLE: "応相談",
 };
 
-// 工事完了(締め)の状態。発注書(order)ごと。
+// 発注書(order)ごとの完了状態。受注者の施工報告の提出で完了(CLOSED)になる。
+// CLOSE_REQUESTED は旧フロー(締め依頼)の残置。
 export const orderCompletionStatusLabels: Record<string, string> = {
   NONE: "未完了",
-  CLOSE_REQUESTED: "締め依頼中",
+  CLOSE_REQUESTED: "施工報告済み",
   CLOSED: "完了",
 };
 

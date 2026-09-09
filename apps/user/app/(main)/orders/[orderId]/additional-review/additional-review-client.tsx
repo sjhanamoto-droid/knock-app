@@ -71,7 +71,7 @@ export function AdditionalReviewClient({ initialOrder, orderId }: Props) {
         return;
       }
       setShowAcceptDialog(false);
-      toast("追加工事を承諾しました");
+      toast("追加注文書が作成されました");
       setTimeout(() => router.back(), 1000);
     } catch (e) {
       setShowAcceptDialog(false);

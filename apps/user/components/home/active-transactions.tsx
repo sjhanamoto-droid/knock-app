@@ -107,12 +107,9 @@ function SiteCard({
     cta = tx.isAdditional
       ? { href: `/orders/${tx.id}/additional-review`, label: "追加工事依頼に回答" }
       : { href: `/orders/${tx.id}/accept`, label: "発注依頼に回答" };
-  } else if (isOrderer && tx.completionStatus === "CLOSE_REQUESTED") {
-    // 発注者: 受注者が工事完了(締め)を依頼済み → 工事完了を確認・承認
-    cta = { href: `/work-completion/${tx.siteId}`, label: "工事完了を確認" };
   } else if (!isOrderer && tx.siteStatus === "IN_PROGRESS") {
-    // 受注者: 施工中 → 工事完了
-    cta = { href: `/work-completion/${tx.siteId}`, label: "工事完了" };
+    // 受注者: 施工中 → 発注書ごとの施工報告を提出（提出＝完了。全て提出で工事完了）
+    cta = { href: `/work-completion/${tx.siteId}`, label: "施工報告・工事完了" };
   } else if (isOrderer && tx.orderStatus === "APPROVED") {
     // 発注者: 受注者が回答済み → 発注を確定（追加工事は専用ページで確定）
     cta = tx.isAdditional

@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma";
 import { requireSession } from "@/lib/session";
 import { requireKyc } from "@/lib/actions/verification";
 import { generateOrderSheet } from "@/lib/services/document-generator";
 import { sendPushToUsers } from "@/lib/push";
 import { recalculateTrustScore } from "@/lib/services/trust-score";
+import { toJstCalendarDate } from "@/lib/helpers/billing-period";
+import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
 
 export async function getOrders(status?: string) {
   const user = await requireSession();
@@ -233,7 +236,7 @@ export async function cancelOrder(id: string) {
     });
 
     // 2. 現場ステータスを「未発注」に戻し、施工会社をクリア
-    //    （本注文のキャンセルのみ。追加工事のキャンセルでは現場・他の発注を維持）
+    //    （本注文のキャンセルのみ。追加工事のキャンセルでは他の発注を維持し、現場ステータスだけロールアップ）
     if (!isAdditional) {
       await tx.factoryFloor.update({
         where: { id: order.factoryFloor.id },
@@ -242,6 +245,9 @@ export async function cancelOrder(id: string) {
           workCompanyId: null,
         },
       });
+    } else {
+      // 追加工事のキャンセルで未回答の発注が無くなれば、現場を工事完了に戻す
+      await rollupFloorCompletion(tx, order.factoryFloor.id);
     }
 
     // 3. 交渉ルーム（NEGOTIATION）にキャンセル通知
@@ -609,12 +615,30 @@ export async function acceptOrder(orderId: string) {
   });
   if (!order) throw new Error("発注が見つかりません");
 
-  // 二重送信対策: PENDING のものだけを APPROVED に原子的に遷移し、重複処理を防ぐ。
+  // 二重送信対策: PENDING のものだけを CONFIRMED に原子的に遷移し、重複処理を防ぐ。
+  // 承諾＝注文書自動発行のため、従来の APPROVED（発注者の確定待ち）を経由せず一気に確定する。
   const claim = await prisma.factoryFloorOrder.updateMany({
     where: { id: orderId, status: "PENDING", deletedAt: null },
-    data: { status: "APPROVED" },
+    data: { status: "CONFIRMED" },
   });
   if (claim.count !== 1) throw new Error("この発注は既に処理済みです");
+
+  // 注文書を生成（トランザクション外で実行しコネクションプール枯渇を防ぐ）。
+  // 失敗時は原子的クレームを取り消して再試行可能に戻す。
+  let documentId: string;
+  try {
+    documentId = await generateOrderSheet(orderId);
+  } catch (e) {
+    await prisma.factoryFloorOrder.updateMany({
+      where: { id: orderId, status: "CONFIRMED", deletedAt: null },
+      data: { status: "PENDING" },
+    });
+    console.error("[acceptOrder] generateOrderSheet failed:", e);
+    throw new Error("注文書の生成に失敗しました。もう一度お試しください。");
+  }
+
+  const orderCompanyId = order.factoryFloor.companyId;
+  const workerCompanyId = order.workCompanyId; // = user.companyId
 
   const result = await prisma.$transaction(async (tx) => {
     // この発注に関連する通知を既読にする
@@ -623,20 +647,78 @@ export async function acceptOrder(orderId: string) {
       data: { seenFlag: true },
     });
 
-    // 1. 発注ステータスは上の原子的クレームで APPROVED 済み。現場ステータスを「発注済」に更新
+    // 1. 発注ステータスは上の原子的クレームで CONFIRMED 済み。
+    //    現場ステータスを施工中に更新（注文書発行 = 施工開始）
     await tx.factoryFloor.update({
       where: { id: order.factoryFloor.id },
-      data: { status: "ORDERED" },
+      data: { status: "IN_PROGRESS" },
     });
 
-    // 2. 交渉ルーム（NEGOTIATION）に承認通知
+    // 2. SITE_INFOチャットルームを作成（施工確定時に初めて作成）
+    let siteRoom = await tx.chatRoom.findFirst({
+      where: {
+        factoryFloorId: order.factoryFloor.id,
+        type: "SITE_INFO",
+        deletedAt: null,
+      },
+    });
+    if (!siteRoom) {
+      siteRoom = await tx.chatRoom.create({
+        data: {
+          orderCompanyId,
+          workerCompanyId,
+          factoryFloorId: order.factoryFloor.id,
+          type: "SITE_INFO",
+          status: "OPEN",
+          lastMessageTime: new Date(),
+        },
+      });
+
+      // 両社のアクティブユーザーをメンバーに追加
+      const allUsers = await tx.user.findMany({
+        where: {
+          companyId: { in: [orderCompanyId, workerCompanyId] },
+          isActive: true,
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+      if (allUsers.length > 0) {
+        await tx.chatRoomMember.createMany({
+          data: allUsers.map((u) => ({
+            roomId: siteRoom!.id,
+            userId: u.id,
+            roleUser: 2,
+          })),
+        });
+      }
+    }
+
+    // 3. SITE_INFOルームに注文書発行のACTIONメッセージ
+    await tx.message.create({
+      data: {
+        roomId: siteRoom.id,
+        userId: user.id,
+        message: "注文書が発行されました",
+        type: "ACTION",
+        actionType: "ORDER_CONFIRM",
+        factoryFloorOrderId: orderId,
+        keyCollection: documentId,
+      },
+    });
+    await tx.chatRoom.update({
+      where: { id: siteRoom.id },
+      data: { lastMessageTime: new Date() },
+    });
+
+    // 4. 交渉ルーム（NEGOTIATION）に承認メッセージ
     const negoRoom = await tx.chatRoom.findFirst({
       where: {
         type: "NEGOTIATION",
         deletedAt: null,
         OR: [
-          { orderCompanyId: order.factoryFloor.companyId, workerCompanyId: user.companyId },
-          { orderCompanyId: user.companyId, workerCompanyId: order.factoryFloor.companyId },
+          { orderCompanyId, workerCompanyId },
+          { orderCompanyId: workerCompanyId, workerCompanyId: orderCompanyId },
         ],
       },
     });
@@ -657,9 +739,9 @@ export async function acceptOrder(orderId: string) {
       });
     }
 
-    // 3. 発注者に通知（type 20 → /orders/${orderId}/confirm）
+    // 5. 発注者に通知（受注了承＋注文書発行済み → 現場ルームへ / type 24）
     const ordererUsers = await tx.user.findMany({
-      where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
+      where: { companyId: orderCompanyId, isActive: true, deletedAt: null },
       select: { id: true },
     });
     if (ordererUsers.length > 0) {
@@ -667,21 +749,21 @@ export async function acceptOrder(orderId: string) {
         data: ordererUsers.map((u) => ({
           userId: u.id,
           title: "受注了承",
-          content: `${order.factoryFloor.name}が受注されました。注文書を発行してください。`,
-          type: 20,
+          content: `${order.factoryFloor.name}が受注され、注文書が発行されました。`,
+          type: 24,
           factoryFloorId: order.factoryFloor.id,
-          targetId: orderId,
+          targetId: siteRoom!.id,
         })),
       });
       void sendPushToUsers({
         userIds: ordererUsers.map((u) => u.id),
         title: "受注了承",
-        body: `${order.factoryFloor.name}が受注されました。注文書を発行してください。`,
-        url: `/orders/${orderId}/confirm`,
+        body: `${order.factoryFloor.name}が受注され、注文書が発行されました。`,
+        url: `/chat/${siteRoom!.id}`,
       });
     }
 
-    return { orderId };
+    return { orderId, documentId };
   });
 
   revalidatePath("/orders");
@@ -690,11 +772,48 @@ export async function acceptOrder(orderId: string) {
   return result;
 }
 
-// ============ V2: 完了報告（受注者） ============
+// ============ V2: 現場ステータスのロールアップ（発注書の完了状況 → 現場） ============
+
+/**
+ * 発注書(FactoryFloorOrder)の状態から現場ステータスを算出して反映する。
+ * - 回答待ち(PENDING/APPROVED)の発注、または未完了(≠CLOSED)の確定発注が1つでもあれば「施工中」
+ * - 確定発注がすべて完了(CLOSED)なら「工事完了」（finishDay = 最終の完了日）
+ * 追加工事の依頼で 工事完了→施工中 に戻り、その施工報告で再び 工事完了 になる往復をここで担う。
+ * 発注前(未発注/下書き/発注済)や取引終端(DEAL_COMPLETED)の現場は対象外。
+ */
+async function rollupFloorCompletion(tx: Prisma.TransactionClient, factoryFloorId: string) {
+  const floor = await tx.factoryFloor.findUnique({
+    where: { id: factoryFloorId },
+    select: { status: true, finishDay: true },
+  });
+  if (!floor) return null;
+  if (floor.status !== "IN_PROGRESS" && floor.status !== "COMPLETED") return floor.status;
+
+  const orders = await tx.factoryFloorOrder.findMany({
+    where: { factoryFloorId, deletedAt: null, status: { in: ["PENDING", "APPROVED", "CONFIRMED"] } },
+    select: { status: true, completionStatus: true, completedDay: true },
+  });
+  const confirmed = orders.filter((o) => o.status === "CONFIRMED");
+  const hasOpen = orders.some((o) => o.status !== "CONFIRMED" || o.completionStatus !== "CLOSED");
+  const nextStatus = confirmed.length > 0 && !hasOpen ? "COMPLETED" : "IN_PROGRESS";
+
+  // 現場の完了日 = 完了済み発注書の最終完了日
+  const latestCompleted = confirmed
+    .map((o) => o.completedDay)
+    .filter((d): d is Date => !!d)
+    .reduce<Date | null>((mx, d) => (!mx || d > mx ? d : mx), null);
+
+  await tx.factoryFloor.update({
+    where: { id: factoryFloorId },
+    data: { status: nextStatus, finishDay: latestCompleted ?? floor.finishDay },
+  });
+  return nextStatus;
+}
+
+// ============ V2: 施工報告（受注者）＝発注書の完了・請求対象化 ============
 
 export async function submitCompletionReport(data: {
   factoryFloorOrderId: string;
-  completionDate: string;
   comment?: string;
   photos: string[];
   hasAdditionalWork?: boolean;
@@ -717,40 +836,97 @@ export async function submitCompletionReport(data: {
   });
   if (!order) throw new Error("取引が見つかりません");
   if (order.status !== "CONFIRMED") throw new Error("施工報告を送信できる状態ではありません");
+  if (order.completionStatus === "CLOSED") throw new Error("この発注書は既に完了しています");
 
-  return prisma.$transaction(async (tx) => {
+  // 完了日 = 施工報告の送信日(JSTのカレンダー日付・時刻なし)。受注者は選択できず、
+  // 請求月(発注者の締め日判定)と現場 finishDay(納期遵守判定)の基準になる。
+  // 旧締め処理が保存していた「日付のみ」と同じ形に揃え、UTC 動作の本番で日付がずれないようにする。
+  const completedAt = toJstCalendarDate();
+  const ordererCompanyId = order.factoryFloor.companyId;
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 二重送信対策: 未完了(≠CLOSED)の確定発注だけを原子的に完了(CLOSED)へ遷移し、重複処理を防ぐ。
+    // この時点で注文書金額が完了月の請求対象データになる。
+    const claim = await tx.factoryFloorOrder.updateMany({
+      where: {
+        id: data.factoryFloorOrderId,
+        deletedAt: null,
+        status: "CONFIRMED",
+        completionStatus: { not: "CLOSED" },
+      },
+      data: { completionStatus: "CLOSED", completedDay: completedAt },
+    });
+    if (claim.count !== 1) throw new Error("この発注書は既に完了しています");
+
+    // 相互評価は「初めての業者さんとの初めての工事」完了時のみ依頼する。
+    // この発注者⇄受注者の完了(CLOSED)発注が今回の1件だけなら初回とみなす。
+    const closedCount = await tx.factoryFloorOrder.count({
+      where: {
+        deletedAt: null,
+        completionStatus: "CLOSED",
+        workCompanyId: user.companyId,
+        factoryFloor: { companyId: ordererCompanyId, deletedAt: null },
+      },
+    });
+    const isFirstTransaction = closedCount === 1;
+
     // この発注に関連する通知を既読にする
     await tx.notification.updateMany({
       where: { userId: user.id, targetId: data.factoryFloorOrderId, seenFlag: false },
       data: { seenFlag: true },
     });
 
-    // 施工報告(任意)を作成/更新。工事完了(締め)状態は変更しない。
+    // 1. 施工報告を作成/更新
     const reportData = {
-      completionDate: new Date(data.completionDate),
+      completionDate: completedAt,
       comment: data.comment,
       photos: data.photos,
       hasAdditionalWork: data.hasAdditionalWork ?? false,
       additionalWorkDescription: data.additionalWorkDescription,
       additionalWorkAmount: data.additionalWorkAmount ? BigInt(data.additionalWorkAmount) : null,
     };
-    const report = await tx.completionReport.upsert({
+    await tx.completionReport.upsert({
       where: { factoryFloorOrderId: data.factoryFloorOrderId },
       create: { factoryFloorOrderId: data.factoryFloorOrderId, ...reportData },
       update: reportData,
     });
 
-    // 発注者に通知（施工報告あり）
+    // 2. 現場ステータスをロールアップ（全発注書が完了 → 工事完了）
+    const floorStatus = await rollupFloorCompletion(tx, order.factoryFloor.id);
+    const floorCompleted = floorStatus === "COMPLETED";
+
+    // 3. SITE_INFO ルームにメッセージ
+    const siteRoom = await tx.chatRoom.findFirst({
+      where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
+    });
+    if (siteRoom) {
+      await tx.message.create({
+        data: {
+          roomId: siteRoom.id,
+          userId: user.id,
+          message: floorCompleted ? "施工報告が提出され、工事が完了しました" : "施工報告が提出されました",
+          type: "ACTION",
+          actionType: "ORDER_CONFIRM",
+          factoryFloorOrderId: data.factoryFloorOrderId,
+        },
+      });
+      await tx.chatRoom.update({ where: { id: siteRoom.id }, data: { lastMessageTime: new Date() } });
+    }
+
+    // 4. 発注者に通知（施工報告 → 施工報告画面）
+    const content = floorCompleted
+      ? `${order.factoryFloor.name}の施工報告が届き、工事が完了しました。`
+      : `${order.factoryFloor.name}の施工報告が届きました。`;
     const ordererUsers = await tx.user.findMany({
-      where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
+      where: { companyId: ordererCompanyId, isActive: true, deletedAt: null },
       select: { id: true },
     });
     if (ordererUsers.length > 0) {
       await tx.notification.createMany({
         data: ordererUsers.map((u) => ({
           userId: u.id,
-          title: "施工報告",
-          content: `${order.factoryFloor.name}の施工報告が届きました。`,
+          title: floorCompleted ? "工事完了" : "施工報告",
+          content,
           type: 22,
           factoryFloorId: order.factoryFloor.id,
           targetId: data.factoryFloorOrderId,
@@ -758,14 +934,150 @@ export async function submitCompletionReport(data: {
       });
       void sendPushToUsers({
         userIds: ordererUsers.map((u) => u.id),
-        title: "施工報告",
-        body: `${order.factoryFloor.name}の施工報告が届きました。`,
+        title: floorCompleted ? "工事完了" : "施工報告",
+        body: content,
         url: `/orders/${data.factoryFloorOrderId}/completion-report`,
       });
     }
 
-    return report;
+    // 5. 双方に相互評価を依頼（初回取引のみ・評価ページは発注単位）
+    if (isFirstTransaction) {
+      const evalUsers = await tx.user.findMany({
+        where: { companyId: { in: [ordererCompanyId, user.companyId] }, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      if (evalUsers.length > 0) {
+        await tx.notification.createMany({
+          data: evalUsers.map((u) => ({
+            userId: u.id,
+            title: "取引相手を評価してください",
+            content: `${order.factoryFloor.name}の取引が完了しました。取引相手の評価をお願いします。`,
+            type: 35,
+            factoryFloorId: order.factoryFloor.id,
+            targetId: data.factoryFloorOrderId,
+          })),
+        });
+      }
+    }
+
+    return { success: true as const, floorCompleted };
   });
+
+  // 取引完了で双方の信用スコア（取引回数・金額・納期遵守・リピート率）を再計算する。
+  // コミット後に実行（tx 内だと未コミットの完了状態が集計に反映されない）。
+  // 完了自体は確定済みなので、スコア再計算の失敗で送信をエラーにしない（次の完了時に追いつく）。
+  try {
+    await Promise.all([recalculateTrustScore(ordererCompanyId), recalculateTrustScore(user.companyId)]);
+  } catch (e) {
+    console.error("[submitCompletionReport] recalculateTrustScore failed:", e);
+  }
+
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  revalidatePath("/chat");
+  return result;
+}
+
+// ============ V2: 施工報告の差し戻し（発注者）＝完了の取り消し ============
+
+/**
+ * 発注者が完了(CLOSED)した発注書を未完了(NONE)に戻す。誤送信時の逃げ道。
+ * 請求書(非VOID)に含まれている発注書は差し戻せない（先に請求書側を無効にする）。
+ * 施工報告の内容は残し、受注者は修正して再送信できる（再送信で再び完了になる）。
+ */
+export async function revertCompletion(orderId: string) {
+  const user = await requireSession();
+
+  const order = await prisma.factoryFloorOrder.findFirst({
+    where: {
+      id: orderId,
+      deletedAt: null,
+      factoryFloor: { companyId: user.companyId, deletedAt: null },
+    },
+    include: {
+      factoryFloor: { select: { id: true, name: true } },
+    },
+  });
+  if (!order) throw new Error("発注が見つかりません");
+  if (order.status !== "CONFIRMED" || order.completionStatus !== "CLOSED") {
+    throw new Error("差し戻せる状態ではありません");
+  }
+
+  const invoicedOrderIds = await getInvoicedOrderIds({ orderCompanyId: user.companyId });
+  if (invoicedOrderIds.has(orderId)) {
+    throw new Error("この発注書は請求書に含まれているため差し戻せません。先に請求書を無効にしてください。");
+  }
+
+  const workCompanyId = order.workCompanyId;
+
+  const result = await prisma.$transaction(async (tx) => {
+    // 二重操作対策: 完了(CLOSED)のものだけを原子的に未完了へ戻す
+    const claim = await tx.factoryFloorOrder.updateMany({
+      where: { id: orderId, deletedAt: null, status: "CONFIRMED", completionStatus: "CLOSED" },
+      data: { completionStatus: "NONE", completedDay: null },
+    });
+    if (claim.count !== 1) throw new Error("この発注書は既に差し戻し済みです");
+
+    // 現場ステータスをロールアップ（工事完了 → 施工中）
+    await rollupFloorCompletion(tx, order.factoryFloor.id);
+
+    // SITE_INFO ルームにメッセージ
+    const siteRoom = await tx.chatRoom.findFirst({
+      where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
+    });
+    if (siteRoom) {
+      await tx.message.create({
+        data: {
+          roomId: siteRoom.id,
+          userId: user.id,
+          message: "施工報告が差し戻されました",
+          type: "ACTION",
+          actionType: "ORDER_REQUEST",
+          factoryFloorOrderId: orderId,
+        },
+      });
+      await tx.chatRoom.update({ where: { id: siteRoom.id }, data: { lastMessageTime: new Date() } });
+    }
+
+    // 受注者に通知（→ 施工報告画面で修正・再送信）
+    const contractorUsers = await tx.user.findMany({
+      where: { companyId: workCompanyId, isActive: true, deletedAt: null },
+      select: { id: true },
+    });
+    if (contractorUsers.length > 0) {
+      const content = `${order.factoryFloor.name}の施工報告が差し戻されました。内容を確認して再送信してください。`;
+      await tx.notification.createMany({
+        data: contractorUsers.map((u) => ({
+          userId: u.id,
+          title: "施工報告の差し戻し",
+          content,
+          type: 22,
+          factoryFloorId: order.factoryFloor.id,
+          targetId: orderId,
+        })),
+      });
+      void sendPushToUsers({
+        userIds: contractorUsers.map((u) => u.id),
+        title: "施工報告の差し戻し",
+        body: content,
+        url: `/orders/${orderId}/completion-report`,
+      });
+    }
+
+    return { success: true as const };
+  });
+
+  // 完了件数が変わるので双方の信用スコアを再計算（失敗しても差し戻し自体は確定）
+  try {
+    await Promise.all([recalculateTrustScore(user.companyId), recalculateTrustScore(workCompanyId)]);
+  } catch (e) {
+    console.error("[revertCompletion] recalculateTrustScore failed:", e);
+  }
+
+  revalidatePath("/orders");
+  revalidatePath("/sites");
+  revalidatePath("/chat");
+  return result;
 }
 
 // ============ V2: 工事完了画面のデータ取得（現場全体） ============
@@ -786,11 +1098,14 @@ export async function getWorkCompletion(factoryFloorId: string) {
       companyId: true,
       workCompanyId: true,
       status: true,
+      // 回答待ち(PENDING/APPROVED)の発注も返す。現場ステータスのロールアップと同じ集合で、
+      // 追加工事の依頼中に「工事完了」と表示されないようにする。
       orders: {
-        where: { deletedAt: null, status: "CONFIRMED" },
+        where: { deletedAt: null, status: { in: ["PENDING", "APPROVED", "CONFIRMED"] } },
         orderBy: { createdAt: "asc" },
         select: {
           id: true,
+          status: true,
           completionStatus: true,
           completedDay: true,
           inspectionData: true,
@@ -863,6 +1178,7 @@ export async function getWorkCompletion(factoryFloorId: string) {
       const subtotal = items.reduce((s, it) => s + it.amount, 0);
       return {
         id: o.id,
+        status: o.status,
         completionStatus: o.completionStatus,
         completedDay: o.completedDay ? o.completedDay.toISOString() : null,
         hasReport: !!o.completionReport,
@@ -879,288 +1195,6 @@ export async function getWorkCompletion(factoryFloorId: string) {
       };
     }),
   };
-}
-
-// ============ V2: 工事完了(締め)依頼（受注者・現場全体） ============
-
-export async function requestCloseFloor(factoryFloorId: string) {
-  const user = await requireSession();
-
-  const floor = await prisma.factoryFloor.findFirst({
-    where: { id: factoryFloorId, deletedAt: null, workCompanyId: user.companyId },
-    select: {
-      id: true,
-      name: true,
-      companyId: true,
-      orders: {
-        where: { deletedAt: null, status: "CONFIRMED" },
-        select: { id: true, completionStatus: true, completionReport: { select: { id: true } } },
-      },
-    },
-  });
-  if (!floor) throw new Error("現場が見つかりません");
-
-  const orders = floor.orders;
-  if (orders.length === 0) throw new Error("対象の発注がありません");
-  // 全発注書の施工報告が必須
-  if (orders.some((o) => !o.completionReport)) {
-    throw new Error("施工報告が未完了の工事があります。すべての施工報告を行ってください。");
-  }
-  const toRequest = orders.filter((o) => o.completionStatus === "NONE");
-  if (toRequest.length === 0) throw new Error("既に締め依頼済み、または完了済みです");
-
-  const result = await prisma.$transaction(async (tx) => {
-    await tx.factoryFloorOrder.updateMany({
-      where: { id: { in: toRequest.map((o) => o.id) } },
-      data: { completionStatus: "CLOSE_REQUESTED" },
-    });
-
-    // SITE_INFO ルームにメッセージ
-    const siteRoom = await tx.chatRoom.findFirst({
-      where: { factoryFloorId: floor.id, type: "SITE_INFO", deletedAt: null },
-    });
-    if (siteRoom) {
-      await tx.message.create({
-        data: {
-          roomId: siteRoom.id,
-          userId: user.id,
-          message: "工事の完了(締め)を依頼しました",
-          type: "ACTION",
-          actionType: "ORDER_REQUEST",
-        },
-      });
-      await tx.chatRoom.update({ where: { id: siteRoom.id }, data: { lastMessageTime: new Date() } });
-    }
-
-    // 発注者に通知
-    const ordererUsers = await tx.user.findMany({
-      where: { companyId: floor.companyId, isActive: true, deletedAt: null },
-      select: { id: true },
-    });
-    if (ordererUsers.length > 0) {
-      await tx.notification.createMany({
-        data: ordererUsers.map((u) => ({
-          userId: u.id,
-          title: "工事完了の確認",
-          content: `${floor.name}の工事完了(締め)の確認をお願いします。`,
-          type: 37,
-          factoryFloorId: floor.id,
-          targetId: floor.id,
-        })),
-      });
-      void sendPushToUsers({
-        userIds: ordererUsers.map((u) => u.id),
-        title: "工事完了の確認",
-        body: `${floor.name}の工事完了(締め)の確認をお願いします。`,
-        url: `/work-completion/${floor.id}`,
-      });
-    }
-
-    return { factoryFloorId: floor.id };
-  });
-  revalidatePath("/orders");
-  revalidatePath("/sites");
-  revalidatePath("/chat");
-  return result;
-}
-
-// ============ V2: 工事完了(締め)承認（発注者・現場全体）→ 請求対象データ確定 ============
-
-export async function approveCloseFloor(factoryFloorId: string, completedDay: string) {
-  const user = await requireSession();
-
-  if (!completedDay) throw new Error("工事完了日を入力してください");
-
-  const floor = await prisma.factoryFloor.findFirst({
-    where: { id: factoryFloorId, deletedAt: null, companyId: user.companyId },
-    select: {
-      id: true,
-      name: true,
-      finishDay: true,
-      workCompanyId: true,
-      orders: {
-        where: { deletedAt: null, status: "CONFIRMED" },
-        select: { id: true, completionStatus: true },
-      },
-    },
-  });
-  if (!floor) throw new Error("現場が見つかりません");
-
-  const toClose = floor.orders.filter((o) => o.completionStatus === "CLOSE_REQUESTED");
-  if (toClose.length === 0) throw new Error("承認できる状態ではありません");
-
-  const completed = new Date(completedDay + "T00:00:00");
-
-  const result = await prisma.$transaction(async (tx) => {
-    // 相互評価は「初めての業者さんとの初めての工事」完了時のみ依頼する。
-    // この受注者との過去の完了(CLOSED)取引がまだ無ければ初回とみなす
-    // （この時点では toClose はまだ CLOSE_REQUESTED のため、CLOSED件数＝過去の取引数）。
-    const priorClosedCount = floor.workCompanyId
-      ? await tx.factoryFloorOrder.count({
-          where: {
-            deletedAt: null,
-            completionStatus: "CLOSED",
-            workCompanyId: floor.workCompanyId,
-            factoryFloor: { companyId: user.companyId, deletedAt: null },
-          },
-        })
-      : 0;
-    const isFirstTransaction = priorClosedCount === 0;
-
-    await tx.notification.updateMany({
-      where: { userId: user.id, targetId: floor.id, seenFlag: false },
-      data: { seenFlag: true },
-    });
-
-    // 1. 締め依頼中の全発注書を完了に（この時点で注文書金額が請求対象データになる）
-    await tx.factoryFloorOrder.updateMany({
-      where: { id: { in: toClose.map((o) => o.id) } },
-      data: { completionStatus: "CLOSED", completedDay: completed },
-    });
-
-    // 2. 現場 finishDay を更新(最大)＋ステータスロールアップ
-    const existingFinish = floor.finishDay;
-    const newFinish = !existingFinish || completed > existingFinish ? completed : existingFinish;
-    const confirmedOrders = await tx.factoryFloorOrder.findMany({
-      where: { factoryFloorId: floor.id, deletedAt: null, status: "CONFIRMED" },
-      select: { completionStatus: true },
-    });
-    const allClosed = confirmedOrders.every((o) => o.completionStatus === "CLOSED");
-    await tx.factoryFloor.update({
-      where: { id: floor.id },
-      data: { finishDay: newFinish, status: allClosed ? "COMPLETED" : "IN_PROGRESS" },
-    });
-
-    // 3. 受注者に「工事完了」通知
-    const workCompanyId = floor.workCompanyId;
-    if (workCompanyId) {
-      const contractorUsers = await tx.user.findMany({
-        where: { companyId: workCompanyId, isActive: true, deletedAt: null },
-        select: { id: true },
-      });
-      if (contractorUsers.length > 0) {
-        await tx.notification.createMany({
-          data: contractorUsers.map((u) => ({
-            userId: u.id,
-            title: "工事完了",
-            content: `${floor.name}の工事が完了しました。`,
-            type: 38,
-            factoryFloorId: floor.id,
-            targetId: floor.id,
-          })),
-        });
-        void sendPushToUsers({
-          userIds: contractorUsers.map((u) => u.id),
-          title: "工事完了",
-          body: `${floor.name}の工事が完了しました。`,
-          url: `/work-completion/${floor.id}`,
-        });
-      }
-    }
-
-    // 4. 双方に相互評価を依頼（初回取引のみ・評価ページは発注単位のため代表の発注IDを使用）
-    if (isFirstTransaction) {
-      const evalTargetOrderId = toClose[0].id;
-      const evalCompanyIds = [user.companyId, workCompanyId].filter(Boolean) as string[];
-      const evalUsers = await tx.user.findMany({
-        where: { companyId: { in: evalCompanyIds }, isActive: true, deletedAt: null },
-        select: { id: true },
-      });
-      if (evalUsers.length > 0) {
-        await tx.notification.createMany({
-          data: evalUsers.map((u) => ({
-            userId: u.id,
-            title: "取引相手を評価してください",
-            content: `${floor.name}の取引が完了しました。取引相手の評価をお願いします。`,
-            type: 35,
-            factoryFloorId: floor.id,
-            targetId: evalTargetOrderId,
-          })),
-        });
-      }
-    }
-
-    return { factoryFloorId: floor.id };
-  });
-
-  // 取引完了で双方の信用スコア（取引回数・金額・納期遵守・リピート率）を再計算する。
-  // コミット後に実行（tx 内だと未コミットの締め状態が集計に反映されない）。
-  await recalculateTrustScore(user.companyId);
-  if (floor.workCompanyId) {
-    await recalculateTrustScore(floor.workCompanyId);
-  }
-
-  revalidatePath("/orders");
-  revalidatePath("/sites");
-  return result;
-}
-
-// ============ V2: 工事完了(締め)の差し戻し（発注者・現場全体） ============
-
-export async function rejectCloseFloor(factoryFloorId: string) {
-  const user = await requireSession();
-
-  const floor = await prisma.factoryFloor.findFirst({
-    where: { id: factoryFloorId, deletedAt: null, companyId: user.companyId },
-    select: {
-      id: true,
-      name: true,
-      workCompanyId: true,
-      orders: {
-        where: { deletedAt: null, status: "CONFIRMED" },
-        select: { id: true, completionStatus: true },
-      },
-    },
-  });
-  if (!floor) throw new Error("現場が見つかりません");
-
-  const toRevert = floor.orders.filter((o) => o.completionStatus === "CLOSE_REQUESTED");
-  if (toRevert.length === 0) throw new Error("差し戻しできる状態ではありません");
-
-  const result = await prisma.$transaction(async (tx) => {
-    await tx.notification.updateMany({
-      where: { userId: user.id, targetId: floor.id, seenFlag: false },
-      data: { seenFlag: true },
-    });
-
-    // 締め依頼中の発注書を未締め(NONE)に戻す
-    await tx.factoryFloorOrder.updateMany({
-      where: { id: { in: toRevert.map((o) => o.id) } },
-      data: { completionStatus: "NONE" },
-    });
-
-    // 受注者に差し戻し通知
-    const workCompanyId = floor.workCompanyId;
-    if (workCompanyId) {
-      const contractorUsers = await tx.user.findMany({
-        where: { companyId: workCompanyId, isActive: true, deletedAt: null },
-        select: { id: true },
-      });
-      if (contractorUsers.length > 0) {
-        await tx.notification.createMany({
-          data: contractorUsers.map((u) => ({
-            userId: u.id,
-            title: "工事完了の差し戻し",
-            content: `${floor.name}の工事完了が差し戻されました。内容を確認してください。`,
-            type: 37,
-            factoryFloorId: floor.id,
-            targetId: floor.id,
-          })),
-        });
-        void sendPushToUsers({
-          userIds: contractorUsers.map((u) => u.id),
-          title: "工事完了の差し戻し",
-          body: `${floor.name}の工事完了が差し戻されました。`,
-          url: `/work-completion/${floor.id}`,
-        });
-      }
-    }
-
-    return { factoryFloorId: floor.id };
-  });
-  revalidatePath("/orders");
-  revalidatePath("/sites");
-  return result;
 }
 
 // ============ V2: 取引詳細（拡張版） ============
@@ -1227,28 +1261,37 @@ export async function createAdditionalOrder(
     });
     if (!floor) return { success: false, error: "現場が見つかりません" };
     if (floor.companyId !== user.companyId) return { success: false, error: "発注者のみ追加工事を登録できます" };
-    if (floor.status !== "ORDERED" && floor.status !== "IN_PROGRESS") {
-      return { success: false, error: "発注済み・施工中の現場のみ追加工事を登録できます" };
+    // 工事完了後でも追加工事は依頼できる（依頼で現場は施工中に戻り、追加分の施工報告で再び工事完了になる）
+    if (floor.status !== "ORDERED" && floor.status !== "IN_PROGRESS" && floor.status !== "COMPLETED") {
+      return { success: false, error: "発注済み・施工中・工事完了の現場のみ追加工事を登録できます" };
     }
     if (!floor.workCompanyId) return { success: false, error: "受注者が設定されていません" };
 
-    // 新しい FactoryFloorOrder を PENDING で作成
-    const newOrder = await prisma.factoryFloorOrder.create({
-      data: {
-        factoryFloorId,
-        workCompanyId: floor.workCompanyId,
-        status: "PENDING",
-        inspectionData: {
-          type: "ADDITIONAL_ORDER",
-          priceDetails: items,
-          estimatePdfUrls: attachments?.estimatePdfUrls ?? [],
-          imageUrls: attachments?.imageUrls ?? [],
-        },
-      },
-    });
-
-    // SITE_INFO ルームにメッセージ + 受注者に通知
+    // 発注作成 + 現場ステータス更新 + SITE_INFO ルームにメッセージ + 受注者に通知（1トランザクション）
     await prisma.$transaction(async (tx) => {
+      // 新しい FactoryFloorOrder を PENDING で作成
+      const newOrder = await tx.factoryFloorOrder.create({
+        data: {
+          factoryFloorId,
+          workCompanyId: floor.workCompanyId!,
+          status: "PENDING",
+          inspectionData: {
+            type: "ADDITIONAL_ORDER",
+            priceDetails: items,
+            estimatePdfUrls: attachments?.estimatePdfUrls ?? [],
+            imageUrls: attachments?.imageUrls ?? [],
+          },
+        },
+      });
+
+      // 工事完了後の追加工事: 現場を施工中に戻す（発注作成と同じトランザクションで確定させる）
+      if (floor.status === "COMPLETED") {
+        await tx.factoryFloor.update({
+          where: { id: factoryFloorId },
+          data: { status: "IN_PROGRESS" },
+        });
+      }
+
       const siteRoom = await tx.chatRoom.findFirst({
         where: { factoryFloorId, type: "SITE_INFO", deletedAt: null },
       });
@@ -1316,18 +1359,36 @@ export async function acceptAdditionalOrder(orderId: string): Promise<{ success:
     if (!order) return { success: false, error: "発注が見つかりません" };
     if (order.status !== "PENDING") return { success: false, error: "この発注は既に処理済みです" };
 
+    // 二重送信対策: PENDING → CONFIRMED（承諾＝追加注文書を自動発行）。
+    // 従来の APPROVED（発注者の確定待ち）を経由しない。
+    const claim = await prisma.factoryFloorOrder.updateMany({
+      where: { id: orderId, status: "PENDING", deletedAt: null },
+      data: { status: "CONFIRMED" },
+    });
+    if (claim.count !== 1) return { success: false, error: "この発注は既に処理済みです" };
+
+    // 追加注文書を生成（トランザクション外・失敗時はロールバック）
+    let documentId: string;
+    try {
+      documentId = await generateOrderSheet(orderId);
+    } catch (e) {
+      await prisma.factoryFloorOrder.updateMany({
+        where: { id: orderId, status: "CONFIRMED", deletedAt: null },
+        data: { status: "PENDING" },
+      });
+      console.error("[acceptAdditionalOrder] generateOrderSheet failed:", e);
+      return { success: false, error: "追加注文書の生成に失敗しました。もう一度お試しください。" };
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.notification.updateMany({
         where: { userId: user.id, targetId: orderId, seenFlag: false },
         data: { seenFlag: true },
       });
 
-      await tx.factoryFloorOrder.update({
-        where: { id: orderId },
-        data: { status: "APPROVED" },
-      });
+      // 発注ステータスは上の原子的クレームで CONFIRMED 済み。
 
-      // SITE_INFO ルームにメッセージ
+      // SITE_INFO ルームに追加注文書発行のメッセージ
       const siteRoom = await tx.chatRoom.findFirst({
         where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
       });
@@ -1336,10 +1397,11 @@ export async function acceptAdditionalOrder(orderId: string): Promise<{ success:
           data: {
             roomId: siteRoom.id,
             userId: user.id,
-            message: "追加工事を承諾しました",
+            message: "追加注文書が発行されました",
             type: "ACTION",
             actionType: "ORDER_CONFIRM",
             factoryFloorOrderId: orderId,
+            keyCollection: documentId,
           },
         });
         await tx.chatRoom.update({
@@ -1348,7 +1410,7 @@ export async function acceptAdditionalOrder(orderId: string): Promise<{ success:
         });
       }
 
-      // 発注者に通知
+      // 発注者に通知（追加注文書発行済み → 現場ルームへ / type 24）
       const ordererUsers = await tx.user.findMany({
         where: { companyId: order.factoryFloor.companyId, isActive: true, deletedAt: null },
         select: { id: true },
@@ -1358,17 +1420,17 @@ export async function acceptAdditionalOrder(orderId: string): Promise<{ success:
           data: ordererUsers.map((u) => ({
             userId: u.id,
             title: "追加工事承諾",
-            content: `${order.factoryFloor.name}の追加工事が承諾されました。注文書を発行してください。`,
-            type: 33,
+            content: `${order.factoryFloor.name}の追加工事が承諾され、追加注文書が発行されました。`,
+            type: 24,
             factoryFloorId: order.factoryFloor.id,
-            targetId: orderId,
+            targetId: siteRoom?.id ?? orderId,
           })),
         });
         void sendPushToUsers({
           userIds: ordererUsers.map((u) => u.id),
           title: "追加工事承諾",
-          body: `${order.factoryFloor.name}の追加工事が承諾されました。注文書を発行してください。`,
-          url: `/orders/${orderId}/additional-review`,
+          body: `${order.factoryFloor.name}の追加工事が承諾され、追加注文書が発行されました。`,
+          url: siteRoom ? `/chat/${siteRoom.id}` : `/orders/${orderId}`,
         });
       }
     });
@@ -1400,6 +1462,9 @@ export async function rejectAdditionalOrder(orderId: string): Promise<{ success:
         where: { id: orderId },
         data: { status: "REJECTED" },
       });
+
+      // 辞退で未回答の追加工事が無くなれば、現場を工事完了に戻す
+      await rollupFloorCompletion(tx, order.factoryFloor.id);
 
       const siteRoom = await tx.chatRoom.findFirst({
         where: { factoryFloorId: order.factoryFloor.id, type: "SITE_INFO", deletedAt: null },
@@ -1485,6 +1550,8 @@ export async function confirmAdditionalOrder(orderId: string): Promise<{ success
       });
 
       // 発注ステータスは上の原子的クレームで CONFIRMED 済み。
+      // 未完了の確定発注が増えるので現場ステータスをロールアップ（工事完了 → 施工中）
+      await rollupFloorCompletion(tx, order.factoryFloor.id);
 
       // SITE_INFO ルームにメッセージ
       const siteRoom = await tx.chatRoom.findFirst({

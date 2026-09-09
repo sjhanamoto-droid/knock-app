@@ -437,8 +437,8 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
                         工事完了
                       </button>
                     )}
-                    {/* 現場ルーム: 発注者 追加工事（発注済み・施工中のみ） */}
-                    {isSiteInfo && isOrderer && ["ORDERED", "IN_PROGRESS"].includes(data.room.factoryFloor?.status ?? "") && (
+                    {/* 現場ルーム: 発注者 追加工事（発注済み・施工中・工事完了。完了後の追加工事で現場は施工中に戻る） */}
+                    {isSiteInfo && isOrderer && ["ORDERED", "IN_PROGRESS", "COMPLETED"].includes(data.room.factoryFloor?.status ?? "") && (
                       <button
                         onClick={() => { router.push(`/chat/${roomId}/additional-order`); setShowMenu(false); }}
                         className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[14px] text-knock-text active:bg-gray-50"

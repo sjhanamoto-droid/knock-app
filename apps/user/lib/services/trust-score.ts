@@ -37,14 +37,15 @@ export async function recalculateTrustScore(companyId: string): Promise<void> {
     : 0;
 
   // 2. 取引実績を集計
+  // 完了(CLOSED)した発注書を取引実績とする。現場は追加工事の依頼で施工中に戻るため、
+  // 現場ステータスではなく発注書ごとの完了状態で数える。
   const completedOrders = await prisma.factoryFloorOrder.findMany({
     where: {
       deletedAt: null,
+      status: "CONFIRMED",
+      completionStatus: "CLOSED",
       factoryFloor: {
-        OR: [
-          { companyId, status: { in: ["DEAL_COMPLETED", "COMPLETED"] } },
-          { workCompanyId: companyId, status: { in: ["DEAL_COMPLETED", "COMPLETED"] } },
-        ],
+        OR: [{ companyId }, { workCompanyId: companyId }],
         deletedAt: null,
       },
     },

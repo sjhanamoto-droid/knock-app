@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
-import { getBillingList, getInvoiceCandidates } from "@/lib/actions/invoices";
-import { useToast } from "@knock/ui";
+import { getBillingList, getInvoiceCandidates, generateInvoiceForWorker } from "@/lib/actions/invoices";
+import { useToast, ConfirmDialog } from "@knock/ui";
 
 type InvoiceItem = Awaited<ReturnType<typeof getBillingList>>[number];
 type Candidate = Awaited<ReturnType<typeof getInvoiceCandidates>>[number];
@@ -56,6 +56,9 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
   const [invoices, setInvoices] = useState<InvoiceItem[]>(initialInvoices);
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [loading, setLoading] = useState(false);
+  // 「受注会社ごとに請求書を作成」の確認・生成状態
+  const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   const isInitialMount = useRef(true);
   const yearMonth = `${selectedYear}${String(selectedMonth).padStart(2, "0")}`;
@@ -105,6 +108,22 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
     setSelectedYear(y);
     setSelectedMonth(m);
     syncMonthUrl(y, m);
+  }
+
+  // 選んだ受注会社について、その月の締切済み発注を自動合算した請求書を作成する。
+  async function handleGenerate() {
+    if (!pendingCandidate) return;
+    const c = pendingCandidate;
+    setGenerating(true);
+    try {
+      const { id } = await generateInvoiceForWorker(c.workerCompanyId, yearMonth);
+      setPendingCandidate(null);
+      router.push(`/billing/${id}?ym=${yearMonth}`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "請求書の作成に失敗しました");
+      setGenerating(false);
+      setPendingCandidate(null);
+    }
   }
 
   return (
@@ -174,11 +193,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
                     return (
                       <button
                         key={`${c.workerCompanyId}::${c.orderCompanyId}`}
-                        onClick={() =>
-                          router.push(
-                            `/billing/new?worker=${c.workerCompanyId}&order=${c.orderCompanyId}&name=${encodeURIComponent(counterparty)}`
-                          )
-                        }
+                        onClick={() => setPendingCandidate(c)}
                         className="flex shrink-0 items-center gap-1 rounded-full border bg-white px-4 py-2 text-[13px] font-bold transition-all active:scale-[0.96]"
                         style={{ borderColor: accentColor, color: accentColor }}
                       >
@@ -189,7 +204,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
                   })}
                 </div>
                 <p className="mt-2 px-1 text-[11px] text-knock-text-secondary">
-                  取引先をタップして請求書を作成（受注者へ代理発行できます）
+                  受注会社をタップすると、その月の締め完了分をまとめて請求書を作成します（受注者へ代理発行）
                 </p>
               </div>
             )}
@@ -249,6 +264,23 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingCandidate}
+        onClose={() => {
+          if (!generating) setPendingCandidate(null);
+        }}
+        onConfirm={handleGenerate}
+        title="請求書の作成"
+        message={
+          pendingCandidate
+            ? `「${pendingCandidate.workerCompanyName}」宛に、${selectedYear}年${selectedMonth}月の締め完了分をまとめた請求書を作成します。よろしいですか？`
+            : ""
+        }
+        confirmLabel={generating ? "作成中..." : "作成する"}
+        cancelLabel="キャンセル"
+        variant="primary"
+      />
     </div>
   );
 }

@@ -105,7 +105,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
       setShowBankConfirm(false);
       setShowBankForm(false);
       setRedirectPath(`/sites/${order?.factoryFloor?.id}`);
-      setSuccessMessage("受注を確定しました");
+      setSuccessMessage("注文書が作成されました");
     } catch (e) {
       setShowBankConfirm(false);
       setBankError(e instanceof Error ? e.message : "保存に失敗しました");
@@ -120,7 +120,7 @@ export function AcceptClient({ initialOrder, orderId }: Props) {
       await acceptOrder(orderId);
       setShowAcceptDialog(false);
       setRedirectPath(`/sites/${order?.factoryFloor?.id}`);
-      setSuccessMessage("受注を確定しました");
+      setSuccessMessage("注文書が作成されました");
     } catch (e) {
       setShowAcceptDialog(false);
       toast(e instanceof Error ? e.message : "エラーが発生しました");

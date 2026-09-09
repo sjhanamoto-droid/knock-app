@@ -9,6 +9,16 @@
  * "use server" を付けない通常モジュール(action / service の両方から import するため)。
  */
 
+/**
+ * 指定時刻の JST カレンダー日付を、時刻なし(00:00 サーバーローカル)の Date で返す。
+ * 本番(Vercel)はUTCで動くため、JST 深夜0〜9時の操作が前日の日付に落ちないよう JST に正規化する。
+ * getBillingPeriod / getBillingMonth と同じサーバーローカル構築(new Date(y, m, d))で揃える。
+ */
+export function toJstCalendarDate(at: Date = new Date()): Date {
+  const jst = new Date(at.getTime() + 9 * 60 * 60 * 1000);
+  return new Date(jst.getUTCFullYear(), jst.getUTCMonth(), jst.getUTCDate());
+}
+
 /** 締め日を 1〜28 にクランプ(月末は null のまま扱う) */
 function clampClosingDay(closingDay: number): number {
   return Math.min(28, Math.max(1, Math.trunc(closingDay)));

@@ -2,8 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
-import { getOrderDetail, submitCompletionReport } from "@/lib/actions/orders";
+import { getOrderDetail, submitCompletionReport, revertCompletion } from "@/lib/actions/orders";
 import { draftCompletionReport } from "@/lib/actions/ai";
 import { ConfirmDialog, AlertDialog, useToast } from "@knock/ui";
 import { formatCurrency } from "@knock/utils";
@@ -62,20 +63,19 @@ interface Props {
   initialOrder: OrderDetail;
   orderId: string;
   viewerCompanyId: string;
+  /** 請求書(非VOID)に含まれている＝発注者でも差し戻し不可 */
+  isInvoiced: boolean;
 }
 
-export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId }: Props) {
+export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId, isInvoiced }: Props) {
   const router = useRouter();
   const { toast } = useToast();
   const { accentColor } = useMode();
   const [order, setOrder] = useState<OrderDetail | null>(initialOrder);
   const [submitting, setSubmitting] = useState(false);
 
-  const [completionDate, setCompletionDate] = useState(
-    initialOrder?.completionReport
-      ? new Date(initialOrder.completionReport.completionDate).toISOString().split("T")[0]
-      : new Date().toISOString().split("T")[0]
-  );
+  // 施工完了日は受注者が選ばず、施工報告の送信日で確定する（サーバー側で設定）。
+  const todayIso = new Date().toISOString().split("T")[0];
   const [comment, setComment] = useState(initialOrder?.completionReport?.comment ?? "");
   const [photos, setPhotos] = useState<string[]>(
     (initialOrder?.completionReport?.photos as string[] | undefined) ?? []
@@ -84,6 +84,8 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
   const [drafting, setDrafting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [showRevertConfirm, setShowRevertConfirm] = useState(false);
+  const [reverting, setReverting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [viewer, setViewer] = useState<{ images: string[]; index: number } | null>(null);
 
@@ -98,18 +100,36 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
     // サーバーアクションのボディに base64 を載せないため、ボディ上限による送信失敗は起きない。
     setSubmitting(true);
     try {
-      await submitCompletionReport({
+      const result = await submitCompletionReport({
         factoryFloorOrderId: orderId,
-        completionDate,
         comment: comment || undefined,
         photos,
       });
       await refresh();
-      setSuccessMessage("施工報告を送信しました");
+      setSuccessMessage(
+        result.floorCompleted
+          ? "施工報告を送信しました。すべての発注書が完了し、工事完了となりました。"
+          : "施工報告を送信しました。この発注書は完了となり、請求対象になります。"
+      );
     } catch (e) {
       toast(e instanceof Error ? e.message : "エラーが発生しました");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  // 発注者: 完了を取り消して未完了に戻す（受注者が修正して再送信できる）
+  async function handleRevert() {
+    setShowRevertConfirm(false);
+    setReverting(true);
+    try {
+      await revertCompletion(orderId);
+      await refresh();
+      setSuccessMessage("施工報告を差し戻しました。受注者が修正して再送信すると、再び完了になります。");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "エラーが発生しました");
+    } finally {
+      setReverting(false);
     }
   }
 
@@ -163,7 +183,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
   const report = order.completionReport;
   const orderSheet = order.documents?.find((d) => d.type === "ORDER_SHEET");
 
-  // 施工報告は締め完了(CLOSED)前まで提出/再提出可能
+  // 施工報告の送信＝発注書の完了(CLOSED)。完了後は閲覧のみ。
   const canEditReport = order.completionStatus !== "CLOSED";
 
   return (
@@ -215,7 +235,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
               </div>
             )}
 
-            {/* 施工報告（任意・あれば表示） */}
+            {/* 施工報告 */}
             {report ? (
               <>
                 <div className={`${cardClass} border-l-4`} style={{ borderLeftColor: accentColor }}>
@@ -261,21 +281,50 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                 <p className="text-[13px] text-knock-text-secondary">施工報告はまだありません。</p>
               </div>
             )}
+
+            {/* 現場詳細への導線（発注者・受注者とも） */}
+            <Link
+              href={`/sites/${floor.id}`}
+              className="mt-2 block w-full rounded-xl py-3.5 text-center text-[15px] font-bold text-white transition-all active:scale-[0.97]"
+              style={{ backgroundColor: accentColor }}
+            >
+              現場の詳細を確認する
+            </Link>
+
+            {/* 発注者: 差し戻し（完了の取り消し）。請求書に含まれている発注書は不可 */}
+            {isOrderer && order.completionStatus === "CLOSED" && (
+              isInvoiced ? (
+                <p className="text-center text-[12px] text-knock-text-secondary">
+                  この発注書は請求書に含まれているため、差し戻しはできません。
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    onClick={() => setShowRevertConfirm(true)}
+                    disabled={reverting}
+                    className="w-full rounded-xl border border-red-300 py-3 text-[14px] font-bold text-red-600 transition-all active:scale-[0.98] disabled:opacity-50"
+                  >
+                    {reverting ? "処理中..." : "施工報告を差し戻す（完了を取り消す）"}
+                  </button>
+                  <p className="text-center text-[11px] text-knock-text-secondary">
+                    差し戻すとこの発注書は未完了に戻り、請求対象から外れます。受注者は修正して再送信できます。
+                  </p>
+                </div>
+              )
+            )}
           </>
         ) : (
-          /* ===== 受注者: 施工報告（任意） ===== */
+          /* ===== 受注者: 施工報告（送信で発注書が完了し、完了月の請求対象になる） ===== */
           <>
             {canEditReport ? (
               <>
-                {/* 施工完了日 */}
+                {/* 施工完了日（選択不可・送信日で確定） */}
                 <div>
                   <label className="mb-1 block text-[13px] font-bold text-knock-text">施工完了日</label>
-                  <input
-                    type="date"
-                    value={completionDate}
-                    onChange={(e) => setCompletionDate(e.target.value)}
-                    className="w-full rounded-xl border-none bg-[#F0F0F0] px-4 py-3 text-[14px]"
-                  />
+                  <div className="flex items-center justify-between rounded-xl bg-[#F0F0F0] px-4 py-3 text-[14px] text-knock-text">
+                    <span>{new Date().toLocaleDateString("ja-JP")}</span>
+                    <span className="text-[11px] text-knock-text-secondary">送信日で確定します</span>
+                  </div>
                 </div>
 
                 {/* コメント */}
@@ -298,7 +347,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                           siteName: floor.name ?? "",
                           counterpartyName:
                             (isOrderer ? floor.workCompany?.name : floor.company?.name) ?? undefined,
-                          completionDate,
+                          completionDate: todayIso,
                           photoCount: photos.length,
                           roughNotes: comment || undefined,
                         });
@@ -366,13 +415,16 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
                   </div>
                 </div>
 
+                <p className="text-[12px] text-knock-text-secondary">
+                  送信するとこの発注書は工事完了となり、完了月の請求対象になります。送信後の変更はできません。
+                </p>
                 <button
                   onClick={() => setShowReportConfirm(true)}
                   disabled={submitting}
-                  className="w-full rounded-xl border-2 py-3.5 text-[15px] font-bold transition-all active:scale-[0.97] disabled:opacity-50"
-                  style={{ borderColor: accentColor, color: accentColor }}
+                  className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+                  style={{ backgroundColor: accentColor }}
                 >
-                  {submitting ? "送信中..." : report ? "施工報告を更新" : "施工報告を送信"}
+                  {submitting ? "送信中..." : "施工報告を送信して完了する"}
                 </button>
               </>
             ) : null}
@@ -385,10 +437,20 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId 
         onClose={() => setShowReportConfirm(false)}
         onConfirm={handleSubmitReport}
         title="施工報告の送信"
-        message="施工報告を送信しますか？"
-        confirmLabel={submitting ? "送信中..." : "はい"}
-        cancelLabel="いいえ"
+        message="施工報告を送信すると、この発注書は工事完了となり、完了月の請求対象になります。送信後は変更できません。よろしいですか？"
+        confirmLabel={submitting ? "送信中..." : "送信する"}
+        cancelLabel="キャンセル"
         variant="primary"
+      />
+      <ConfirmDialog
+        open={showRevertConfirm}
+        onClose={() => setShowRevertConfirm(false)}
+        onConfirm={handleRevert}
+        title="施工報告の差し戻し"
+        message="施工報告を差し戻しますか？この発注書は未完了に戻り、請求対象から外れます。受注者には修正・再送信の通知が届きます。"
+        confirmLabel={reverting ? "処理中..." : "差し戻す"}
+        cancelLabel="キャンセル"
+        variant="danger"
       />
       <AlertDialog
         open={!!successMessage}

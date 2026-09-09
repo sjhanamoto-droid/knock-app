@@ -7,5 +7,5 @@ export default async function WorkCompletionPage({ params }: { params: Promise<{
   const data = await getWorkCompletion(floorId);
   if (!data) notFound();
 
-  return <WorkCompletionClient data={data} floorId={floorId} />;
+  return <WorkCompletionClient data={data} />;
 }

@@ -64,16 +64,16 @@ function exTaxAmount(n: number | bigint | null | undefined): number {
   return Math.round(Number(n) / 1.1);
 }
 
-// 発注（工事）の完了状況ラベル。2026-06-12改修以降、完了は発注ごとの
-// completionStatus で管理する（NONE=未完了 / CLOSE_REQUESTED=締め依頼中 / CLOSED=締め完了）。
+// 発注（工事）の完了状況ラベル。完了は発注ごとの completionStatus で管理する
+// （NONE=未完了 / CLOSED=完了。受注者の施工報告の提出で完了になる。CLOSE_REQUESTED は旧フローの残置）。
 function completionStatusMeta(
   status: string | null | undefined
 ): { label: string; color: string } {
   switch (status) {
     case "CLOSED":
-      return { label: "締め完了", color: "bg-green-100 text-green-700" };
+      return { label: "完了", color: "bg-green-100 text-green-700" };
     case "CLOSE_REQUESTED":
-      return { label: "締め依頼中", color: "bg-amber-100 text-amber-700" };
+      return { label: "施工報告済み", color: "bg-amber-100 text-amber-700" };
     default:
       return { label: "未完了", color: "bg-gray-100 text-gray-600" };
   }
