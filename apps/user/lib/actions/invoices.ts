@@ -2,7 +2,11 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
-import { generateInvoice, generateInvoiceFromOrders } from "@/lib/services/document-generator";
+import {
+  generateInvoice,
+  generateInvoiceFromOrders,
+  getBillableOrdersForInvoice,
+} from "@/lib/services/document-generator";
 import { getBillingMonth } from "@/lib/helpers/billing-period";
 import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
 
@@ -139,6 +143,47 @@ export async function generateMonthlyInvoice(
 ): Promise<string> {
   const user = await requireSession();
   return generateInvoice(user.companyId, orderCompanyId, yearMonth);
+}
+
+/**
+ * 発注者が受注会社ごとに請求書を作成する前のプレビュー。
+ * その月に合算される注文書（発注）の一覧と合計を返す。generateInvoice と同じ抽出条件。
+ */
+export async function getInvoicePreviewForWorker(workerCompanyId: string, yearMonth: string) {
+  const user = await requireSession();
+  const [worker, orders] = await Promise.all([
+    prisma.company.findUnique({ where: { id: workerCompanyId }, select: { name: true } }),
+    // user.companyId = 発注者(orderCompany)
+    getBillableOrdersForInvoice(workerCompanyId, user.companyId, yearMonth),
+  ]);
+
+  const rows = orders.map((o) => {
+    const sheet = o.documents[0];
+    const sum = (key: "subtotal" | "taxAmount" | "totalAmount") =>
+      o.documents.reduce((s, d) => s + Number(d[key] ?? 0), 0);
+    return {
+      orderId: o.id,
+      documentNumber: sheet?.documentNumber ?? "",
+      siteName:
+        o.factoryFloor.name ??
+        ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+        "",
+      parentSiteName: o.factoryFloor.parent?.name ?? null,
+      siteCode: o.factoryFloor.code ?? o.factoryFloor.parent?.code ?? "",
+      completedDay: o.completedDay ? o.completedDay.toISOString() : null,
+      subtotal: sum("subtotal"),
+      taxAmount: sum("taxAmount"),
+      totalAmount: sum("totalAmount"),
+    };
+  });
+
+  return {
+    workerCompanyName: worker?.name ?? "",
+    orders: rows,
+    subtotal: rows.reduce((s, r) => s + r.subtotal, 0),
+    taxAmount: rows.reduce((s, r) => s + r.taxAmount, 0),
+    totalAmount: rows.reduce((s, r) => s + r.totalAmount, 0),
+  };
 }
 
 /**

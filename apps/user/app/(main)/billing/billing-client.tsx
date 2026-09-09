@@ -4,11 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMode } from "@/lib/hooks/use-mode";
-import { getBillingList, getInvoiceCandidates, generateInvoiceForWorker } from "@/lib/actions/invoices";
-import { useToast, ConfirmDialog } from "@knock/ui";
+import {
+  getBillingList,
+  getInvoiceCandidates,
+  generateInvoiceForWorker,
+  getInvoicePreviewForWorker,
+} from "@/lib/actions/invoices";
+import { useToast } from "@knock/ui";
 
 type InvoiceItem = Awaited<ReturnType<typeof getBillingList>>[number];
 type Candidate = Awaited<ReturnType<typeof getInvoiceCandidates>>[number];
+type InvoicePreview = Awaited<ReturnType<typeof getInvoicePreviewForWorker>>;
 
 // 受注者(CONTRACTORモード)側からの請求書「作成」導線を非表示にするフラグ。
 // false: 受注者モードでは「締め完了・請求可能な取引先」セクション（作成の入口）ごと非表示にし、
@@ -56,8 +62,10 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
   const [invoices, setInvoices] = useState<InvoiceItem[]>(initialInvoices);
   const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [loading, setLoading] = useState(false);
-  // 「受注会社ごとに請求書を作成」の確認・生成状態
+  // 「受注会社ごとに請求書を作成」: タップ → その月に合算する注文書の一覧(プレビュー) → 作成
   const [pendingCandidate, setPendingCandidate] = useState<Candidate | null>(null);
+  const [preview, setPreview] = useState<InvoicePreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
   const isInitialMount = useRef(true);
@@ -110,6 +118,27 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
     syncMonthUrl(y, m);
   }
 
+  // 受注会社をタップ: 合算対象の注文書一覧を取得してシートで見せる（作成はまだしない）
+  async function openPreview(c: Candidate) {
+    setPendingCandidate(c);
+    setPreview(null);
+    setPreviewLoading(true);
+    try {
+      setPreview(await getInvoicePreviewForWorker(c.workerCompanyId, yearMonth));
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "請求内容の取得に失敗しました");
+      setPendingCandidate(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  function closePreview() {
+    if (generating) return;
+    setPendingCandidate(null);
+    setPreview(null);
+  }
+
   // 選んだ受注会社について、その月の締切済み発注を自動合算した請求書を作成する。
   async function handleGenerate() {
     if (!pendingCandidate) return;
@@ -118,11 +147,11 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
     try {
       const { id } = await generateInvoiceForWorker(c.workerCompanyId, yearMonth);
       setPendingCandidate(null);
+      setPreview(null);
       router.push(`/billing/${id}?ym=${yearMonth}`);
     } catch (e) {
       toast(e instanceof Error ? e.message : "請求書の作成に失敗しました");
       setGenerating(false);
-      setPendingCandidate(null);
     }
   }
 
@@ -193,7 +222,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
                     return (
                       <button
                         key={`${c.workerCompanyId}::${c.orderCompanyId}`}
-                        onClick={() => setPendingCandidate(c)}
+                        onClick={() => openPreview(c)}
                         className="flex shrink-0 items-center gap-1 rounded-full border bg-white px-4 py-2 text-[13px] font-bold transition-all active:scale-[0.96]"
                         style={{ borderColor: accentColor, color: accentColor }}
                       >
@@ -204,7 +233,7 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
                   })}
                 </div>
                 <p className="mt-2 px-1 text-[11px] text-knock-text-secondary">
-                  受注会社をタップすると、その月の締め完了分をまとめて請求書を作成します（受注者へ代理発行）
+                  受注会社をタップすると、その月に合算する注文書の一覧を確認してから請求書を作成できます（受注者へ代理発行）
                 </p>
               </div>
             )}
@@ -265,22 +294,105 @@ export function BillingClient({ initialInvoices, initialCandidates, initialYear,
         </div>
       )}
 
-      <ConfirmDialog
-        open={!!pendingCandidate}
-        onClose={() => {
-          if (!generating) setPendingCandidate(null);
-        }}
-        onConfirm={handleGenerate}
-        title="請求書の作成"
-        message={
-          pendingCandidate
-            ? `「${pendingCandidate.workerCompanyName}」宛に、${selectedYear}年${selectedMonth}月の締め完了分をまとめた請求書を作成します。よろしいですか？`
-            : ""
-        }
-        confirmLabel={generating ? "作成中..." : "作成する"}
-        cancelLabel="キャンセル"
-        variant="primary"
-      />
+      {/* 合算する注文書の一覧（作成前のプレビュー） */}
+      {pendingCandidate && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={closePreview}>
+          <div
+            className="flex max-h-[85vh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between px-5 pt-5 pb-3">
+              <div className="min-w-0">
+                <p className="text-[15px] font-bold text-[#1A2340]">
+                  「{pendingCandidate.workerCompanyName}」宛 請求書の内容
+                </p>
+                <p className="mt-0.5 text-[12px] text-knock-text-secondary">
+                  {selectedYear}年{selectedMonth}月分・以下の注文書を合算して作成します
+                </p>
+              </div>
+              <button
+                onClick={closePreview}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full active:bg-gray-100"
+                aria-label="閉じる"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M4 4L12 12M12 4L4 12" stroke="#666" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5">
+              {previewLoading || !preview ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800" />
+                </div>
+              ) : preview.orders.length === 0 ? (
+                <p className="py-10 text-center text-[13px] text-gray-400">
+                  この月に合算できる注文書がありません
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2 pb-3">
+                  {preview.orders.map((o) => (
+                    <div key={o.orderId} className="rounded-xl bg-[#F7F7F7] px-3 py-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          {o.parentSiteName && (
+                            <p className="truncate text-[11px] text-knock-text-secondary">{o.parentSiteName}</p>
+                          )}
+                          <p className="truncate text-[13px] font-bold text-[#1A2340]">{o.siteName}</p>
+                          <p className="mt-0.5 text-[11px] text-knock-text-secondary">
+                            {o.documentNumber}
+                            {o.siteCode ? ` / 工事番号 ${o.siteCode}` : ""}
+                            {o.completedDay ? ` / 完了 ${new Date(o.completedDay).toLocaleDateString("ja-JP")}` : ""}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-[14px] font-bold text-[#1A2340]">¥{o.totalAmount.toLocaleString()}</p>
+                          <p className="text-[10px] text-knock-text-secondary">税抜 ¥{o.subtotal.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mt-1 flex flex-col gap-1 border-t border-gray-200 px-1 pt-3 text-[13px]">
+                    <div className="flex justify-between text-knock-text-secondary">
+                      <span>小計（税抜）</span>
+                      <span>¥{preview.subtotal.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-knock-text-secondary">
+                      <span>消費税</span>
+                      <span>¥{preview.taxAmount.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-[15px] font-bold text-[#1A2340]">
+                      <span>合計（税込）</span>
+                      <span style={{ color: accentColor }}>¥{preview.totalAmount.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 px-5 pb-6 pt-3">
+              <button
+                onClick={handleGenerate}
+                disabled={generating || previewLoading || !preview || preview.orders.length === 0}
+                className="w-full rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97] disabled:opacity-50"
+                style={{ backgroundColor: accentColor }}
+              >
+                {generating
+                  ? "作成中..."
+                  : `この${preview?.orders.length ?? 0}件で請求書を作成する`}
+              </button>
+              <button
+                onClick={closePreview}
+                disabled={generating}
+                className="w-full rounded-xl py-3 text-[14px] font-bold text-knock-text-secondary active:bg-gray-50 disabled:opacity-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

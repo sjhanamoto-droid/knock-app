@@ -264,14 +264,18 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
 }
 
 /**
- * 請求書を自動生成（月次締め処理）
+ * 月次請求書に合算する発注（請求対象）を抽出する。
+ * generateInvoice と、請求書作成前のプレビュー(getInvoicePreviewForWorker)で同じ条件を使うため共通化。
+ * - 発注者の締め日に基づく請求期間に完了(CLOSED)した、受注者⇄発注者ペアの確定発注
+ * - 注文書(ORDER_SHEET)があるもののみ
+ * - すでに非VOIDの請求書に含まれている発注は除外（excludeInvoiceIds = 再集計中の自分自身）
  */
-export async function generateInvoice(
+export async function getBillableOrdersForInvoice(
   workerCompanyId: string,
   orderCompanyId: string,
   yearMonth: string, // YYYYMM
-  excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(再集計中の自分自身)
-): Promise<string> {
+  excludeInvoiceIds: string[] = [],
+) {
   // 発注者の締め日に基づく請求期間で集計（締め日 null は月末締め）
   const orderCompanyForPeriod = await prisma.company.findUnique({
     where: { id: orderCompanyId },
@@ -296,7 +300,7 @@ export async function generateInvoice(
       id: true,
       completedDay: true,
       factoryFloorId: true,
-      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true } } } },
+      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
       documents: {
         where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: {
@@ -309,6 +313,7 @@ export async function generateInvoice(
         },
       },
     },
+    orderBy: { completedDay: "asc" },
   });
 
   // 注文書(ORDER_SHEET)が無い発注は請求対象外
@@ -321,7 +326,24 @@ export async function generateInvoice(
     orderCompanyId,
     excludeInvoiceIds,
   });
-  const billableOrders = ordersWithSheet.filter((o) => !invoicedOrderIds.has(o.id));
+  return ordersWithSheet.filter((o) => !invoicedOrderIds.has(o.id));
+}
+
+/**
+ * 請求書を自動生成（月次締め処理）
+ */
+export async function generateInvoice(
+  workerCompanyId: string,
+  orderCompanyId: string,
+  yearMonth: string, // YYYYMM
+  excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(再集計中の自分自身)
+): Promise<string> {
+  const billableOrders = await getBillableOrdersForInvoice(
+    workerCompanyId,
+    orderCompanyId,
+    yearMonth,
+    excludeInvoiceIds
+  );
 
   if (billableOrders.length === 0) {
     throw new Error("対象月に請求対象の工事がありません");
