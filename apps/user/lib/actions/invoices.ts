@@ -134,18 +134,6 @@ export async function getInvoiceCandidates(yearMonth: string) {
 }
 
 /**
- * 月次請求書を発行
- * document-generator の generateInvoice() を呼び出してドキュメントIDを返す
- */
-export async function generateMonthlyInvoice(
-  orderCompanyId: string,
-  yearMonth: string
-): Promise<string> {
-  const user = await requireSession();
-  return generateInvoice(user.companyId, orderCompanyId, yearMonth);
-}
-
-/**
  * 発注者が受注会社ごとに請求書を作成する前のプレビュー。
  * その月に合算される注文書（発注）の一覧と合計を返す。generateInvoice と同じ抽出条件。
  */

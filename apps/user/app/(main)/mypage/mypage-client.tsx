@@ -370,7 +370,6 @@ export function MyPageClient({ profile, trustScoreValue }: MyPageClientProps) {
                   ? [{ href: "/mypage/availability", label: "空き日カレンダー" }]
                   : []),
                 { href: "/mypage/trust-score", label: "信用スコア詳細" },
-                { href: "/documents", label: "帳票管理" },
                 { href: "/billing", label: "請求書管理" },
                 { href: "/members", label: "メンバー管理" },
                 { href: "/templates", label: "テンプレート管理" },

@@ -6,21 +6,18 @@ import { useSearchParams } from "next/navigation";
 import { useMode } from "@/lib/hooks/use-mode";
 import { SideMenu } from "@/components/side-menu";
 import { getDocuments, getDocumentCounterparties } from "@/lib/actions/documents";
-import { getInvoiceCandidates, generateMonthlyInvoice } from "@/lib/actions/invoices";
 import {
   documentTypeLabels,
   documentStatusLabels,
   documentStatusColors,
 } from "@knock/utils";
-import { formatCurrency } from "@knock/utils";
 
-type DocumentFilter = "all" | "ORDER_SHEET" | "INVOICE";
+// 「全て」(帳票一覧)は廃止。この画面は注文書一覧／請求書一覧のみ。
+type DocumentFilter = "ORDER_SHEET" | "INVOICE";
 type DocListResult = Awaited<ReturnType<typeof getDocuments>>;
-type InvoiceCandidates = Awaited<ReturnType<typeof getInvoiceCandidates>>;
 type Counterparty = { id: string; name: string };
 
 const FILTER_TABS: { value: DocumentFilter; label: string }[] = [
-  { value: "all", label: "全て" },
   { value: "ORDER_SHEET", label: "注文書" },
   { value: "INVOICE", label: "請求書" },
 ];
@@ -120,30 +117,26 @@ function groupByWork(
 interface Props {
   initialCounterparties: Counterparty[];
   initialResult: DocListResult;
-  initialCandidates: InvoiceCandidates;
   initialCurrentMonth: string;
 }
 
 export function DocumentsClient({
   initialCounterparties,
   initialResult,
-  initialCandidates,
   initialCurrentMonth,
 }: Props) {
-  const { accentColor, isOrderer } = useMode();
+  const { accentColor } = useMode();
   const searchParams = useSearchParams();
   const initialType = searchParams.get("type") as DocumentFilter | null;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [filter, setFilter] = useState<DocumentFilter>(
-    initialType && FILTER_TABS.some((t) => t.value === initialType) ? initialType : "all"
+    initialType && FILTER_TABS.some((t) => t.value === initialType) ? initialType : "ORDER_SHEET"
   );
   const [counterparties, setCounterparties] = useState<Counterparty[]>(initialCounterparties);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
   const [result, setResult] = useState<DocListResult>(initialResult);
   const [loading, setLoading] = useState(false);
-  const [candidates, setCandidates] = useState<InvoiceCandidates>(initialCandidates);
-  const [generatingKey, setGeneratingKey] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(initialCurrentMonth);
 
   const isInitialMount = useRef(true);
@@ -151,7 +144,7 @@ export function DocumentsClient({
   const fetchDocuments = useCallback(() => {
     setLoading(true);
     getDocuments({
-      type: filter === "all" ? undefined : filter,
+      type: filter,
       yearMonth: currentMonth,
       counterpartyCompanyId: selectedCompanyId || undefined,
       limit: 200,
@@ -164,28 +157,15 @@ export function DocumentsClient({
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      // URLで type が指定されている場合、初期データ(全件)と不一致なので取得し直す
-      if (filter !== "all") fetchDocuments();
+      // 初期データは注文書。URLで別の type が指定されている場合のみ取得し直す
+      if (filter !== "ORDER_SHEET") fetchDocuments();
       return;
     }
     fetchDocuments();
   }, [fetchDocuments]);
 
-  useEffect(() => {
-    if (currentMonth === initialCurrentMonth) return;
-    getInvoiceCandidates(currentMonth)
-      .then(setCandidates)
-      .catch(() => {});
-  }, [currentMonth, initialCurrentMonth]);
-
   const year = parseInt(currentMonth.substring(0, 4));
   const month = parseInt(currentMonth.substring(4, 6));
-
-  // 「請求書発行」枠は発注者モードのみ表示する（請求書管理 billing-client と同じ規則）。
-  // この枠の「発行」は確認待ち(DRAFT)を経ずに確定済みで即作成される旧経路のため、
-  // 受注者モードでは枠ごと非表示にし、発注者モードでも受注者側(role=worker)の候補は出さない
-  // （発注者/受注者 両方の会社がモード切替しても受注者側の発行に到達させない）。
-  const visibleCandidates = isOrderer ? candidates.filter((c) => c.role === "orderer") : [];
 
   function prevMonth() {
     const d = new Date(year, month - 2, 1);
@@ -197,27 +177,8 @@ export function DocumentsClient({
     setCurrentMonth(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
 
-  async function handleGenerateInvoice(workerCompanyId: string, orderCompanyId: string) {
-    const key = `${workerCompanyId}::${orderCompanyId}`;
-    setGeneratingKey(key);
-    try {
-      await generateMonthlyInvoice(orderCompanyId, currentMonth);
-      const [newCandidates] = await Promise.all([
-        getInvoiceCandidates(currentMonth),
-      ]);
-      setCandidates(newCandidates);
-      fetchDocuments();
-    } catch {
-      // silently ignore for now
-    } finally {
-      setGeneratingKey(null);
-    }
-  }
-
   // ページタイトルをフィルターに応じて変更
-  const pageTitle = filter !== "all" && TYPE_TITLE_MAP[filter]
-    ? TYPE_TITLE_MAP[filter]
-    : "帳票一覧";
+  const pageTitle = TYPE_TITLE_MAP[filter] ?? "注文書一覧";
 
   return (
     <div className="flex flex-col">
@@ -251,48 +212,6 @@ export function DocumentsClient({
       </header>
 
       <div className="flex flex-col gap-3 px-4 pt-3 pb-4">
-        {/* Invoice Candidates Section（発注者モードのみ） */}
-        {visibleCandidates.length > 0 && (
-          <div className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-            <h2 className="text-[13px] font-bold text-knock-text">請求書発行</h2>
-            <p className="text-[11px] text-knock-text-secondary">
-              {year}年{month}月 — 未発行の請求書候補
-            </p>
-            <div className="flex flex-col gap-2 mt-1">
-              {visibleCandidates.map((c) => {
-                const key = `${c.workerCompanyId}::${c.orderCompanyId}`;
-                const isGenerating = generatingKey === key;
-                return (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2"
-                  >
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate text-[12px] font-semibold text-knock-text">
-                        {c.orderCompanyName} 宛
-                      </span>
-                      <span className="text-[10px] text-knock-text-secondary">
-                        発注 {c.orderCount}件 /{" "}
-                        <span className="font-bold" style={{ color: accentColor }}>
-                          {formatCurrency(c.totalAmount)}
-                        </span>
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => handleGenerateInvoice(c.workerCompanyId, c.orderCompanyId)}
-                      disabled={isGenerating}
-                      className="shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-bold text-white transition-opacity disabled:opacity-50"
-                      style={{ backgroundColor: accentColor }}
-                    >
-                      {isGenerating ? "発行中…" : "発行"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Filter Tabs */}
         <div className="flex gap-1 rounded-xl bg-gray-100 p-1">
           {FILTER_TABS.map((tab) => (
