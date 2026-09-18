@@ -130,7 +130,7 @@ export function DocumentsClient({
   initialCandidates,
   initialCurrentMonth,
 }: Props) {
-  const { accentColor } = useMode();
+  const { accentColor, isOrderer } = useMode();
   const searchParams = useSearchParams();
   const initialType = searchParams.get("type") as DocumentFilter | null;
 
@@ -180,6 +180,12 @@ export function DocumentsClient({
 
   const year = parseInt(currentMonth.substring(0, 4));
   const month = parseInt(currentMonth.substring(4, 6));
+
+  // 「請求書発行」枠は発注者モードのみ表示する（請求書管理 billing-client と同じ規則）。
+  // この枠の「発行」は確認待ち(DRAFT)を経ずに確定済みで即作成される旧経路のため、
+  // 受注者モードでは枠ごと非表示にし、発注者モードでも受注者側(role=worker)の候補は出さない
+  // （発注者/受注者 両方の会社がモード切替しても受注者側の発行に到達させない）。
+  const visibleCandidates = isOrderer ? candidates.filter((c) => c.role === "orderer") : [];
 
   function prevMonth() {
     const d = new Date(year, month - 2, 1);
@@ -245,15 +251,15 @@ export function DocumentsClient({
       </header>
 
       <div className="flex flex-col gap-3 px-4 pt-3 pb-4">
-        {/* Invoice Candidates Section */}
-        {candidates.length > 0 && (
+        {/* Invoice Candidates Section（発注者モードのみ） */}
+        {visibleCandidates.length > 0 && (
           <div className="flex flex-col gap-2 rounded-2xl bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
             <h2 className="text-[13px] font-bold text-knock-text">請求書発行</h2>
             <p className="text-[11px] text-knock-text-secondary">
               {year}年{month}月 — 未発行の請求書候補
             </p>
             <div className="flex flex-col gap-2 mt-1">
-              {candidates.map((c) => {
+              {visibleCandidates.map((c) => {
                 const key = `${c.workerCompanyId}::${c.orderCompanyId}`;
                 const isGenerating = generatingKey === key;
                 return (
