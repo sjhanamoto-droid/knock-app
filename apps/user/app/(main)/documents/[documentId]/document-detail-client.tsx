@@ -30,6 +30,46 @@ function downloadDataUrlAsPdf(dataUrl: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function PdfDownloadButton({
+  pdfUrl,
+  label,
+  filename,
+  accentColor,
+  outline = false,
+}: {
+  pdfUrl: string;
+  label: string;
+  filename: string;
+  accentColor: string;
+  outline?: boolean;
+}) {
+  const className =
+    "flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-bold transition-all active:scale-[0.97]";
+  const style = outline
+    ? { border: `1.5px solid ${accentColor}`, color: accentColor, backgroundColor: "white" }
+    : { backgroundColor: accentColor, color: "white" };
+  const icon = (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+      <path d="M8 2V10M8 10L5 7M8 10L11 7M3 13H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+
+  if (pdfUrl.startsWith("data:")) {
+    return (
+      <button onClick={() => downloadDataUrlAsPdf(pdfUrl, filename)} className={className} style={style}>
+        {icon}
+        {label}
+      </button>
+    );
+  }
+  return (
+    <a href={pdfUrl} download={filename} className={className} style={style}>
+      {icon}
+      {label}
+    </a>
+  );
+}
+
 function WavyUnderline({ color }: { color: string }) {
   return (
     <svg width="60" height="6" viewBox="0 0 60 6" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -216,39 +256,27 @@ export function DocumentDetailClient({ initialDoc }: Props) {
           </div>
         )}
 
-        {/* PDF ダウンロード */}
+        {/* PDF ダウンロード（注文書/注文請書は対になる帳票のPDFも並べて表示） */}
         {doc.pdfUrl ? (
-          doc.pdfUrl.startsWith("data:") ? (
-            <button
-              onClick={() => {
-                const filename = `${documentTypeLabels[doc.type] ?? "帳票"}_${doc.documentNumber}.pdf`;
-                downloadDataUrlAsPdf(doc.pdfUrl!, filename);
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97]"
-              style={{ backgroundColor: accentColor }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
-                <path d="M8 2V10M8 10L5 7M8 10L11 7M3 13H13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              PDFをダウンロード
-            </button>
-          ) : (
-            <a
-              href={doc.pdfUrl}
-              download={`${documentTypeLabels[doc.type] ?? "帳票"}_${doc.documentNumber}.pdf`}
-              className="flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-bold text-white transition-all active:scale-[0.97]"
-              style={{ backgroundColor: accentColor }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
-                <path d="M8 2V10M8 10L5 7M8 10L11 7M3 13H13" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              PDFをダウンロード
-            </a>
-          )
+          <PdfDownloadButton
+            pdfUrl={doc.pdfUrl}
+            label={doc.pairedDocument ? `${documentTypeLabels[doc.type]}PDFをダウンロード` : "PDFをダウンロード"}
+            filename={`${documentTypeLabels[doc.type] ?? "帳票"}_${doc.documentNumber}.pdf`}
+            accentColor={accentColor}
+          />
         ) : (
           <div className="rounded-xl bg-gray-100 py-8 text-center">
             <p className="text-[13px] text-knock-text-muted">PDF生成中です...</p>
           </div>
+        )}
+        {doc.pairedDocument?.pdfUrl && (
+          <PdfDownloadButton
+            pdfUrl={doc.pairedDocument.pdfUrl}
+            label={`${documentTypeLabels[doc.pairedDocument.type]}PDFをダウンロード`}
+            filename={`${documentTypeLabels[doc.pairedDocument.type] ?? "帳票"}_${doc.pairedDocument.documentNumber}.pdf`}
+            accentColor={accentColor}
+            outline
+          />
         )}
       </div>
     </div>

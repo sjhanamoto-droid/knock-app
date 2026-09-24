@@ -1137,7 +1137,8 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                 ) : (
                   <div className="flex flex-col gap-2">
                     {site.orders.map((order) => {
-                      const orderSheet = order.documents?.[0] ?? null;
+                      const orderSheet = order.documents?.find((d) => d.type === "ORDER_SHEET") ?? null;
+                      const orderAcceptance = order.documents?.find((d) => d.type === "ORDER_ACCEPTANCE") ?? null;
                       const completion = completionStatusMeta(order.completionStatus);
                       return (
                         <div
@@ -1186,6 +1187,30 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
                               </span>
                               <span className="shrink-0 text-[12px] font-bold text-knock-text-secondary">
                                 {fmtAmount(orderSheet.totalAmount)}
+                              </span>
+                            </button>
+                          )}
+
+                          {/* 注文請書（注文書と同時に作成） */}
+                          {orderAcceptance && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (orderAcceptance.pdfUrl) openPdf(orderAcceptance.pdfUrl);
+                              }}
+                              disabled={!orderAcceptance.pdfUrl}
+                              className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-left transition-colors active:bg-gray-100 disabled:opacity-60"
+                            >
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <span className="shrink-0 rounded bg-[#22C55E] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                  PDF
+                                </span>
+                                <span className="truncate text-[12px] font-medium text-knock-text">
+                                  注文請書 {orderAcceptance.documentNumber}
+                                </span>
+                              </span>
+                              <span className="shrink-0 text-[12px] font-bold text-knock-text-secondary">
+                                {fmtAmount(orderAcceptance.totalAmount)}
                               </span>
                             </button>
                           )}

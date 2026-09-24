@@ -224,12 +224,33 @@ export async function getDocumentDetail(documentId: string) {
     }));
   }
 
+  // 注文書 ⇄ 注文請書 の対になる帳票（注文請書は metadata.orderSheetId で注文書に紐づく）
+  const orderSheetId =
+    document.type === "ORDER_SHEET"
+      ? document.id
+      : document.type === "ORDER_ACCEPTANCE"
+        ? ((document.metadata as { orderSheetId?: string } | null)?.orderSheetId ?? null)
+        : null;
+  const pairedDocument = orderSheetId
+    ? await prisma.document.findFirst({
+        where: {
+          deletedAt: null,
+          factoryFloorOrderId: document.factoryFloorOrderId,
+          ...(document.type === "ORDER_SHEET"
+            ? { type: "ORDER_ACCEPTANCE", metadata: { path: ["orderSheetId"], equals: orderSheetId } }
+            : { type: "ORDER_SHEET", id: orderSheetId }),
+        },
+        select: { id: true, type: true, documentNumber: true, pdfUrl: true },
+      })
+    : null;
+
   return {
     ...document,
     subtotal: document.subtotal ? Number(document.subtotal) : null,
     taxAmount: document.taxAmount ? Number(document.taxAmount) : null,
     totalAmount: document.totalAmount ? Number(document.totalAmount) : null,
     lineItems,
+    pairedDocument,
   };
 }
 

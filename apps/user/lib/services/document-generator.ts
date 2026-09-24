@@ -11,11 +11,12 @@ import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
  * FORMAT: {TYPE_PREFIX}-{YYYYMM}-{SEQ}
  */
 async function generateDocumentNumber(
-  type: "ORDER_SHEET" | "DELIVERY_NOTE" | "INVOICE",
+  type: "ORDER_SHEET" | "ORDER_ACCEPTANCE" | "DELIVERY_NOTE" | "INVOICE",
   yearMonthOverride?: string,
 ): Promise<string> {
   const prefix = {
     ORDER_SHEET: "ORD",
+    ORDER_ACCEPTANCE: "ACC",
     DELIVERY_NOTE: "DLV",
     INVOICE: "INV",
   }[type];
@@ -252,15 +253,148 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
         // プレビュー画面の金額欄用: PDF本文と同じ明細(追加工事の場合は追加明細)
         lineItems: pdfPriceDetails.map((p) => ({
           name: p.name,
+          specifications: p.specifications,
           quantity: p.quantity,
           unit: p.unit,
           priceUnit: p.priceUnit,
         })),
+        // 注文請書の担当者欄・備考用
+        contactPersonName: contactName,
+        remarks: pdfData.remarks,
       },
     },
   });
 
+  // 注文請書を同時に作成（注文書と同内容で発注者/受注者を入れ替えたもの）。
+  // 失敗しても注文書・発注確定は成立させる（再生成は scripts/backfill-order-acceptance.ts）。
+  try {
+    await generateOrderAcceptance(document.id);
+  } catch (e) {
+    console.error("[generateOrderSheet] generateOrderAcceptance failed:", e);
+  }
+
   return document.id;
+}
+
+/**
+ * 注文請書を生成（注文書と同時に作成）。
+ * 注文書(ORDER_SHEET)の保存内容をそのまま使い、宛先=発注者 / 発行元=受注者(受注者の印鑑)にする。
+ * 既に作成済みならその ID を返す（冪等。既存注文書へのバックフィルにも使用）。
+ */
+export async function generateOrderAcceptance(orderSheetId: string): Promise<string> {
+  const existing = await prisma.document.findFirst({
+    where: {
+      type: "ORDER_ACCEPTANCE",
+      deletedAt: null,
+      metadata: { path: ["orderSheetId"], equals: orderSheetId },
+    },
+    select: { id: true },
+  });
+  if (existing) return existing.id;
+
+  const sheet = await prisma.document.findUniqueOrThrow({
+    where: { id: orderSheetId },
+    include: {
+      orderCompany: true,
+      workerCompany: true,
+      factoryFloorOrder: {
+        select: {
+          factoryFloor: {
+            select: { code: true, remarks: true, createdUserId: true, parent: { select: { code: true } } },
+          },
+        },
+      },
+    },
+  });
+  if (sheet.type !== "ORDER_SHEET") throw new Error("注文書ではありません");
+
+  type SheetLineItem = { name?: string; specifications?: string; quantity?: number; unit?: string; priceUnit?: number };
+  type SheetMeta = {
+    siteName?: string;
+    lineItems?: SheetLineItem[];
+    priceDetails?: SheetLineItem[]; // 旧注文書(lineItems 導入前)
+    contactPersonName?: string;
+    remarks?: string;
+  };
+  const meta = (sheet.metadata as SheetMeta | null) ?? {};
+  const floor = sheet.factoryFloorOrder.factoryFloor;
+
+  // 旧注文書は担当者・備考を metadata に持たないため現場から補う
+  let contactPersonName = meta.contactPersonName;
+  if (contactPersonName === undefined) {
+    const createdUser = await prisma.user.findUnique({
+      where: { id: floor.createdUserId },
+      select: { lastName: true, firstName: true },
+    });
+    contactPersonName = createdUser
+      ? `${createdUser.lastName ?? ""}${createdUser.firstName ?? ""}`.trim()
+      : "";
+  }
+
+  const issuedAt = sheet.issuedAt ?? sheet.createdAt;
+  const yearMonth = `${issuedAt.getFullYear()}${String(issuedAt.getMonth() + 1).padStart(2, "0")}`;
+  const documentNumber = await generateDocumentNumber("ORDER_ACCEPTANCE", yearMonth);
+
+  const pdfData: OrderSheetPdfData = {
+    variant: "ORDER_ACCEPTANCE",
+    documentNumber,
+    orderSheetNumber: sheet.documentNumber,
+    issuedAt,
+    // 受注者（発行元）
+    workerCompanyName: sheet.workerCompany.name ?? "",
+    workerCompanyPostalCode: sheet.workerCompany.postalCode ?? "",
+    workerCompanyAddress: buildAddress(sheet.workerCompany),
+    workerCompanyTel: sheet.workerCompany.telNumber ?? "",
+    workerCompanyFax: "",
+    contactPersonName,
+    // 発注者（宛先）
+    orderCompanyName: sheet.orderCompany.name ?? "",
+    orderCompanyPostalCode: sheet.orderCompany.postalCode ?? "",
+    orderCompanyAddress: buildAddress(sheet.orderCompany),
+    orderCompanyTel: sheet.orderCompany.telNumber ?? "",
+    orderCompanyRepresentative: "",
+    siteName: meta.siteName ?? "",
+    siteCode: floor.code ?? floor.parent?.code ?? "",
+    priceDetails: (meta.lineItems ?? meta.priceDetails ?? []).map((p) => ({
+      name: p.name ?? "",
+      specifications: p.specifications ?? "",
+      quantity: Number(p.quantity ?? 0),
+      unit: p.unit ?? "",
+      priceUnit: Number(p.priceUnit ?? 0),
+    })),
+    subtotal: Number(sheet.subtotal ?? 0),
+    taxAmount10: Number(sheet.taxAmount ?? 0),
+    totalAmount: Number(sheet.totalAmount ?? 0),
+    remarks: meta.remarks ?? floor.remarks ?? "",
+    stampImageBase64: loadStampImageBase64(sheet.workerCompany.stampImage),
+  };
+
+  const pdfDataUrl = generateOrderSheetPdf(pdfData);
+  const pdfFilePath = savePdfToFile(pdfDataUrl, documentNumber);
+
+  const acceptance = await prisma.document.create({
+    data: {
+      type: "ORDER_ACCEPTANCE",
+      status: "ISSUED",
+      documentNumber,
+      factoryFloorOrderId: sheet.factoryFloorOrderId,
+      orderCompanyId: sheet.orderCompanyId,
+      workerCompanyId: sheet.workerCompanyId,
+      subtotal: sheet.subtotal,
+      taxAmount: sheet.taxAmount,
+      totalAmount: sheet.totalAmount,
+      invoiceNumber: sheet.workerCompany.invoiceNumber,
+      pdfUrl: pdfFilePath,
+      issuedAt,
+      metadata: {
+        ...(meta as Record<string, unknown>),
+        orderSheetId: sheet.id,
+        orderSheetNumber: sheet.documentNumber,
+      },
+    },
+  });
+
+  return acceptance.id;
 }
 
 /**

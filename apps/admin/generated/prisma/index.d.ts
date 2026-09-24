@@ -442,6 +442,7 @@ export type AvailabilityStatus = (typeof AvailabilityStatus)[keyof typeof Availa
 
 export const DocumentType: {
   ORDER_SHEET: 'ORDER_SHEET',
+  ORDER_ACCEPTANCE: 'ORDER_ACCEPTANCE',
   DELIVERY_NOTE: 'DELIVERY_NOTE',
   INVOICE: 'INVOICE'
 };

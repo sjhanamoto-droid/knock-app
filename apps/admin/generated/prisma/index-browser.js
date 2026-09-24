@@ -990,6 +990,7 @@ exports.PaymentStatus = exports.$Enums.PaymentStatus = {
 
 exports.DocumentType = exports.$Enums.DocumentType = {
   ORDER_SHEET: 'ORDER_SHEET',
+  ORDER_ACCEPTANCE: 'ORDER_ACCEPTANCE',
   DELIVERY_NOTE: 'DELIVERY_NOTE',
   INVOICE: 'INVOICE'
 };

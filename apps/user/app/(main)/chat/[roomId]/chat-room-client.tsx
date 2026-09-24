@@ -546,7 +546,7 @@ export function ChatRoomClient({ initialData, roomId }: Props) {
                     className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 transition-colors active:bg-gray-100"
                   >
                     <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                      doc.type === "ORDER_SHEET" ? "bg-blue-100 text-blue-600"
+                      doc.type === "ORDER_SHEET" || doc.type === "ORDER_ACCEPTANCE" ? "bg-blue-100 text-blue-600"
                       : doc.type === "DELIVERY_NOTE" ? "bg-green-100 text-green-600"
                       : "bg-amber-100 text-amber-600"
                     }`}>

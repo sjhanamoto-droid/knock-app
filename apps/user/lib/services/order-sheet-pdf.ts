@@ -4,15 +4,20 @@ import { setupFont, yenFmt, dateJP, ML, MR, RE, CW } from "./pdf-utils";
 
 // ============ Types ============
 export interface OrderSheetPdfData {
+  // ORDER_SHEET=注文書(発注者→受注者) / ORDER_ACCEPTANCE=注文請書(受注者→発注者)。省略時は注文書。
+  variant?: "ORDER_SHEET" | "ORDER_ACCEPTANCE";
   documentNumber: string;
+  // 注文請書のみ: 請け負う注文書の番号
+  orderSheetNumber?: string;
   issuedAt: Date;
-  // 受注者（宛先）
+  // 受注者（注文書では宛先 / 注文請書では発行元）
   workerCompanyName: string;
+  workerCompanyPostalCode?: string;
   workerCompanyAddress: string;
   workerCompanyTel: string;
   workerCompanyFax: string;
   contactPersonName: string;
-  // 発注者（発行元）
+  // 発注者（注文書では発行元 / 注文請書では宛先）
   orderCompanyName: string;
   orderCompanyPostalCode: string;
   orderCompanyAddress: string;
@@ -33,7 +38,38 @@ export interface OrderSheetPdfData {
   taxAmount10: number;
   totalAmount: number;
   remarks: string;
+  // 発行元の印鑑（注文書=発注者 / 注文請書=受注者）
   stampImageBase64?: string;
+}
+
+const isAcceptance = (data: OrderSheetPdfData) => data.variant === "ORDER_ACCEPTANCE";
+
+/**
+ * 宛先・発行元の会社情報。注文請書は注文書の発注者/受注者を入れ替える。
+ * 担当者(現場作成者＝発注者側)は常に発注者の欄に表示する。
+ */
+function getParties(data: OrderSheetPdfData) {
+  const orderer = {
+    name: data.orderCompanyName,
+    postalCode: data.orderCompanyPostalCode,
+    address: data.orderCompanyAddress,
+    tel: data.orderCompanyTel,
+    fax: "",
+    contactPersonName: data.contactPersonName,
+    representative: data.orderCompanyRepresentative,
+  };
+  const worker = {
+    name: data.workerCompanyName,
+    postalCode: data.workerCompanyPostalCode ?? "",
+    address: data.workerCompanyAddress,
+    tel: data.workerCompanyTel,
+    fax: data.workerCompanyFax,
+    contactPersonName: "",
+    representative: "",
+  };
+  return isAcceptance(data)
+    ? { recipient: orderer, issuer: worker }
+    : { recipient: worker, issuer: orderer };
 }
 
 // 7 columns: No. | 項目 | 品番・規格 | 単位 | 数量 | 単価 | 金額
@@ -42,13 +78,15 @@ const COL_W = [13, 40, 32, 15, 15, 23, 27]; // total = 165
 // ============ Drawing functions ============
 
 /**
- * タイトル「注 文 書」+ 注文番号・発行日（右上ヘッダー）
+ * タイトル「注 文 書」/「注 文 請 書」+ 番号・発行日（右上ヘッダー）
  */
 function drawTitleAndDocInfo(doc: jsPDF, data: OrderSheetPdfData): number {
+  const acceptance = isAcceptance(data);
+
   // タイトル中央
   doc.setFontSize(24);
   doc.setFont("NotoSansJP", "bold");
-  const title = "注 文 書";
+  const title = acceptance ? "注 文 請 書" : "注 文 書";
   doc.text(title, 105, 28, { align: "center" });
 
   // 下線（太め）
@@ -56,40 +94,50 @@ function drawTitleAndDocInfo(doc: jsPDF, data: OrderSheetPdfData): number {
   doc.setLineWidth(0.8);
   doc.line(105 - tw / 2, 31, 105 + tw / 2, 31);
 
-  // 右上: 注文番号・発行日
+  // 右上: 番号・発行日（注文請書は請書番号＋対応する注文番号）
   doc.setFont("NotoSansJP", "normal");
   doc.setFontSize(9);
-  doc.text(`注文番号: ${data.documentNumber}`, RE, 18, { align: "right" });
+  if (acceptance) {
+    doc.text(`請書番号: ${data.documentNumber}`, RE, 12, { align: "right" });
+    doc.text(`注文番号: ${data.orderSheetNumber ?? ""}`, RE, 18, { align: "right" });
+  } else {
+    doc.text(`注文番号: ${data.documentNumber}`, RE, 18, { align: "right" });
+  }
   doc.text(`発行日: ${dateJP(data.issuedAt)}`, RE, 24, { align: "right" });
 
   return 42;
 }
 
 /**
- * 宛先（左側）— 受注者情報
+ * 宛先（左側）— 注文書=受注者 / 注文請書=発注者
  */
 function drawRecipient(doc: jsPDF, data: OrderSheetPdfData, startY: number): number {
+  const { recipient } = getParties(data);
   let y = startY;
 
   // 会社名 御中（太字・大きめ）
   doc.setFontSize(14);
   doc.setFont("NotoSansJP", "bold");
-  doc.text(`${data.workerCompanyName} 御中`, ML, y);
+  doc.text(`${recipient.name} 御中`, ML, y);
   doc.setFont("NotoSansJP", "normal");
 
   y += 10;
   doc.setFontSize(9.5);
 
-  if (data.workerCompanyAddress) {
-    doc.text(data.workerCompanyAddress, ML, y);
+  if (recipient.address) {
+    doc.text(recipient.address, ML, y);
     y += 5.5;
   }
-  if (data.workerCompanyTel) {
-    doc.text(`TEL: ${data.workerCompanyTel}`, ML, y);
+  if (recipient.contactPersonName) {
+    doc.text(`ご担当: ${recipient.contactPersonName} 様`, ML, y);
     y += 5.5;
   }
-  if (data.workerCompanyFax) {
-    doc.text(`FAX: ${data.workerCompanyFax}`, ML, y);
+  if (recipient.tel) {
+    doc.text(`TEL: ${recipient.tel}`, ML, y);
+    y += 5.5;
+  }
+  if (recipient.fax) {
+    doc.text(`FAX: ${recipient.fax}`, ML, y);
     y += 5.5;
   }
 
@@ -97,40 +145,41 @@ function drawRecipient(doc: jsPDF, data: OrderSheetPdfData, startY: number): num
 }
 
 /**
- * 発行元会社情報（右側）+ 印鑑 — 宛先と並列描画
+ * 発行元会社情報（右側）+ 印鑑 — 宛先と並列描画。注文書=発注者 / 注文請書=受注者
  */
 function drawIssuerBlock(doc: jsPDF, data: OrderSheetPdfData, startY: number): number {
+  const { issuer } = getParties(data);
   const blockX = 130;
   let y = startY;
 
   // 会社名（太字）
   doc.setFontSize(11);
   doc.setFont("NotoSansJP", "bold");
-  doc.text(data.orderCompanyName, blockX, y);
+  doc.text(issuer.name, blockX, y);
   doc.setFont("NotoSansJP", "normal");
 
   y += 6;
   doc.setFontSize(8.5);
 
-  if (data.orderCompanyPostalCode) {
-    doc.text(`〒${data.orderCompanyPostalCode}`, blockX, y);
+  if (issuer.postalCode) {
+    doc.text(`〒${issuer.postalCode}`, blockX, y);
     y += 5;
   }
-  if (data.orderCompanyAddress) {
-    doc.text(data.orderCompanyAddress, blockX, y);
+  if (issuer.address) {
+    doc.text(issuer.address, blockX, y);
     y += 5;
   }
   // 担当者（現場作成者＝発注者側の担当）は発注者の住所の直下に表示する
-  if (data.contactPersonName) {
-    doc.text(`担当者: ${data.contactPersonName}`, blockX, y);
+  if (issuer.contactPersonName) {
+    doc.text(`担当者: ${issuer.contactPersonName}`, blockX, y);
     y += 5;
   }
-  if (data.orderCompanyTel) {
-    doc.text(`TEL: ${data.orderCompanyTel}`, blockX, y);
+  if (issuer.tel) {
+    doc.text(`TEL: ${issuer.tel}`, blockX, y);
     y += 5;
   }
-  if (data.orderCompanyRepresentative) {
-    doc.text(`代表: ${data.orderCompanyRepresentative}`, blockX, y);
+  if (issuer.representative) {
+    doc.text(`代表: ${issuer.representative}`, blockX, y);
     y += 5;
   }
 
@@ -141,6 +190,17 @@ function drawIssuerBlock(doc: jsPDF, data: OrderSheetPdfData, startY: number): n
   }
 
   return y;
+}
+
+/**
+ * 注文請書のみ: 請ける旨の文言
+ */
+function drawAcceptanceLead(doc: jsPDF, data: OrderSheetPdfData, y: number): number {
+  if (!isAcceptance(data)) return y;
+  doc.setFontSize(10);
+  doc.setFont("NotoSansJP", "normal");
+  doc.text("下記のとおり、ご注文をお請けいたします。", ML, y);
+  return y + 9;
 }
 
 /**
@@ -187,7 +247,7 @@ function drawAmountBox(doc: jsPDF, data: OrderSheetPdfData, y: number): number {
   doc.setFontSize(18);
   doc.setFont("NotoSansJP", "bold");
   doc.text(
-    `ご注文金額: ${yenFmt(data.totalAmount)}（税込）`,
+    `${isAcceptance(data) ? "ご請負金額" : "ご注文金額"}: ${yenFmt(data.totalAmount)}（税込）`,
     105,
     y + boxH / 2 + 3,
     { align: "center" }
@@ -333,11 +393,12 @@ export function generateOrderSheetPdf(data: OrderSheetPdfData): string {
 
   let y = drawTitleAndDocInfo(doc, data);
 
-  // 左: 宛先（受注者） / 右: 発行元（発注者）+ 印鑑 — 並列描画
+  // 左: 宛先 / 右: 発行元 + 印鑑 — 並列描画（注文請書は発注者/受注者が入れ替わる）
   const recipientEndY = drawRecipient(doc, data, y);
   const issuerEndY = drawIssuerBlock(doc, data, y);
   y = Math.max(recipientEndY, issuerEndY) + 8;
 
+  y = drawAcceptanceLead(doc, data, y);
   y = drawSiteInfo(doc, data, y);
   y = drawAmountBox(doc, data, y);
   y = drawPriceTable(doc, data, y);

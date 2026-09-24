@@ -150,6 +150,7 @@ enum AvailabilityStatus {
 
 enum DocumentType {
   ORDER_SHEET    // 注文書
+  ORDER_ACCEPTANCE // 注文請書（注文書と同内容で受注者→発注者。注文書と同時に自動作成）
   DELIVERY_NOTE  // 納品書
   INVOICE        // 請求書
 }

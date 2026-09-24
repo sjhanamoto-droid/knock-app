@@ -335,12 +335,14 @@ export async function getSite(id: string) {
         include: {
           documents: {
             where: {
-              type: "ORDER_SHEET",
+              // 注文書と、同時に作成される注文請書
+              type: { in: ["ORDER_SHEET", "ORDER_ACCEPTANCE"] },
               status: { not: "VOID" },
               deletedAt: null,
             },
             select: {
               id: true,
+              type: true,
               documentNumber: true,
               totalAmount: true,
               pdfUrl: true,

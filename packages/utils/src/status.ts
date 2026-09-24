@@ -90,12 +90,14 @@ export const paymentStatusLabels: Record<string, string> = {
 
 export const documentTypeLabels: Record<string, string> = {
   ORDER_SHEET: "注文書",
+  ORDER_ACCEPTANCE: "注文請書",
   DELIVERY_NOTE: "納品書",
   INVOICE: "請求書",
 };
 
 export const documentTypeIcons: Record<string, string> = {
   ORDER_SHEET: "📋",
+  ORDER_ACCEPTANCE: "📝",
   DELIVERY_NOTE: "📦",
   INVOICE: "💴",
 };
