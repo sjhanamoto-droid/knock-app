@@ -474,8 +474,8 @@ export function BillingDetailClient({ initialDoc, documentId, backYm }: Props) {
 
       {/* 発注の追加ピッカー */}
       {showPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowPicker(false)}>
-          <div className="max-h-[75vh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40" onClick={() => setShowPicker(false)}>
+          <div className="max-h-[75dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white p-4 pb-[calc(2rem+env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[15px] font-bold text-[#1A2340]">発注を追加</p>
               <button onClick={() => setShowPicker(false)} className="text-[13px] font-bold text-gray-400">閉じる</button>

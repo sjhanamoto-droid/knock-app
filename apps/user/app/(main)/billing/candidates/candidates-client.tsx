@@ -152,9 +152,9 @@ export function CandidatesClient({ candidates, year, month }: Props) {
 
       {/* 合算する注文書の一覧（作成前のプレビュー） */}
       {pendingCandidate && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={closePreview}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40" onClick={closePreview}>
           <div
-            className="flex max-h-[85vh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white"
+            className="flex max-h-[85dvh] w-full max-w-[430px] flex-col rounded-t-3xl bg-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between px-5 pt-5 pb-3">
@@ -227,7 +227,7 @@ export function CandidatesClient({ candidates, year, month }: Props) {
               )}
             </div>
 
-            <div className="flex flex-col gap-2 px-5 pb-6 pt-3">
+            <div className="flex flex-col gap-2 px-5 pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <button
                 onClick={handleGenerate}
                 disabled={generating || previewLoading || !preview || preview.orders.length === 0}
