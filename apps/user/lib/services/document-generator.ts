@@ -90,6 +90,17 @@ function buildAddress(company: {
 }
 
 /**
+ * 請求書の発行日 = 含める発注のうち最も遅い完了日(施工報告の送信日)。
+ * 作成操作をした日ではなく、施工完了の日付を請求書に載せる（例: 9/30完了分を10/1に作成しても 9/30）。
+ * 完了日はすべて請求期間内なので、発行日が未来日や対象月外になることはない。
+ */
+function latestCompletedDay(orders: { completedDay: Date | null }[], fallback: Date): Date {
+  const days = orders.map((o) => o.completedDay).filter((d): d is Date => d !== null);
+  if (days.length === 0) return fallback;
+  return new Date(Math.max(...days.map((d) => d.getTime())));
+}
+
+/**
  * 注文書を自動生成（発注確定時 / 追加工事時にトリガー）
  */
 export async function generateOrderSheet(orderId: string): Promise<string> {
@@ -498,7 +509,7 @@ export async function generateInvoice(
     where: { id: orderCompanyId },
   });
 
-  const issuedAt = new Date();
+  const issuedAt = latestCompletedDay(billableOrders, new Date());
 
   // PDF生成データ: 各発注の注文書を明細行に
   const lineItems = billableOrders.map((order) => {
@@ -586,7 +597,7 @@ export async function generateInvoice(
  */
 export async function generateInvoiceFromOrders(
   orderIds: string[],
-  billingDate: Date,
+  billingDate: Date, // 完了日が取れない場合の発行日・請求月のフォールバック
   excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(作り直し中の自分自身)
 ): Promise<string> {
   const orders = await prisma.factoryFloorOrder.findMany({
@@ -662,6 +673,7 @@ export async function generateInvoiceFromOrders(
       : `${billingDate.getFullYear()}${String(billingDate.getMonth() + 1).padStart(2, "0")}`;
 
   const documentNumber = await generateDocumentNumber("INVOICE", yearMonth);
+  const issuedAt = latestCompletedDay(billableOrders, billingDate);
 
   let totalSubtotal = BigInt(0);
   let totalTax = BigInt(0);
@@ -700,7 +712,7 @@ export async function generateInvoiceFromOrders(
 
   const pdfData: InvoicePdfData = {
     documentNumber,
-    issuedAt: billingDate,
+    issuedAt,
     yearMonth,
     workerCompanyName: workerCompany?.name ?? "",
     workerCompanyPostalCode: workerCompany?.postalCode ?? "",
@@ -737,7 +749,7 @@ export async function generateInvoiceFromOrders(
       totalAmount: totalTotal,
       invoiceNumber: workerCompany?.invoiceNumber,
       pdfUrl: pdfFilePath,
-      issuedAt: billingDate,
+      issuedAt,
       yearMonth,
       metadata: {
         orderIds: billableOrders.map((o) => o.id),
