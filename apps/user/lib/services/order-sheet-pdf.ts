@@ -46,7 +46,7 @@ const isAcceptance = (data: OrderSheetPdfData) => data.variant === "ORDER_ACCEPT
 
 /**
  * 宛先・発行元の会社情報。注文請書は注文書の発注者/受注者を入れ替える。
- * 担当者(現場作成者＝発注者側)は常に発注者の欄に表示する。
+ * 担当者(現場作成者＝発注者側)は発行元の欄にのみ表示する（注文書のみ。注文請書では渡さない）。
  */
 function getParties(data: OrderSheetPdfData) {
   const orderer = {
@@ -126,10 +126,6 @@ function drawRecipient(doc: jsPDF, data: OrderSheetPdfData, startY: number): num
 
   if (recipient.address) {
     doc.text(recipient.address, ML, y);
-    y += 5.5;
-  }
-  if (recipient.contactPersonName) {
-    doc.text(`ご担当: ${recipient.contactPersonName} 様`, ML, y);
     y += 5.5;
   }
   if (recipient.tel) {

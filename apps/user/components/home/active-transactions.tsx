@@ -4,6 +4,14 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { formatCurrency } from "@knock/utils";
 import type { HomeCardStatus } from "@/lib/actions/home";
+import {
+  BuildingIcon,
+  CalendarIcon,
+  ChevronRight,
+  HammerIcon,
+  LocationIcon,
+  YenIcon,
+} from "@/components/card-icons";
 
 interface Transaction {
   id: string;
@@ -56,74 +64,26 @@ function formatDateShort(d: Date | null | undefined): string {
 
 /* ──────────── Inline SVG Icons ──────────── */
 
-function LocationIcon() {
+function ChatIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+    <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0">
       <path
-        d="M6.5 1C4.567 1 3 2.567 3 4.5C3 7.25 6.5 12 6.5 12C6.5 12 10 7.25 10 4.5C10 2.567 8.433 1 6.5 1Z"
-        stroke="#9CA3AF"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        d="M12 7C12 9.485 9.76 11.5 7 11.5C6.174 11.5 5.393 11.333 4.694 11.033L2.5 11.5L3.262 9.68C2.78 9.016 2.5 8.232 2.5 7.393C2.5 4.908 4.74 2.893 7.5 2.893"
+        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
       />
-      <circle cx="6.5" cy="4.5" r="1.2" stroke="#9CA3AF" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <rect x="1.5" y="2.5" width="10" height="9" rx="1.2" stroke="#9CA3AF" strokeWidth="1.2" />
-      <path d="M1.5 5.5H11.5" stroke="#9CA3AF" strokeWidth="1.2" />
-      <path d="M4 1.5V3.5" stroke="#9CA3AF" strokeWidth="1.2" strokeLinecap="round" />
-      <path d="M9 1.5V3.5" stroke="#9CA3AF" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CompanyIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <rect x="1.5" y="5" width="10" height="7" rx="1" stroke="#9CA3AF" strokeWidth="1.2" />
-      <path d="M4 5V3.5C4 2.672 4.672 2 5.5 2H7.5C8.328 2 9 2.672 9 3.5V5" stroke="#9CA3AF" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function YenIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-      <path d="M3.5 2L6.5 6.5L9.5 2M6.5 6.5V11.5M4 7H9M4 9H9" stroke="#9CA3AF" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="5.5" cy="7" r="0.6" fill="currentColor" />
+      <circle cx="7.5" cy="7" r="0.6" fill="currentColor" />
+      <circle cx="9.5" cy="7" r="0.6" fill="currentColor" />
     </svg>
   );
 }
 
 function DocumentIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M4 1.5H8.5L11 4V11.5C11 12.05 10.55 12.5 10 12.5H4C3.45 12.5 3 12.05 3 11.5V2.5C3 1.95 3.45 1.5 4 1.5Z" stroke="white" strokeWidth="1.2" strokeLinejoin="round" />
-      <path d="M8.5 1.5V4H11M5 7H9M5 9.5H9" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="shrink-0">
+      <path d="M4 1.5H8.5L11 4V11.5C11 12.05 10.55 12.5 10 12.5H4C3.45 12.5 3 12.05 3 11.5V2.5C3 1.95 3.45 1.5 4 1.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M8.5 1.5V4H11M5 7H9M5 9.5H9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
-  );
-}
-
-function ChevronRightCircle({ color }: { color: string }) {
-  return (
-    <div
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-      style={{ backgroundColor: color }}
-    >
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path
-          d="M5.5 3.5L8.5 7L5.5 10.5"
-          stroke="white"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
   );
 }
 
@@ -143,6 +103,9 @@ function SiteCard({
     tx.startDayRequest || tx.endDayRequest
       ? `${formatDateShort(tx.startDayRequest)}${tx.startDayRequest && tx.endDayRequest ? " 〜 " : ""}${formatDateShort(tx.endDayRequest)}`
       : null;
+  // 見出しは現場名（親工事）、工事名はハンマーアイコンの行に表示。親がない単独現場は現場名のみ
+  const title = tx.parentSiteName ?? tx.siteName;
+  const workName = tx.parentSiteName ? tx.siteName : null;
 
   // メインCTA（カード下部）の決定
   let cta: { href: string; label: string } | null = null;
@@ -161,75 +124,77 @@ function SiteCard({
       : { href: `/orders/${tx.id}/confirm`, label: "発注を確定する" };
   }
 
+  // 現場情報ルーム・注文書へのテキストリンク（カード下部）
+  const links: { href: string; label: string; icon: React.ReactNode }[] = [];
+  if (tx.siteInfoRoomId) {
+    links.push({ href: `/chat/${tx.siteInfoRoomId}`, label: "現場情報ルーム", icon: <ChatIcon /> });
+  }
+  if (tx.orderSheetId) {
+    // 注文書詳細（注文書・注文請書のPDF）。注文書が発行済みの場合のみ
+    links.push({ href: `/documents/${tx.orderSheetId}`, label: "注文書を見る", icon: <DocumentIcon /> });
+  }
+
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
-      <div className="flex items-stretch gap-0">
-      {/* Left border accent */}
+    <div className="flex overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
+      {/* Left border (status color) */}
       <div className="w-1 shrink-0" style={{ backgroundColor: statusMeta.barColor }} />
 
-      {/* Card body */}
-      <div className="flex flex-1 items-center gap-2 px-3 py-3">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Card body → 現場詳細 */}
         <Link
           href={`/sites/${tx.siteId}`}
-          className="flex flex-1 items-center gap-3 min-w-0 transition-all active:opacity-70"
+          className="flex items-center gap-3 px-3 py-3 transition-all active:opacity-70"
         >
-          <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-            {/* Status badge + 親工事名 row */}
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex shrink-0 items-center gap-1">
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusMeta.badgeClass}`}
-                >
-                  {statusMeta.label}
-                </span>
-                {tx.isAdditional && (
-                  <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-600">
-                    追加
-                  </span>
-                )}
+          {/* Info column */}
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            {/* ステータス + 追加（一番上に横並び） */}
+            <div className="mb-0.5 flex items-center gap-1.5">
+              <span
+                className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-bold ${statusMeta.badgeClass}`}
+              >
+                {statusMeta.label}
               </span>
-              {tx.parentSiteName && (
-                <span className="min-w-0 flex-1 truncate text-right text-[11px] text-knock-text-secondary">
-                  {tx.parentSiteName}
+              {tx.isAdditional && (
+                <span className="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-600">
+                  追加
                 </span>
               )}
             </div>
 
-            {/* Site name */}
-            <p className="truncate text-[13px] font-semibold text-knock-text">
-              {tx.siteName}
-            </p>
+            <p className="truncate text-[12px] font-bold text-knock-text">{title}</p>
 
-            {/* Address */}
             {tx.address && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <LocationIcon />
-                <span className="truncate text-[11px] text-knock-text-secondary">
-                  {tx.address}
-                </span>
+                <span className="truncate text-[12px] text-knock-text-secondary">{tx.address}</span>
               </div>
             )}
 
-            {/* Date range */}
+            {workName && (
+              <div className="flex items-center gap-1.5">
+                <HammerIcon />
+                <span className="truncate text-[12px] font-bold text-knock-text">{workName}</span>
+              </div>
+            )}
+
             {dateStr && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <CalendarIcon />
-                <span className="text-[11px] text-knock-text-secondary">{dateStr}</span>
+                <span className="text-[12px] text-knock-text-secondary">{dateStr}</span>
               </div>
             )}
 
-            {/* Company name */}
             {counterpartyName(tx) && (
-              <div className="flex items-center gap-1">
-                <CompanyIcon />
-                <span className="truncate text-[11px] text-knock-text-secondary">
+              <div className="flex items-center gap-1.5">
+                <BuildingIcon />
+                <span className="truncate text-[12px] text-knock-text-secondary">
                   {counterpartyName(tx)}
                 </span>
               </div>
             )}
 
             {/* 金額（この発注書の税込金額） */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <YenIcon />
               <span className="text-[13px] font-bold text-knock-text">
                 {formatCurrency(tx.amount)}
@@ -237,61 +202,40 @@ function SiteCard({
               <span className="text-[10px] text-knock-text-muted">（税込）</span>
             </div>
           </div>
+
+          <ChevronRight />
         </Link>
 
-        {/* Action buttons */}
-        <div className="flex shrink-0 items-center gap-1.5">
-          {/* Chat room button (only when site info room exists) */}
-          {tx.siteInfoRoomId && (
-            <Link
-              href={`/chat/${tx.siteInfoRoomId}`}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-knock-blue transition-all active:scale-95"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <path
-                  d="M12 7C12 9.485 9.76 11.5 7 11.5C6.174 11.5 5.393 11.333 4.694 11.033L2.5 11.5L3.262 9.68C2.78 9.016 2.5 8.232 2.5 7.393C2.5 4.908 4.74 2.893 7.5 2.893"
-                  stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"
-                />
-                <circle cx="5.5" cy="7" r="0.6" fill="white" />
-                <circle cx="7.5" cy="7" r="0.6" fill="white" />
-                <circle cx="9.5" cy="7" r="0.6" fill="white" />
-              </svg>
-            </Link>
-          )}
+        {/* 現場情報ルーム / 注文書（テキストリンク） */}
+        {links.length > 0 && (
+          <div className="flex border-t border-gray-100">
+            {links.map((link, i) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex flex-1 items-center justify-center gap-1.5 py-3 text-[13px] font-bold transition-colors active:bg-gray-50 ${
+                  i > 0 ? "border-l border-gray-100" : ""
+                }`}
+                style={{ color: accentColor }}
+              >
+                {link.icon}
+                {link.label}
+              </Link>
+            ))}
+          </div>
+        )}
 
-          {/* 帳票（この発注書の注文書・注文請書）。注文書が発行済みの場合のみ */}
-          {tx.orderSheetId && (
-            <Link
-              href={`/documents/${tx.orderSheetId}`}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#22C55E] transition-all active:scale-95"
-              aria-label="帳票を見る"
-            >
-              <DocumentIcon />
-            </Link>
-          )}
-
-          {/* Site detail chevron */}
+        {/* Primary CTA */}
+        {cta && (
           <Link
-            href={`/sites/${tx.siteId}`}
-            className="transition-all active:scale-95"
+            href={cta.href}
+            className="mx-3 mb-3 rounded-xl py-2.5 text-center text-[13px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
+            style={{ backgroundColor: accentColor }}
           >
-            <ChevronRightCircle color={accentColor} />
+            {cta.label}
           </Link>
-        </div>
+        )}
       </div>
-      </div>
-
-      {/* Primary CTA */}
-      {cta && (
-        <Link
-          href={cta.href}
-          className="mx-3 mb-3 rounded-xl py-2.5 text-center text-[13px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
-          style={{ backgroundColor: accentColor }}
-        >
-          {cta.label}
-        </Link>
-      )}
     </div>
   );
 }

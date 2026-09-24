@@ -26,6 +26,21 @@ export const factoryFloorStatusColors: Record<string, string> = {
   DEAL_COMPLETED: "bg-slate-200 text-slate-800",
 };
 
+// カード左端の線の色（ホームの現場カードと同じ配色: 未発注=橙/依頼中=紫/確定=水色/施工中=緑/完了=青）
+export const factoryFloorStatusBarColors: Record<string, string> = {
+  DRAFT: "#9CA3AF",
+  NOT_ORDERED: "#F59E0B",
+  ORDERED: "#A855F7",
+  ORDER_REQUESTED: "#A855F7",
+  CONFIRMED: "#06B6D4",
+  IN_PROGRESS: "#22C55E",
+  INSPECTION: "#22C55E",
+  COMPLETED: "#3B82F6",
+  DELIVERY_APPROVED: "#3B82F6",
+  INVOICED: "#3B82F6",
+  DEAL_COMPLETED: "#3B82F6",
+};
+
 export const orderStatusLabels: Record<string, string> = {
   PENDING: "承認待ち",
   APPROVED: "承認済",

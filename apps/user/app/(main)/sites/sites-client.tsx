@@ -14,8 +14,18 @@ import { useMode } from "@/lib/hooks/use-mode";
 import {
   factoryFloorStatusLabels,
   factoryFloorStatusColors,
+  factoryFloorStatusBarColors,
 } from "@knock/utils";
 import { SideMenu } from "@/components/side-menu";
+import {
+  BuildingIcon as CardBuildingIcon,
+  CalendarIcon as CardCalendarIcon,
+  ChevronRight as CardChevronRight,
+  HammerIcon,
+  LocationIcon,
+  YenIcon,
+} from "@/components/card-icons";
+import { calcTax } from "@/lib/helpers/order-amount";
 
 const ORDERER_STATUS_TABS = [
   { value: "", label: "すべて" },
@@ -620,9 +630,14 @@ export function SitesClient({
             }
 
             // ── 子工事カード（第2画面 / 受注者）──
+            // ホームの現場カードと同じ並び: ステータス → 工事名 → 住所/工期/取引先/金額。
+            // 親工事名は画面上部に出ているのでカードには出さない。
             const companyName =
               (site as { workCompany?: { name: string } | null }).workCompany?.name ??
               (site as { company?: { name: string } | null }).company?.name;
+            // 税込金額（注文書と同じく消費税は切り上げ）
+            const subtotal = site.totalAmount != null ? BigInt(Math.round(Number(site.totalAmount))) : null;
+            const amountWithTax = subtotal != null ? Number(subtotal + calcTax(subtotal)) : null;
 
             return (
               <div
@@ -630,40 +645,39 @@ export function SitesClient({
                 role="button"
                 tabIndex={0}
                 onClick={() => router.push(`/sites/${site.id}`)}
-                className="cursor-pointer overflow-hidden rounded-xl bg-white shadow-[0_1px_6px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
-                style={{ borderLeft: `4px solid ${accentColor}` }}
+                className="flex cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)] transition-all active:scale-[0.98]"
               >
-                <div className="px-4 py-3">
-                  {/* Top row: status badge + chevron */}
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
-                        factoryFloorStatusColors[site.status] ?? "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {factoryFloorStatusLabels[site.status] ?? site.status}
-                    </span>
-                    <div
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                      style={{ backgroundColor: accentColor }}
-                    >
-                      <ChevronRightIcon />
+                {/* Left border (status color) */}
+                <div
+                  className="w-1 shrink-0"
+                  style={{ backgroundColor: factoryFloorStatusBarColors[site.status] ?? "#9CA3AF" }}
+                />
+
+                <div className="flex min-w-0 flex-1 items-center gap-3 px-3 py-3">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    {/* ステータス（一番上） */}
+                    <div className="mb-0.5 flex items-center gap-1.5">
+                      <span
+                        className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                          factoryFloorStatusColors[site.status] ?? "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {factoryFloorStatusLabels[site.status] ?? site.status}
+                      </span>
                     </div>
-                  </div>
 
-                  {/* Work name */}
-                  <div className="mb-2">
-                    <p className="text-[14px] font-bold text-knock-text leading-snug">
-                      {site.name ?? "名称未設定"}
-                    </p>
-                  </div>
+                    {/* 工事名 */}
+                    <div className="flex items-center gap-1.5">
+                      <HammerIcon />
+                      <span className="truncate text-[12px] font-bold text-knock-text">
+                        {site.name ?? "名称未設定"}
+                      </span>
+                    </div>
 
-                  {/* Details */}
-                  <div className="flex flex-col gap-1">
                     {site.address && (
                       <div className="flex items-center gap-1.5">
-                        <PinIcon />
-                        <span className="truncate text-[11px] text-gray-500">
+                        <LocationIcon />
+                        <span className="truncate text-[12px] text-knock-text-secondary">
                           {site.address}
                         </span>
                       </div>
@@ -671,8 +685,8 @@ export function SitesClient({
 
                     {(site.startDayRequest || site.endDayRequest) && (
                       <div className="flex items-center gap-1.5">
-                        <CalendarIcon />
-                        <span className="text-[11px] text-gray-500">
+                        <CardCalendarIcon />
+                        <span className="text-[12px] text-knock-text-secondary">
                           {formatDate(site.startDayRequest)}
                           {site.startDayRequest && site.endDayRequest && " ~ "}
                           {formatDate(site.endDayRequest)}
@@ -682,27 +696,27 @@ export function SitesClient({
 
                     {companyName && (
                       <div className="flex items-center gap-1.5">
-                        <BuildingIcon />
-                        <span className="truncate text-[11px] text-gray-500">
+                        <CardBuildingIcon />
+                        <span className="truncate text-[12px] text-knock-text-secondary">
                           {companyName}
                         </span>
                       </div>
                     )}
 
-                    {site.totalAmount != null && Number(site.totalAmount) !== 0 && (
-                      <div className="mt-0.5 flex items-center justify-end">
-                        <span className={`text-[12px] font-semibold ${Number(site.totalAmount) < 0 ? "text-knock-red" : "text-knock-text"}`}>
-                          {formatAmount(
-                            Number(site.totalAmount) +
-                              Math.floor(Number(site.totalAmount) * 0.1)
-                          )}
-                          <span className="ml-0.5 text-[10px] font-normal text-gray-400">
-                            （税込）
-                          </span>
+                    {amountWithTax != null && amountWithTax !== 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <YenIcon />
+                        <span
+                          className={`text-[13px] font-bold ${amountWithTax < 0 ? "text-knock-red" : "text-knock-text"}`}
+                        >
+                          {formatAmount(amountWithTax)}
                         </span>
+                        <span className="text-[10px] text-knock-text-muted">（税込）</span>
                       </div>
                     )}
                   </div>
+
+                  <CardChevronRight />
                 </div>
               </div>
             );

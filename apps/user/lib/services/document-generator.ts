@@ -253,8 +253,7 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
           unit: p.unit,
           priceUnit: p.priceUnit,
         })),
-        // 注文請書の担当者欄・備考用
-        contactPersonName: contactName,
+        // 注文請書の備考用
         remarks: pdfData.remarks,
       },
     },
@@ -275,17 +274,21 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
  * 注文請書を生成（注文書と同時に作成）。
  * 注文書(ORDER_SHEET)の保存内容をそのまま使い、宛先=発注者 / 発行元=受注者(受注者の印鑑)にする。
  * 既に作成済みならその ID を返す（冪等。既存注文書へのバックフィルにも使用）。
+ * regenerate=true のときは作成済みの注文請書のPDFを請書番号はそのままで作り直す（レイアウト変更の反映用）。
  */
-export async function generateOrderAcceptance(orderSheetId: string): Promise<string> {
+export async function generateOrderAcceptance(
+  orderSheetId: string,
+  options: { regenerate?: boolean } = {},
+): Promise<string> {
   const existing = await prisma.document.findFirst({
     where: {
       type: "ORDER_ACCEPTANCE",
       deletedAt: null,
       metadata: { path: ["orderSheetId"], equals: orderSheetId },
     },
-    select: { id: true },
+    select: { id: true, documentNumber: true },
   });
-  if (existing) return existing.id;
+  if (existing && !options.regenerate) return existing.id;
 
   const sheet = await prisma.document.findUniqueOrThrow({
     where: { id: orderSheetId },
@@ -295,7 +298,7 @@ export async function generateOrderAcceptance(orderSheetId: string): Promise<str
       factoryFloorOrder: {
         select: {
           factoryFloor: {
-            select: { code: true, remarks: true, createdUserId: true, parent: { select: { code: true } } },
+            select: { code: true, remarks: true, parent: { select: { code: true } } },
           },
         },
       },
@@ -308,27 +311,15 @@ export async function generateOrderAcceptance(orderSheetId: string): Promise<str
     siteName?: string;
     lineItems?: SheetLineItem[];
     priceDetails?: SheetLineItem[]; // 旧注文書(lineItems 導入前)
-    contactPersonName?: string;
     remarks?: string;
   };
   const meta = (sheet.metadata as SheetMeta | null) ?? {};
   const floor = sheet.factoryFloorOrder.factoryFloor;
 
-  // 旧注文書は担当者・備考を metadata に持たないため現場から補う
-  let contactPersonName = meta.contactPersonName;
-  if (contactPersonName === undefined) {
-    const createdUser = await prisma.user.findUnique({
-      where: { id: floor.createdUserId },
-      select: { lastName: true, firstName: true },
-    });
-    contactPersonName = createdUser
-      ? `${createdUser.lastName ?? ""}${createdUser.firstName ?? ""}`.trim()
-      : "";
-  }
-
   const issuedAt = sheet.issuedAt ?? sheet.createdAt;
   const yearMonth = `${issuedAt.getFullYear()}${String(issuedAt.getMonth() + 1).padStart(2, "0")}`;
-  const documentNumber = await generateDocumentNumber("ORDER_ACCEPTANCE", yearMonth);
+  const documentNumber =
+    existing?.documentNumber ?? (await generateDocumentNumber("ORDER_ACCEPTANCE", yearMonth));
 
   const pdfData: OrderSheetPdfData = {
     variant: "ORDER_ACCEPTANCE",
@@ -341,7 +332,8 @@ export async function generateOrderAcceptance(orderSheetId: string): Promise<str
     workerCompanyAddress: buildAddress(sheet.workerCompany),
     workerCompanyTel: sheet.workerCompany.telNumber ?? "",
     workerCompanyFax: "",
-    contactPersonName,
+    // 注文請書には担当者を記載しない
+    contactPersonName: "",
     // 発注者（宛先）
     orderCompanyName: sheet.orderCompany.name ?? "",
     orderCompanyPostalCode: sheet.orderCompany.postalCode ?? "",
@@ -366,6 +358,11 @@ export async function generateOrderAcceptance(orderSheetId: string): Promise<str
 
   const pdfDataUrl = generateOrderSheetPdf(pdfData);
   const pdfFilePath = savePdfToFile(pdfDataUrl, documentNumber);
+
+  if (existing) {
+    await prisma.document.update({ where: { id: existing.id }, data: { pdfUrl: pdfFilePath } });
+    return existing.id;
+  }
 
   const acceptance = await prisma.document.create({
     data: {
