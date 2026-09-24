@@ -2,6 +2,16 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/session";
+import { calcOrderSubtotal, calcTax } from "@/lib/helpers/order-amount";
+
+/**
+ * ホームのカードに表示する発注書ごとのステータス。
+ * 現場(FactoryFloor)のステータスは同じ現場の別発注（追加工事など）の影響を受けるため、
+ * 色分け・絞り込みは発注書ごとの状態で行う。
+ */
+export type HomeCardStatus = "REQUESTED" | "AWAITING_CONFIRM" | "IN_PROGRESS" | "COMPLETED";
+
+const COMPLETED_SITE_STATUSES = ["COMPLETED", "DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"];
 /**
  * V2: 進行中の取引一覧
  * 未完了のFactoryFloorOrderを取得（ステータスが取引完了でないもの）
@@ -40,9 +50,15 @@ export async function getActiveTransactions() {
           address: true,
           startDayRequest: true,
           endDayRequest: true,
+          companyId: true,
+          totalAmount: true,
           company: { select: { id: true, name: true } },
           workCompany: { select: { id: true, name: true } },
           parent: { select: { id: true, name: true } },
+          priceDetails: {
+            where: { deletedAt: null },
+            select: { quantity: true, priceUnit: true },
+          },
           chatRooms: {
             where: {
               type: "SITE_INFO",
@@ -54,10 +70,17 @@ export async function getActiveTransactions() {
           },
         },
       },
+      // 確定済みの金額は注文書の実額（請求と同じ基準）
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, totalAmount: true },
+        take: 1,
+      },
     },
     orderBy: { updatedAt: "desc" },
-    // 未完了の工事を取りこぼさないよう多めに取得（クライアント側で期間/完了フィルタ）
-    take: 50,
+    // 未完了の工事を取りこぼさないよう多めに取得（クライアント側で期間/完了・並び替え・絞り込み）
+    take: 200,
   });
 
   // 発注済以降のステータス
@@ -66,27 +89,65 @@ export async function getActiveTransactions() {
     "INSPECTION", "COMPLETED", "DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED",
   ];
 
-  return orders.map((order) => ({
-    id: order.id,
-    orderStatus: order.status,
-    completionStatus: order.completionStatus,
-    isAdditional:
-      (order.inspectionData as { type?: string } | null)?.type === "ADDITIONAL_ORDER",
-    siteId: order.factoryFloor.id,
-    siteName: order.factoryFloor.name ?? "名称未設定",
-    parentSiteId: order.factoryFloor.parent?.id ?? null,
-    parentSiteName: order.factoryFloor.parent?.name ?? null,
-    siteStatus: order.factoryFloor.status,
-    address: order.factoryFloor.address,
-    startDayRequest: order.factoryFloor.startDayRequest,
-    endDayRequest: order.factoryFloor.endDayRequest,
-    ordererName: order.factoryFloor.company?.name ?? "",
-    contractorName: order.factoryFloor.workCompany?.name ?? "",
-    siteInfoRoomId:
-      orderedStatuses.includes(order.factoryFloor.status)
-        ? order.factoryFloor.chatRooms[0]?.id ?? null
-        : null,
-  }));
+  type AdditionalOrderData = {
+    type?: string;
+    priceDetails?: { quantity: number; priceUnit: number }[];
+  };
+
+  return orders.map((order) => {
+    const additionalData = order.inspectionData as AdditionalOrderData | null;
+    const isAdditional = additionalData?.type === "ADDITIONAL_ORDER";
+    const orderSheet = order.documents[0] ?? null;
+
+    // 税込金額: 注文書があればその実額、未発行(依頼中など)なら注文書と同じ計算で算出
+    let amount: number;
+    if (orderSheet?.totalAmount != null) {
+      amount = Number(orderSheet.totalAmount);
+    } else {
+      const subtotal = calcOrderSubtotal({
+        isAdditional,
+        additionalDetails: additionalData?.priceDetails,
+        floorDetails: order.factoryFloor.priceDetails,
+        floorTotalAmount: order.factoryFloor.totalAmount,
+      });
+      amount = Number(subtotal + calcTax(subtotal));
+    }
+
+    const cardStatus: HomeCardStatus =
+      order.status === "PENDING"
+        ? "REQUESTED"
+        : order.status === "APPROVED"
+          ? "AWAITING_CONFIRM"
+          : order.completionStatus === "CLOSED" || COMPLETED_SITE_STATUSES.includes(order.factoryFloor.status)
+            ? "COMPLETED"
+            : "IN_PROGRESS";
+
+    return {
+      id: order.id,
+      orderStatus: order.status,
+      completionStatus: order.completionStatus,
+      isAdditional,
+      cardStatus,
+      amount,
+      orderSheetId: orderSheet?.id ?? null,
+      // この取引で自社が発注者か（発注者/受注者の両方をしている会社でも取引ごとに判定）
+      viewerIsOrderer: order.factoryFloor.companyId === user.companyId,
+      siteId: order.factoryFloor.id,
+      siteName: order.factoryFloor.name ?? "名称未設定",
+      parentSiteId: order.factoryFloor.parent?.id ?? null,
+      parentSiteName: order.factoryFloor.parent?.name ?? null,
+      siteStatus: order.factoryFloor.status,
+      address: order.factoryFloor.address,
+      startDayRequest: order.factoryFloor.startDayRequest,
+      endDayRequest: order.factoryFloor.endDayRequest,
+      ordererName: order.factoryFloor.company?.name ?? "",
+      contractorName: order.factoryFloor.workCompany?.name ?? "",
+      siteInfoRoomId:
+        orderedStatuses.includes(order.factoryFloor.status)
+          ? order.factoryFloor.chatRooms[0]?.id ?? null
+          : null,
+    };
+  });
 }
 
 /**

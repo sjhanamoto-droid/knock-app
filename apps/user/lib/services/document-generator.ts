@@ -5,6 +5,7 @@ import { generateOrderSheetPdf, type OrderSheetPdfData } from "./order-sheet-pdf
 import { generateInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
 import { getBillingPeriod, getBillingMonth } from "@/lib/helpers/billing-period";
 import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
+import { calcOrderSubtotal, calcTax } from "@/lib/helpers/order-amount";
 
 /**
  * 帳票番号の自動採番
@@ -124,7 +125,6 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
   const isAdditionalOrder = additionalData?.type === "ADDITIONAL_ORDER";
 
   let pdfPriceDetails: { name: string; specifications: string; quantity: number; unit: string; priceUnit: number }[];
-  let subtotal: bigint;
 
   if (isAdditionalOrder && additionalData.priceDetails?.length) {
     // 追加注文: unitId から unit 名を解決
@@ -141,11 +141,6 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
       unit: p.unitId ? (unitMap.get(p.unitId) ?? "") : "",
       priceUnit: p.priceUnit,
     }));
-
-    const detailsTotal = additionalData.priceDetails.reduce(
-      (sum, p) => sum + Math.ceil(p.quantity * p.priceUnit), 0
-    );
-    subtotal = BigInt(detailsTotal);
   } else {
     // 通常注文: floor.priceDetails を使用
     pdfPriceDetails = floor.priceDetails.map((p) => ({
@@ -155,16 +150,16 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
       unit: p.unit?.name ?? "",
       priceUnit: Number(p.priceUnit ?? 0),
     }));
-
-    const priceDetailsTotal = floor.priceDetails.reduce(
-      (sum, p) => sum + Math.ceil((p.quantity ?? 0) * Number(p.priceUnit ?? 0)),
-      0
-    );
-    subtotal = priceDetailsTotal > 0 ? BigInt(priceDetailsTotal) : (floor.totalAmount ?? BigInt(0));
   }
 
-  const taxRate = 0.10;
-  const taxAmount = BigInt(Math.ceil(Number(subtotal) * taxRate));
+  // 金額はホーム画面の表示と同じヘルパーで計算する
+  const subtotal = calcOrderSubtotal({
+    isAdditional: isAdditionalOrder,
+    additionalDetails: additionalData?.priceDetails,
+    floorDetails: floor.priceDetails,
+    floorTotalAmount: floor.totalAmount,
+  });
+  const taxAmount = calcTax(subtotal);
   const totalAmount = BigInt(Number(subtotal)) + taxAmount;
 
   // 担当者名（現場作成者）

@@ -206,10 +206,8 @@ export function HomeClient({ transactions, summary, badgeCounts, kycStep }: Home
 
   // Filter transactions for selected date
   const selectedDateStr = `${selectedDate.getMonth() + 1}/${selectedDate.getDate()}`;
-  const isCompletedTx = (tx: TransactionItem) =>
-    ["COMPLETED", "DELIVERY_APPROVED", "INVOICED", "DEAL_COMPLETED"].includes(
-      tx.siteStatus
-    ) || tx.completionStatus === "CLOSED";
+  // 完了判定は発注書ごとのステータス（カードの色分けと同じ基準）
+  const isCompletedTx = (tx: TransactionItem) => tx.cardStatus === "COMPLETED";
 
   const filteredTransactions = transactions.filter((tx) => {
     // 施工が未完了の工事は、期間の内外を問わず常に表示
