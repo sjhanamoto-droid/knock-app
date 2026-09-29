@@ -12,6 +12,8 @@ import {
   getOccupationMasters,
   saveCompanyOccupations,
 } from "@/lib/actions/customers";
+import { getInitialPasswordStatus } from "@/lib/actions/proxy-registration";
+import { PROXY_INITIAL_PASSWORD } from "@/lib/proxy-registration-constants";
 import OccupationSelector from "@/components/occupation-selector";
 import {
   companyTypeLabels,
@@ -728,6 +730,14 @@ function UsersTab({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // userId → パスワードが代理登録時の初期値のままか
+  const [initialPw, setInitialPw] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    getInitialPasswordStatus(companyId)
+      .then(setInitialPw)
+      .catch(() => setInitialPw({}));
+  }, [companyId, users]);
 
   return (
     <div className="space-y-4">
@@ -771,6 +781,9 @@ function UsersTab({
                 最終ログイン
               </th>
               <th className="px-4 py-3 text-[12px] font-semibold text-gray-400">
+                パスワード
+              </th>
+              <th className="px-4 py-3 text-[12px] font-semibold text-gray-400">
                 操作
               </th>
             </tr>
@@ -804,6 +817,15 @@ function UsersTab({
                     ? formatDateTime(new Date(user.lastLoginAt))
                     : "未ログイン"}
                 </td>
+                <td className="px-4 py-3 text-[13px]">
+                  {initialPw[user.id] ? (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 font-mono text-[12px] font-semibold text-amber-700">
+                      初期値 {PROXY_INITIAL_PASSWORD}
+                    </span>
+                  ) : initialPw[user.id] === false ? (
+                    <span className="text-[12px] text-gray-400">変更済み</span>
+                  ) : null}
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() =>
@@ -819,7 +841,7 @@ function UsersTab({
             {users.length === 0 && (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-[13px] text-gray-400"
                 >
                   ユーザーがいません

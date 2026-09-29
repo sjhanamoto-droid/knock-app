@@ -86,12 +86,20 @@ export default function CustomersPage() {
             {data ? `${data.total}件の企業` : ""}
           </p>
         </div>
-        <Link
-          href="/customers/new"
-          className="rounded-xl bg-knock-orange px-5 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-knock-amber"
-        >
-          + 企業を追加
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/customers/new"
+            className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            + 企業を追加
+          </Link>
+          <Link
+            href="/customers/proxy-register"
+            className="rounded-xl bg-knock-orange px-5 py-2.5 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-knock-amber"
+          >
+            + 代理登録（仮登録）
+          </Link>
+        </div>
       </div>
 
       {/* Search & Filters */}

@@ -4,3 +4,4 @@ export * from "./permissions";
 export * from "./status";
 export * from "./address";
 export * from "./subscription";
+export * from "./templates";
