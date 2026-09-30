@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { DEFAULT_TEMPLATES, getEffectivePrice } from "@knock/utils";
 import { PROXY_INITIAL_PASSWORD } from "@/lib/proxy-registration-constants";
+import { sendPushToUsers } from "@/lib/push";
 
 const required = (label: string) => z.string().trim().min(1, `${label}を入力してください`);
 
@@ -36,6 +37,8 @@ const proxyRegistrationSchema = z.object({
   bankAccountNumber: z.string().trim(),
   bankAccountName: z.string().trim(),
   occupationSubItemIds: z.array(z.string()),
+  // 受注者の登録時、この発注者と繋がった状態にする（空=繋がらない）
+  connectOrdererId: z.string().trim().optional(),
 });
 
 export type ProxyRegistrationInput = z.input<typeof proxyRegistrationSchema>;
@@ -63,11 +66,28 @@ export async function proxyRegisterCompany(input: ProxyRegistrationInput) {
     return { error: "このメールアドレスは既に登録されています" };
   }
 
+  const connectOrderer =
+    d.type === "CONTRACTOR" && d.connectOrdererId
+      ? await prisma.company.findFirst({
+          where: {
+            id: d.connectOrdererId,
+            adminCompanyId: admin.adminCompanyId,
+            type: { in: ["ORDERER", "BOTH"] },
+            isActive: true,
+            deletedAt: null,
+          },
+          select: { id: true, name: true },
+        })
+      : null;
+  if (d.type === "CONTRACTOR" && d.connectOrdererId && !connectOrderer) {
+    return { error: "繋がる発注者が見つかりません" };
+  }
+
   const hashedPassword = await bcrypt.hash(PROXY_INITIAL_PASSWORD, 12);
   const dateOfBirth = `${d.birthYear}-${d.birthMonth.padStart(2, "0")}-${d.birthDay.padStart(2, "0")}`;
 
   try {
-    const company = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const company = await tx.company.create({
         data: {
           type: d.type,
@@ -93,7 +113,7 @@ export async function proxyRegisterCompany(input: ProxyRegistrationInput) {
         },
       });
 
-      await tx.user.create({
+      const user = await tx.user.create({
         data: {
           companyId: company.id,
           email: d.loginEmail,
@@ -129,8 +149,66 @@ export async function proxyRegisterCompany(input: ProxyRegistrationInput) {
         });
       }
 
-      return company;
+      // 発注者との繋がりを成立させる（受注者の承認は不要）。
+      // ユーザーアプリの approveInvitation（発注者→受注者の申請を承認）と同じ状態を作る。
+      let ordererUserIds: string[] = [];
+      let chatRoomId: string | null = null;
+      if (connectOrderer) {
+        await tx.matching.create({
+          data: { inviteCompanyId: connectOrderer.id, beInviteCompanyId: company.id },
+        });
+
+        const chatRoom = await tx.chatRoom.create({
+          data: {
+            orderCompanyId: connectOrderer.id,
+            workerCompanyId: company.id,
+            type: "NEGOTIATION",
+            status: "OPEN",
+            lastMessageTime: new Date(),
+          },
+        });
+        chatRoomId = chatRoom.id;
+
+        const ordererUsers = await tx.user.findMany({
+          where: { companyId: connectOrderer.id, isActive: true, deletedAt: null },
+          select: { id: true },
+        });
+        ordererUserIds = ordererUsers.map((u) => u.id);
+
+        await tx.chatRoomMember.createMany({
+          data: [user.id, ...ordererUserIds].map((userId) => ({ roomId: chatRoom.id, userId, roleUser: 2 })),
+        });
+
+        await tx.message.create({
+          data: { roomId: chatRoom.id, userId: user.id, message: "つながりが成立しました", type: "ACTION" },
+        });
+
+        if (ordererUserIds.length > 0) {
+          await tx.notification.createMany({
+            data: ordererUserIds.map((userId) => ({
+              userId,
+              title: "つながり成立",
+              content: `${company.name}とのつながりが成立しました`,
+              type: 18,
+              roomId: chatRoom.id,
+              targetId: chatRoom.id,
+            })),
+          });
+        }
+      }
+
+      return { company, ordererUserIds, chatRoomId };
     });
+
+    if (result.chatRoomId && result.ordererUserIds.length > 0) {
+      void sendPushToUsers({
+        userIds: result.ordererUserIds,
+        title: "つながり成立",
+        body: `${d.businessName}とのつながりが成立しました`,
+        url: `/chat/${result.chatRoomId}`,
+      });
+    }
+    const company = result.company;
 
     return {
       success: true as const,
@@ -145,6 +223,23 @@ export async function proxyRegisterCompany(input: ProxyRegistrationInput) {
     console.error("[proxyRegisterCompany] Error:", err);
     return { error: "登録に失敗しました。もう一度お試しください。" };
   }
+}
+
+/** 代理登録で繋がる相手に選べる発注者（発注者・両方の有効な会社） */
+export async function getConnectableOrderers() {
+  const admin = await requireAdminSession();
+
+  const companies = await prisma.company.findMany({
+    where: {
+      adminCompanyId: admin.adminCompanyId,
+      type: { in: ["ORDERER", "BOTH"] },
+      isActive: true,
+      deletedAt: null,
+    },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+  return companies.map((c) => ({ id: c.id, name: c.name ?? "（名称未設定）" }));
 }
 
 /** 会社のユーザーごとに、パスワードが代理登録時の初期値のままかを返す（userId → true=未変更） */

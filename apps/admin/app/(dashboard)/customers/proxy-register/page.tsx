@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getOccupationMasters } from "@/lib/actions/customers";
-import { proxyRegisterCompany } from "@/lib/actions/proxy-registration";
+import { getConnectableOrderers, proxyRegisterCompany } from "@/lib/actions/proxy-registration";
 import OccupationSelector from "@/components/occupation-selector";
 import {
   PREFECTURES,
@@ -18,6 +18,9 @@ import { USER_APP_LOGIN_URL } from "@/lib/proxy-registration-constants";
 type MajorItem = Awaited<ReturnType<typeof getOccupationMasters>>[number];
 type OccSelection = { occupationSubItemId: string; note?: string };
 type CompanyKind = "ORDERER" | "CONTRACTOR";
+
+// 受注者の代理登録で、繋がる相手として既定で選ぶ発注者
+const DEFAULT_CONNECT_ORDERER_NAME = "ディオ";
 
 const inputCls =
   "w-full rounded-xl bg-[#F0F0F0] border-none px-4 py-2.5 text-[13px] text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-knock-blue/20 focus:outline-none";
@@ -47,9 +50,17 @@ export default function ProxyRegisterPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ companyId: string; loginEmail: string; password: string } | null>(null);
+  const [orderers, setOrderers] = useState<{ id: string; name: string }[]>([]);
+  const [connectOrdererId, setConnectOrdererId] = useState("");
 
   useEffect(() => {
     getOccupationMasters().then(setMasters).catch(() => setMasters([]));
+    getConnectableOrderers()
+      .then((list) => {
+        setOrderers(list);
+        setConnectOrdererId(list.find((o) => o.name.includes(DEFAULT_CONNECT_ORDERER_NAME))?.id ?? "");
+      })
+      .catch(() => setOrderers([]));
   }, []);
 
   function set<K extends keyof ProxyRegistrationFields>(key: K, value: ProxyRegistrationFields[K]) {
@@ -105,6 +116,7 @@ export default function ProxyRegisterPage() {
         loginEmail,
         companyForm: fields.companyForm as "CORPORATION" | "INDIVIDUAL",
         occupationSubItemIds: occSelections.map((s) => s.occupationSubItemId),
+        connectOrdererId: type === "CONTRACTOR" ? connectOrdererId : "",
       });
       if ("error" in res) {
         setError(res.error ?? "登録に失敗しました");
@@ -122,11 +134,18 @@ export default function ProxyRegisterPage() {
 
   /* ──────────── 完了: ログイン情報の表示 ──────────── */
   if (phase === "done" && result) {
+    const connectedOrdererName =
+      type === "CONTRACTOR" ? orderers.find((o) => o.id === connectOrdererId)?.name : undefined;
     const loginText = `ログインURL：${USER_APP_LOGIN_URL}\nメールアドレス：${result.loginEmail}\n初期パスワード：${result.password}`;
     return (
       <div className="mx-auto max-w-2xl">
         <h1 className="text-[24px] font-bold text-gray-900">代理登録が完了しました</h1>
         <p className="mt-1 text-[14px] text-gray-500">{fields.businessName} を仮登録しました。</p>
+        {connectedOrdererName && (
+          <p className="mt-1 text-[14px] text-gray-500">
+            {connectedOrdererName} と繋がった状態です。
+          </p>
+        )}
 
         <div className={cardCls + " mt-6"}>
           <h2 className="text-[16px] font-bold text-gray-900">ログイン情報</h2>
@@ -381,6 +400,26 @@ export default function ProxyRegisterPage() {
           )}
           <OccupationSelector masters={masters} value={occSelections} onChange={setOccSelections} />
         </div>
+
+        {type === "CONTRACTOR" && (
+          <div className={cardCls}>
+            <h2 className="text-[16px] font-bold text-gray-900">発注者との繋がり</h2>
+            <div>
+              <label className={labelCls}>繋がる発注者</label>
+              <select
+                value={connectOrdererId}
+                onChange={(e) => setConnectOrdererId(e.target.value)}
+                className={selectCls}
+              >
+                <option value="">繋がらない</option>
+                {orderers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </select>
+            </div>
+            <p className="text-[12px] text-gray-500">
+              選んだ発注者と繋がった状態（チャットルーム作成済み）で登録します。受注者の承認は不要です。発注者には「つながり成立」の通知が届きます。
+            </p>
+          </div>
+        )}
       </div>
 
       {contractorMissing.length > 0 && (
