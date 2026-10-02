@@ -122,6 +122,9 @@ function SiteCard({
     cta = tx.isAdditional
       ? { href: `/orders/${tx.id}/additional-review`, label: "追加工事を確定する" }
       : { href: `/orders/${tx.id}/confirm`, label: "発注を確定する" };
+  } else if (isOrderer && tx.completionStatus === "CLOSED") {
+    // 発注者: 施工報告の提出済み → 施工報告（現場詳細の確認・差し戻し）
+    cta = { href: `/orders/${tx.id}/completion-report`, label: "施工報告を見る" };
   }
 
   // 現場情報ルーム・注文書へのテキストリンク（カード下部）
