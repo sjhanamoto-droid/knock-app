@@ -201,6 +201,8 @@ export async function generateOrderSheet(orderId: string): Promise<string> {
     // 現場情報
     siteName: fullSiteName,
     siteCode: floor.code ?? floor.parent?.code ?? "",
+    workStartDay: floor.startDayRequest,
+    workEndDay: floor.endDayRequest,
     // 明細
     priceDetails: pdfPriceDetails,
     subtotal: Number(subtotal),
@@ -309,7 +311,13 @@ export async function generateOrderAcceptance(
       factoryFloorOrder: {
         select: {
           factoryFloor: {
-            select: { code: true, remarks: true, parent: { select: { code: true } } },
+            select: {
+              code: true,
+              remarks: true,
+              startDayRequest: true,
+              endDayRequest: true,
+              parent: { select: { code: true } },
+            },
           },
         },
       },
@@ -353,6 +361,8 @@ export async function generateOrderAcceptance(
     orderCompanyRepresentative: "",
     siteName: meta.siteName ?? "",
     siteCode: floor.code ?? floor.parent?.code ?? "",
+    workStartDay: floor.startDayRequest,
+    workEndDay: floor.endDayRequest,
     priceDetails: (meta.lineItems ?? meta.priceDetails ?? []).map((p) => ({
       name: p.name ?? "",
       specifications: p.specifications ?? "",

@@ -26,6 +26,9 @@ export interface OrderSheetPdfData {
   // 現場情報
   siteName: string;
   siteCode: string;
+  // 工事日（現場の工期 開始〜終了）
+  workStartDay?: Date | null;
+  workEndDay?: Date | null;
   // 明細
   priceDetails: {
     name: string;
@@ -199,8 +202,15 @@ function drawAcceptanceLead(doc: jsPDF, data: OrderSheetPdfData, y: number): num
   return y + 9;
 }
 
+function formatWorkDay(start?: Date | null, end?: Date | null): string {
+  const s = dateJP(start ?? null);
+  const e = dateJP(end ?? null);
+  if (s && e && s !== e) return `${s} 〜 ${e}`;
+  return s || e;
+}
+
 /**
- * 現場名・現場コード
+ * 現場名・現場コード・工事日
  */
 function drawSiteInfo(doc: jsPDF, data: OrderSheetPdfData, y: number): number {
   doc.setFontSize(10.5);
@@ -221,6 +231,17 @@ function drawSiteInfo(doc: jsPDF, data: OrderSheetPdfData, y: number): number {
     doc.setFont("NotoSansJP", "normal");
     const codeX = ML + doc.getTextWidth("現場コード:") + 3;
     doc.text(data.siteCode, codeX, y);
+    y += 8;
+  }
+
+  // 工事日（開始〜終了。同日・片方のみなら1日だけ表示）
+  const workDay = formatWorkDay(data.workStartDay, data.workEndDay);
+  if (workDay) {
+    doc.setFont("NotoSansJP", "bold");
+    doc.text("工事日:", ML, y);
+    doc.setFont("NotoSansJP", "normal");
+    const workDayX = ML + doc.getTextWidth("工事日:") + 3;
+    doc.text(workDay, workDayX, y);
     y += 8;
   }
 
