@@ -5,10 +5,11 @@ import { requireSession } from "@/lib/session";
 import {
   generateInvoice,
   generateInvoiceFromOrders,
-  getBillableOrdersForInvoice,
+  getBillableRowsForInvoice,
 } from "@/lib/services/document-generator";
 import { getBillingMonth } from "@/lib/helpers/billing-period";
-import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
+import { getInvoicedOrderIds, getInvoicedProgressIds } from "@/lib/helpers/invoiced-orders";
+import { PROGRESS_KEY_PREFIX, progressLineName, progressTax } from "@/lib/helpers/progress-billing";
 
 /**
  * 請求書候補を取得
@@ -38,6 +39,8 @@ export async function getInvoiceCandidates(yearMonth: string) {
       ],
       completedDay: { gte: rawStart, lte: rawEnd },
       factoryFloor: { deletedAt: null },
+      // 出来高を確定済みの発注書は出来高側(申請月)で請求する
+      progressBillings: { none: { status: "CONFIRMED" } },
     },
     select: {
       id: true,
@@ -53,7 +56,33 @@ export async function getInvoiceCandidates(yearMonth: string) {
     },
   });
 
-  if (orders.length === 0) return [];
+  // 確定済みで未請求の出来高（請求月=申請月）
+  const progressItems = await prisma.progressBilling.findMany({
+    where: {
+      status: "CONFIRMED",
+      billingMonth: yearMonth,
+      factoryFloorOrder: {
+        deletedAt: null,
+        OR: [
+          { workCompanyId: user.companyId },
+          { factoryFloor: { companyId: user.companyId } },
+        ],
+        factoryFloor: { deletedAt: null },
+      },
+    },
+    select: {
+      id: true,
+      amount: true,
+      factoryFloorOrder: {
+        select: {
+          workCompanyId: true,
+          factoryFloor: { select: { companyId: true, company: { select: { name: true } } } },
+        },
+      },
+    },
+  });
+
+  if (orders.length === 0 && progressItems.length === 0) return [];
 
   // 各発注者の締め日を取得し、締め月の判定に使う
   const candidateOrdererIds = [...new Set(orders.map((o) => o.factoryFloor.companyId))];
@@ -66,7 +95,12 @@ export async function getInvoiceCandidates(yearMonth: string) {
   );
 
   // 受注者(自社)名を取得（FactoryFloorOrder には workCompany リレーションが無いため別途取得）
-  const candidateWorkerIds = [...new Set(orders.map((o) => o.workCompanyId))];
+  const candidateWorkerIds = [
+    ...new Set([
+      ...orders.map((o) => o.workCompanyId),
+      ...progressItems.map((p) => p.factoryFloorOrder.workCompanyId),
+    ]),
+  ];
   const candidateWorkers = await prisma.company.findMany({
     where: { id: { in: candidateWorkerIds } },
     select: { id: true, name: true },
@@ -130,6 +164,32 @@ export async function getInvoiceCandidates(yearMonth: string) {
     }
   }
 
+  // 出来高: 確定金額(税抜)＋消費税を「1件」として合算
+  const invoicedProgressIds = await getInvoicedProgressIds({ companyIdEitherSide: user.companyId });
+  for (const p of progressItems) {
+    if (invoicedProgressIds.has(p.id)) continue;
+    const workCompanyId = p.factoryFloorOrder.workCompanyId;
+    const orderCompanyId = p.factoryFloorOrder.factoryFloor.companyId;
+    const key = `${workCompanyId}::${orderCompanyId}`;
+    const subtotal = Number(p.amount);
+    const total = subtotal + progressTax(subtotal);
+    const existing = pairMap.get(key);
+    if (existing) {
+      existing.orderCount += 1;
+      existing.totalAmount += total;
+    } else {
+      pairMap.set(key, {
+        workerCompanyId: workCompanyId,
+        orderCompanyId,
+        workerCompanyName: candidateWorkerNameById.get(workCompanyId) ?? "",
+        orderCompanyName: p.factoryFloorOrder.factoryFloor.company?.name ?? "",
+        role: workCompanyId === user.companyId ? "worker" : "orderer",
+        orderCount: 1,
+        totalAmount: total,
+      });
+    }
+  }
+
   return Array.from(pairMap.values());
 }
 
@@ -139,31 +199,26 @@ export async function getInvoiceCandidates(yearMonth: string) {
  */
 export async function getInvoicePreviewForWorker(workerCompanyId: string, yearMonth: string) {
   const user = await requireSession();
-  const [worker, orders] = await Promise.all([
+  const [worker, billableRows] = await Promise.all([
     prisma.company.findUnique({ where: { id: workerCompanyId }, select: { name: true } }),
-    // user.companyId = 発注者(orderCompany)
-    getBillableOrdersForInvoice(workerCompanyId, user.companyId, yearMonth),
+    // user.companyId = 発注者(orderCompany)。発注書(注文書金額)＋確定済み出来高(申請月)
+    getBillableRowsForInvoice(workerCompanyId, user.companyId, yearMonth),
   ]);
 
-  const rows = orders.map((o) => {
-    const sheet = o.documents[0];
-    const sum = (key: "subtotal" | "taxAmount" | "totalAmount") =>
-      o.documents.reduce((s, d) => s + Number(d[key] ?? 0), 0);
-    return {
-      orderId: o.id,
-      documentNumber: sheet?.documentNumber ?? "",
-      siteName:
-        o.factoryFloor.name ??
-        ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
-        "",
-      parentSiteName: o.factoryFloor.parent?.name ?? null,
-      siteCode: o.factoryFloor.code ?? o.factoryFloor.parent?.code ?? "",
-      completedDay: o.completedDay ? o.completedDay.toISOString() : null,
-      subtotal: sum("subtotal"),
-      taxAmount: sum("taxAmount"),
-      totalAmount: sum("totalAmount"),
-    };
-  });
+  const rows = billableRows.map((r) => ({
+    // orderId = 明細キー（発注ID or "pb:<出来高ID>"）
+    orderId: r.key,
+    type: r.type,
+    isFinal: r.progressKind === "FINAL",
+    documentNumber: r.documentNumber,
+    siteName: r.siteName,
+    parentSiteName: r.parentSiteName,
+    siteCode: r.siteCode,
+    completedDay: r.date ? r.date.toISOString() : null,
+    subtotal: r.subtotal,
+    taxAmount: r.taxAmount,
+    totalAmount: r.totalAmount,
+  }));
 
   return {
     workerCompanyName: worker?.name ?? "",
@@ -426,6 +481,7 @@ export async function markInvoicePaid(documentId: string) {
   // 新方式: metadata.orderIds（発注ID）/ 旧方式: metadata.deliveryNoteIds（納品書ID）
   const metadata = doc.metadata as Record<string, unknown> | null;
   const metaOrderIds = (metadata?.orderIds as string[]) ?? [];
+  const metaProgressIds = (metadata?.progressBillingIds as string[]) ?? [];
   const deliveryNoteIds = (metadata?.deliveryNoteIds as string[]) ?? [];
 
   await prisma.$transaction(async (tx) => {
@@ -438,10 +494,18 @@ export async function markInvoicePaid(documentId: string) {
     // 関連する発注の FactoryFloor を DEAL_COMPLETED に更新
     let floorIds: string[] = [];
 
-    if (metaOrderIds.length > 0) {
-      // 新方式: 発注IDから直接 FactoryFloor を解決
+    if (metaOrderIds.length > 0 || metaProgressIds.length > 0) {
+      // 新方式: 発注ID（出来高は出来高の発注ID）から直接 FactoryFloor を解決
+      const progressOrderIds = metaProgressIds.length
+        ? (
+            await tx.progressBilling.findMany({
+              where: { id: { in: metaProgressIds } },
+              select: { factoryFloorOrderId: true },
+            })
+          ).map((p) => p.factoryFloorOrderId)
+        : [];
       const orders = await tx.factoryFloorOrder.findMany({
-        where: { id: { in: metaOrderIds } },
+        where: { id: { in: [...metaOrderIds, ...progressOrderIds] } },
         select: { factoryFloorId: true },
       });
       floorIds = orders.map((o) => o.factoryFloorId);
@@ -475,9 +539,11 @@ export async function markInvoicePaid(documentId: string) {
         select: { metadata: true },
       });
       const paidOrderIds = new Set<string>();
+      const paidProgressIds = new Set<string>();
       for (const inv of paidInvoices) {
         const meta = inv.metadata as Record<string, unknown> | null;
         for (const id of (meta?.orderIds as string[]) ?? []) paidOrderIds.add(id);
+        for (const id of (meta?.progressBillingIds as string[]) ?? []) paidProgressIds.add(id);
       }
 
       const uniqueFloorIds = [...new Set(floorIds)];
@@ -487,14 +553,25 @@ export async function markInvoicePaid(documentId: string) {
           deletedAt: null,
           status: { in: ["PENDING", "APPROVED", "CONFIRMED"] },
         },
-        select: { id: true, factoryFloorId: true, status: true, completionStatus: true },
+        select: {
+          id: true,
+          factoryFloorId: true,
+          status: true,
+          completionStatus: true,
+          progressBillings: { where: { status: "CONFIRMED" }, select: { id: true } },
+        },
       });
+      // 出来高で完了した発注書は、確定済みの出来高がすべて支払済みなら支払済みとみなす
+      const isPaid = (o: (typeof floorOrders)[number]) =>
+        o.progressBillings.length > 0
+          ? o.progressBillings.every((p) => paidProgressIds.has(p.id))
+          : paidOrderIds.has(o.id);
       const settledFloorIds = uniqueFloorIds.filter((fid) => {
         const orders = floorOrders.filter((o) => o.factoryFloorId === fid);
         return (
           orders.length > 0 &&
           orders.every(
-            (o) => o.status === "CONFIRMED" && o.completionStatus === "CLOSED" && paidOrderIds.has(o.id)
+            (o) => o.status === "CONFIRMED" && o.completionStatus === "CLOSED" && isPaid(o)
           )
         );
       });
@@ -532,9 +609,68 @@ export async function markInvoicePaid(documentId: string) {
   return { success: true };
 }
 
+const progressDetailSelect = {
+  id: true,
+  appliedAt: true,
+  billingMonth: true,
+  amount: true,
+  kind: true,
+  factoryFloorOrder: {
+    select: {
+      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
+      documents: {
+        where: { type: "ORDER_SHEET" as const, status: { not: "VOID" as const }, deletedAt: null },
+        orderBy: { createdAt: "desc" as const },
+        select: { pdfUrl: true, documentNumber: true },
+      },
+    },
+  },
+} as const;
+
+type ProgressDetail = {
+  id: string;
+  appliedAt: Date;
+  billingMonth: string;
+  amount: bigint;
+  kind: "PARTIAL" | "FINAL";
+  factoryFloorOrder: {
+    factoryFloor: { name: string | null; code: string | null; parent: { code: string | null; name: string | null } | null };
+    documents: { pdfUrl: string | null; documentNumber: string | null }[];
+  };
+};
+
+/** 出来高を請求書詳細の行の形に（orderId = "pb:<出来高ID>" のキー） */
+function progressDetailRow(p: ProgressDetail) {
+  const floor = p.factoryFloorOrder.factoryFloor;
+  const sheet = p.factoryFloorOrder.documents[0] ?? null;
+  const subtotal = Number(p.amount);
+  return {
+    orderId: `${PROGRESS_KEY_PREFIX}${p.id}`,
+    siteName: progressLineName(floor.name ?? "", p.billingMonth, p.kind),
+    parentSiteName: floor.parent?.name ?? "",
+    siteCode: floor.code ?? floor.parent?.code ?? "",
+    documentNumber: sheet?.documentNumber ?? "",
+    subtotal,
+    amount: subtotal + progressTax(subtotal),
+    orderSheetPdfUrl: sheet?.pdfUrl ?? null,
+  };
+}
+
+/** 明細キーを発注IDと出来高IDに分ける */
+function splitRowKeys(keys: string[]) {
+  const orderIds: string[] = [];
+  const progressIds: string[] = [];
+  for (const k of keys) {
+    if (k.startsWith(PROGRESS_KEY_PREFIX)) progressIds.push(k.slice(PROGRESS_KEY_PREFIX.length));
+    else orderIds.push(k);
+  }
+  return { orderIds, progressIds };
+}
+
 /**
- * 請求書に含まれる発注の一覧（注文書PDF付き）。
- * 「含まれる発注」の各項目タップで注文書を開くために metadata.orderIds を解決する。
+ * 請求書に含まれる発注・出来高の一覧（注文書PDF付き）。
+ * 「含まれる発注」の各項目タップで注文書を開くために metadata.orderIds / progressBillingIds を解決する。
+ * orderId は明細キー（発注ID or "pb:<出来高ID>"）。
  */
 export async function getInvoiceOrderRows(documentId: string) {
   const user = await requireSession();
@@ -546,23 +682,30 @@ export async function getInvoiceOrderRows(documentId: string) {
     select: { metadata: true },
   });
   if (!doc) return [];
-  const orderIds = ((doc.metadata as Record<string, unknown> | null)?.orderIds as string[]) ?? [];
-  if (orderIds.length === 0) return [];
+  const meta = doc.metadata as Record<string, unknown> | null;
+  const orderIds = (meta?.orderIds as string[]) ?? [];
+  const progressIds = (meta?.progressBillingIds as string[]) ?? [];
+  if (orderIds.length === 0 && progressIds.length === 0) return [];
 
-  const orders = await prisma.factoryFloorOrder.findMany({
-    where: { id: { in: orderIds } },
-    select: {
-      id: true,
-      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
-      documents: {
-        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
-        orderBy: { createdAt: "desc" },
-        select: { pdfUrl: true, documentNumber: true, subtotal: true, totalAmount: true },
+  const [orders, progress] = await Promise.all([
+    prisma.factoryFloorOrder.findMany({
+      where: { id: { in: orderIds } },
+      select: {
+        id: true,
+        factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
+        documents: {
+          where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+          orderBy: { createdAt: "desc" },
+          select: { pdfUrl: true, documentNumber: true, subtotal: true, totalAmount: true },
+        },
       },
-    },
-  });
+    }),
+    progressIds.length
+      ? prisma.progressBilling.findMany({ where: { id: { in: progressIds } }, select: progressDetailSelect })
+      : Promise.resolve([]),
+  ]);
   const byId = new Map(orders.map((o) => [o.id, o]));
-  return orderIds.map((id) => {
+  const orderRows = orderIds.map((id) => {
     const o = byId.get(id);
     const sheet = o?.documents[0] ?? null;
     return {
@@ -577,11 +720,17 @@ export async function getInvoiceOrderRows(documentId: string) {
       orderSheetPdfUrl: sheet?.pdfUrl ?? null,
     };
   });
+  const progressById = new Map(progress.map((p) => [p.id, p]));
+  const progressRows = progressIds
+    .map((id) => progressById.get(id))
+    .filter((p): p is NonNullable<typeof p> => !!p)
+    .map(progressDetailRow);
+  return [...orderRows, ...progressRows];
 }
 
 /**
- * この請求書に追加できる発注（同じ取引先・締め完了(CLOSED)・未請求）。
- * 二重請求防止のため、既存の非VOID請求書に含まれる発注は除外する。
+ * この請求書に追加できる発注・出来高（同じ取引先・締め完了(CLOSED)/確定済みの出来高・未請求）。
+ * 二重請求防止のため、既存の非VOID請求書に含まれるものは除外する。
  */
 export async function getAddableOrders(documentId: string) {
   const user = await requireSession();
@@ -594,26 +743,42 @@ export async function getAddableOrders(documentId: string) {
   });
   if (!doc) return [];
 
-  const orders = await prisma.factoryFloorOrder.findMany({
-    where: {
-      deletedAt: null, status: "CONFIRMED", completionStatus: "CLOSED",
-      workCompanyId: doc.workerCompanyId,
-      factoryFloor: { companyId: doc.orderCompanyId, deletedAt: null },
-    },
-    select: {
-      id: true, completedDay: true,
-      factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
-      documents: {
-        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
-        select: { subtotal: true, totalAmount: true },
+  const [orders, progress, invoiced, invoicedProgress] = await Promise.all([
+    prisma.factoryFloorOrder.findMany({
+      where: {
+        deletedAt: null, status: "CONFIRMED", completionStatus: "CLOSED",
+        workCompanyId: doc.workerCompanyId,
+        factoryFloor: { companyId: doc.orderCompanyId, deletedAt: null },
+        // 出来高を確定済みの発注書は出来高の行で追加する
+        progressBillings: { none: { status: "CONFIRMED" } },
       },
-    },
-    orderBy: { completedDay: "desc" },
-  });
+      select: {
+        id: true, completedDay: true,
+        factoryFloor: { select: { name: true, code: true, parent: { select: { code: true, name: true } } } },
+        documents: {
+          where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
+          select: { subtotal: true, totalAmount: true },
+        },
+      },
+      orderBy: { completedDay: "desc" },
+    }),
+    prisma.progressBilling.findMany({
+      where: {
+        status: "CONFIRMED",
+        factoryFloorOrder: {
+          deletedAt: null,
+          workCompanyId: doc.workerCompanyId,
+          factoryFloor: { companyId: doc.orderCompanyId, deletedAt: null },
+        },
+      },
+      select: progressDetailSelect,
+      orderBy: { appliedAt: "desc" },
+    }),
+    getInvoicedOrderIds({ companyIdEitherSide: user.companyId }),
+    getInvoicedProgressIds({ companyIdEitherSide: user.companyId }),
+  ]);
 
-  const invoiced = await getInvoicedOrderIds({ companyIdEitherSide: user.companyId });
-
-  return orders
+  const orderRows = orders
     .filter((o) => o.documents.length > 0 && !invoiced.has(o.id))
     .map((o) => ({
       orderId: o.id,
@@ -625,11 +790,19 @@ export async function getAddableOrders(documentId: string) {
       amount: o.documents.reduce((s, d) => s + Number(d.totalAmount ?? 0), 0),
       completedDay: o.completedDay?.toISOString() ?? null,
     }));
+  const progressRows = progress
+    .filter((p) => !invoicedProgress.has(p.id))
+    .map((p) => {
+      const { orderSheetPdfUrl: _pdf, documentNumber: _num, ...row } = progressDetailRow(p);
+      return { ...row, completedDay: p.appliedAt.toISOString() };
+    });
+  return [...orderRows, ...progressRows];
 }
 
 /**
- * 発注セットを編集して請求書を作り直す（追加/削除の反映）。
- * 旧請求書をVOIDにし、新しい発注セットで請求書を再作成する。
+ * 発注・出来高のセットを編集して請求書を作り直す（追加/削除の反映）。
+ * 旧請求書をVOIDにし、新しいセットで請求書を再作成する。
+ * orderIds は明細キー（発注ID or "pb:<出来高ID>"）。
  * 支払済み(CONFIRMED)・無効(VOID)は編集不可。異なる取引先の発注は混在不可。
  */
 export async function rebuildInvoiceFromOrders(documentId: string, orderIds: string[]) {
@@ -644,23 +817,40 @@ export async function rebuildInvoiceFromOrders(documentId: string, orderIds: str
   if (!doc) throw new Error("請求書が見つかりません");
   // 確定済み(ISSUED)・支払済み(CONFIRMED)・無効(VOID)は編集不可。確認待ち(DRAFT)のみ編集可。
   if (doc.status !== "DRAFT") throw new Error("確定済みの請求書は編集できません");
-  const ids = [...new Set(orderIds)];
-  if (ids.length === 0) throw new Error("発注を1件以上選択してください");
+  const keys = [...new Set(orderIds)];
+  if (keys.length === 0) throw new Error("発注を1件以上選択してください");
+  const { orderIds: ids, progressIds } = splitRowKeys(keys);
 
-  const orders = await prisma.factoryFloorOrder.findMany({
-    where: { id: { in: ids }, deletedAt: null, completionStatus: "CLOSED" },
-    select: { id: true, workCompanyId: true, factoryFloor: { select: { companyId: true } } },
-  });
+  const [orders, progress] = await Promise.all([
+    prisma.factoryFloorOrder.findMany({
+      where: { id: { in: ids }, deletedAt: null, completionStatus: "CLOSED" },
+      select: { id: true, workCompanyId: true, factoryFloor: { select: { companyId: true } } },
+    }),
+    prisma.progressBilling.findMany({
+      where: { id: { in: progressIds }, status: "CONFIRMED" },
+      select: {
+        id: true,
+        factoryFloorOrder: { select: { workCompanyId: true, factoryFloor: { select: { companyId: true } } } },
+      },
+    }),
+  ]);
   if (orders.length !== ids.length) throw new Error("締め完了していない発注が含まれています");
-  const mismatch = orders.some(
-    (o) => o.workCompanyId !== doc.workerCompanyId || o.factoryFloor.companyId !== doc.orderCompanyId
-  );
+  if (progress.length !== progressIds.length) throw new Error("確定していない出来高が含まれています");
+  const mismatch =
+    orders.some(
+      (o) => o.workCompanyId !== doc.workerCompanyId || o.factoryFloor.companyId !== doc.orderCompanyId
+    ) ||
+    progress.some(
+      (p) =>
+        p.factoryFloorOrder.workCompanyId !== doc.workerCompanyId ||
+        p.factoryFloorOrder.factoryFloor.companyId !== doc.orderCompanyId
+    );
   if (mismatch) throw new Error("この請求書と異なる取引先の発注は追加できません");
 
   const billingDate = doc.issuedAt ?? new Date();
   // 生成時点で旧請求書(documentId)はまだ非VOIDのため、自分自身の発注が二重請求ガードで
   // 落ちないよう excludeInvoiceIds に渡す（他の請求書に載る発注は除外される）。
-  const newDocId = await generateInvoiceFromOrders(ids, billingDate, [documentId]);
+  const newDocId = await generateInvoiceFromOrders(ids, billingDate, [documentId], progressIds);
 
   await prisma.$transaction(async (tx) => {
     await tx.document.update({

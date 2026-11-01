@@ -180,6 +180,10 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
 
   // 親現場かどうか（parentId がなく発注者の場合）
   const isParentSite = !site.parentId && isOrderer;
+  // 発注一覧: 受注者には自社(この現場の受注会社)宛ての発注だけを見せる
+  const visibleOrders = isOrderer
+    ? site.orders
+    : site.orders.filter((o) => o.workCompanyId === site.workCompanyId);
 
   // 受注者向け: 自社宛の未回答(PENDING)発注（「発注依頼に回答」ボタン用）
   const pendingOrderId = !isOrderer ? site.pendingOrders?.[0]?.id ?? null : null;
@@ -1120,23 +1124,23 @@ export function SiteDetailClient({ siteId, initialSite, initialProjectSummary }:
             </div>
           )}
 
-          {/* 9. 発注（子現場・発注者のみ） */}
-          {!isParentSite && isOrderer && (
+          {/* 9. 発注（子現場）。発注者は全発注、受注者は自社が受けた発注の注文書・注文請書を見られる */}
+          {!isParentSite && (
             <div className="rounded-2xl bg-white shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
               <div className="px-4 pt-4 pb-1">
                 <h3 className="text-[14px] font-bold text-knock-text">
-                  発注 ({site.orders.length})
+                  発注 ({visibleOrders.length})
                 </h3>
               </div>
               <div className="px-4 pb-4">
                 <div className={dividerClass} />
-                {site.orders.length === 0 ? (
+                {visibleOrders.length === 0 ? (
                   <p className="text-[13px] text-knock-text-muted">
                     発注がありません
                   </p>
                 ) : (
                   <div className="flex flex-col gap-2">
-                    {site.orders.map((order) => {
+                    {visibleOrders.map((order) => {
                       const orderSheet = order.documents?.find((d) => d.type === "ORDER_SHEET") ?? null;
                       const orderAcceptance = order.documents?.find((d) => d.type === "ORDER_ACCEPTANCE") ?? null;
                       const completion = completionStatusMeta(order.completionStatus);

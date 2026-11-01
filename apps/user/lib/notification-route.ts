@@ -27,6 +27,10 @@ export function getNotificationRoute(type: number, targetId: string | null): str
     case 26: return `/orders/${targetId}/completion-report`;  // (旧)納品承認 → 完了報告へ
     case 37: return `/work-completion/${targetId}`;  // 工事完了(締め)の確認 → 工事完了画面(現場全体)
     case 38: return `/work-completion/${targetId}`;  // 工事完了 → 工事完了画面(現場全体)
+    // V2: 出来高
+    case 44: return `/orders/${targetId}/progress`;  // 出来高の確定依頼 → 出来高の確定(発注者)
+    case 45: return `/work-completion/${targetId}`;  // 出来高が確定しました → 工事完了画面(受注者)
+    case 46: return `/work-completion/${targetId}`;  // 出来高の差し戻し → 工事完了画面(受注者)
     // V2: 発注辞退
     case 31: return `/sites/${targetId}`;                  // 発注辞退 → 現場詳細
     // V2: 追加工事

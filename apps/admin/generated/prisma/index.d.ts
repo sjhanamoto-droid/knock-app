@@ -263,6 +263,11 @@ export type PriceOrderDetail = $Result.DefaultSelection<Prisma.$PriceOrderDetail
  * 
  */
 export type CompletionReport = $Result.DefaultSelection<Prisma.$CompletionReportPayload>
+/**
+ * Model ProgressBilling
+ * 
+ */
+export type ProgressBilling = $Result.DefaultSelection<Prisma.$ProgressBillingPayload>
 
 /**
  * Enums
@@ -551,6 +556,23 @@ export const PaymentDueType: {
 
 export type PaymentDueType = (typeof PaymentDueType)[keyof typeof PaymentDueType]
 
+
+export const ProgressBillingKind: {
+  PARTIAL: 'PARTIAL',
+  FINAL: 'FINAL'
+};
+
+export type ProgressBillingKind = (typeof ProgressBillingKind)[keyof typeof ProgressBillingKind]
+
+
+export const ProgressBillingStatus: {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  RETURNED: 'RETURNED'
+};
+
+export type ProgressBillingStatus = (typeof ProgressBillingStatus)[keyof typeof ProgressBillingStatus]
+
 }
 
 export type CompanyType = $Enums.CompanyType
@@ -668,6 +690,14 @@ export const WorkforceCapacity: typeof $Enums.WorkforceCapacity
 export type PaymentDueType = $Enums.PaymentDueType
 
 export const PaymentDueType: typeof $Enums.PaymentDueType
+
+export type ProgressBillingKind = $Enums.ProgressBillingKind
+
+export const ProgressBillingKind: typeof $Enums.ProgressBillingKind
+
+export type ProgressBillingStatus = $Enums.ProgressBillingStatus
+
+export const ProgressBillingStatus: typeof $Enums.ProgressBillingStatus
 
 /**
  * ##  Prisma Client ʲˢ
@@ -1286,6 +1316,16 @@ export class PrismaClient<
     * ```
     */
   get completionReport(): Prisma.CompletionReportDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.progressBilling`: Exposes CRUD operations for the **ProgressBilling** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProgressBillings
+    * const progressBillings = await prisma.progressBilling.findMany()
+    * ```
+    */
+  get progressBilling(): Prisma.ProgressBillingDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1776,7 +1816,8 @@ export namespace Prisma {
     FactoryFloorPdf: 'FactoryFloorPdf',
     FactoryFloorOccupation: 'FactoryFloorOccupation',
     PriceOrderDetail: 'PriceOrderDetail',
-    CompletionReport: 'CompletionReport'
+    CompletionReport: 'CompletionReport',
+    ProgressBilling: 'ProgressBilling'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1795,7 +1836,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "adminCompany" | "adminUser" | "user" | "company" | "subscription" | "userVerification" | "paymentInfo" | "notification" | "deviceToken" | "companyInsurance" | "billingRequest" | "billingRequestDetail" | "additionalOrder" | "invoice" | "chatRoom" | "chatRoomMember" | "message" | "templateMessage" | "tmpReport" | "contractMaster" | "companyContract" | "companyContractPdf" | "matching" | "invited" | "document" | "evaluation" | "trustScore" | "jobPosting" | "jobApplication" | "availabilitySlot" | "area" | "companyArea" | "prefecture" | "city" | "town" | "occupationMajorItem" | "occupationSubItem" | "companyOccupation" | "unit" | "taxMaster" | "qualificationMaster" | "userQualification" | "factoryFloor" | "factoryFloorMember" | "factoryFloorOrder" | "factoryFloorImage" | "factoryFloorPdf" | "factoryFloorOccupation" | "priceOrderDetail" | "completionReport"
+      modelProps: "adminCompany" | "adminUser" | "user" | "company" | "subscription" | "userVerification" | "paymentInfo" | "notification" | "deviceToken" | "companyInsurance" | "billingRequest" | "billingRequestDetail" | "additionalOrder" | "invoice" | "chatRoom" | "chatRoomMember" | "message" | "templateMessage" | "tmpReport" | "contractMaster" | "companyContract" | "companyContractPdf" | "matching" | "invited" | "document" | "evaluation" | "trustScore" | "jobPosting" | "jobApplication" | "availabilitySlot" | "area" | "companyArea" | "prefecture" | "city" | "town" | "occupationMajorItem" | "occupationSubItem" | "companyOccupation" | "unit" | "taxMaster" | "qualificationMaster" | "userQualification" | "factoryFloor" | "factoryFloorMember" | "factoryFloorOrder" | "factoryFloorImage" | "factoryFloorPdf" | "factoryFloorOccupation" | "priceOrderDetail" | "completionReport" | "progressBilling"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5499,6 +5540,80 @@ export namespace Prisma {
           }
         }
       }
+      ProgressBilling: {
+        payload: Prisma.$ProgressBillingPayload<ExtArgs>
+        fields: Prisma.ProgressBillingFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProgressBillingFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProgressBillingFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>
+          }
+          findFirst: {
+            args: Prisma.ProgressBillingFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProgressBillingFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>
+          }
+          findMany: {
+            args: Prisma.ProgressBillingFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>[]
+          }
+          create: {
+            args: Prisma.ProgressBillingCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>
+          }
+          createMany: {
+            args: Prisma.ProgressBillingCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProgressBillingCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>[]
+          }
+          delete: {
+            args: Prisma.ProgressBillingDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>
+          }
+          update: {
+            args: Prisma.ProgressBillingUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProgressBillingDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProgressBillingUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProgressBillingUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProgressBillingUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProgressBillingPayload>
+          }
+          aggregate: {
+            args: Prisma.ProgressBillingAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProgressBilling>
+          }
+          groupBy: {
+            args: Prisma.ProgressBillingGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProgressBillingGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProgressBillingCountArgs<ExtArgs>
+            result: $Utils.Optional<ProgressBillingCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -5645,6 +5760,7 @@ export namespace Prisma {
     factoryFloorOccupation?: FactoryFloorOccupationOmit
     priceOrderDetail?: PriceOrderDetailOmit
     completionReport?: CompletionReportOmit
+    progressBilling?: ProgressBillingOmit
   }
 
   /* Types for Logging */
@@ -6614,6 +6730,7 @@ export namespace Prisma {
     messages: number
     documents: number
     evaluations: number
+    progressBillings: number
   }
 
   export type FactoryFloorOrderCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6622,6 +6739,7 @@ export namespace Prisma {
     messages?: boolean | FactoryFloorOrderCountOutputTypeCountMessagesArgs
     documents?: boolean | FactoryFloorOrderCountOutputTypeCountDocumentsArgs
     evaluations?: boolean | FactoryFloorOrderCountOutputTypeCountEvaluationsArgs
+    progressBillings?: boolean | FactoryFloorOrderCountOutputTypeCountProgressBillingsArgs
   }
 
   // Custom InputTypes
@@ -6668,6 +6786,13 @@ export namespace Prisma {
    */
   export type FactoryFloorOrderCountOutputTypeCountEvaluationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: EvaluationWhereInput
+  }
+
+  /**
+   * FactoryFloorOrderCountOutputType without action
+   */
+  export type FactoryFloorOrderCountOutputTypeCountProgressBillingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProgressBillingWhereInput
   }
 
 
@@ -60326,6 +60451,7 @@ export namespace Prisma {
     documents?: boolean | FactoryFloorOrder$documentsArgs<ExtArgs>
     evaluations?: boolean | FactoryFloorOrder$evaluationsArgs<ExtArgs>
     completionReport?: boolean | FactoryFloorOrder$completionReportArgs<ExtArgs>
+    progressBillings?: boolean | FactoryFloorOrder$progressBillingsArgs<ExtArgs>
     _count?: boolean | FactoryFloorOrderCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["factoryFloorOrder"]>
 
@@ -60388,6 +60514,7 @@ export namespace Prisma {
     documents?: boolean | FactoryFloorOrder$documentsArgs<ExtArgs>
     evaluations?: boolean | FactoryFloorOrder$evaluationsArgs<ExtArgs>
     completionReport?: boolean | FactoryFloorOrder$completionReportArgs<ExtArgs>
+    progressBillings?: boolean | FactoryFloorOrder$progressBillingsArgs<ExtArgs>
     _count?: boolean | FactoryFloorOrderCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type FactoryFloorOrderIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -60407,6 +60534,7 @@ export namespace Prisma {
       documents: Prisma.$DocumentPayload<ExtArgs>[]
       evaluations: Prisma.$EvaluationPayload<ExtArgs>[]
       completionReport: Prisma.$CompletionReportPayload<ExtArgs> | null
+      progressBillings: Prisma.$ProgressBillingPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -60823,6 +60951,7 @@ export namespace Prisma {
     documents<T extends FactoryFloorOrder$documentsArgs<ExtArgs> = {}>(args?: Subset<T, FactoryFloorOrder$documentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DocumentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     evaluations<T extends FactoryFloorOrder$evaluationsArgs<ExtArgs> = {}>(args?: Subset<T, FactoryFloorOrder$evaluationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EvaluationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     completionReport<T extends FactoryFloorOrder$completionReportArgs<ExtArgs> = {}>(args?: Subset<T, FactoryFloorOrder$completionReportArgs<ExtArgs>>): Prisma__CompletionReportClient<$Result.GetResult<Prisma.$CompletionReportPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    progressBillings<T extends FactoryFloorOrder$progressBillingsArgs<ExtArgs> = {}>(args?: Subset<T, FactoryFloorOrder$progressBillingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -61397,6 +61526,30 @@ export namespace Prisma {
      */
     include?: CompletionReportInclude<ExtArgs> | null
     where?: CompletionReportWhereInput
+  }
+
+  /**
+   * FactoryFloorOrder.progressBillings
+   */
+  export type FactoryFloorOrder$progressBillingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    where?: ProgressBillingWhereInput
+    orderBy?: ProgressBillingOrderByWithRelationInput | ProgressBillingOrderByWithRelationInput[]
+    cursor?: ProgressBillingWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProgressBillingScalarFieldEnum | ProgressBillingScalarFieldEnum[]
   }
 
   /**
@@ -67105,6 +67258,1237 @@ export namespace Prisma {
 
 
   /**
+   * Model ProgressBilling
+   */
+
+  export type AggregateProgressBilling = {
+    _count: ProgressBillingCountAggregateOutputType | null
+    _avg: ProgressBillingAvgAggregateOutputType | null
+    _sum: ProgressBillingSumAggregateOutputType | null
+    _min: ProgressBillingMinAggregateOutputType | null
+    _max: ProgressBillingMaxAggregateOutputType | null
+  }
+
+  export type ProgressBillingAvgAggregateOutputType = {
+    amount: number | null
+  }
+
+  export type ProgressBillingSumAggregateOutputType = {
+    amount: bigint | null
+  }
+
+  export type ProgressBillingMinAggregateOutputType = {
+    id: string | null
+    factoryFloorOrderId: string | null
+    appliedAt: Date | null
+    billingMonth: string | null
+    amount: bigint | null
+    kind: $Enums.ProgressBillingKind | null
+    status: $Enums.ProgressBillingStatus | null
+    comment: string | null
+    appliedByUserId: string | null
+    confirmedAt: Date | null
+    confirmedByUserId: string | null
+    returnedAt: Date | null
+    returnedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProgressBillingMaxAggregateOutputType = {
+    id: string | null
+    factoryFloorOrderId: string | null
+    appliedAt: Date | null
+    billingMonth: string | null
+    amount: bigint | null
+    kind: $Enums.ProgressBillingKind | null
+    status: $Enums.ProgressBillingStatus | null
+    comment: string | null
+    appliedByUserId: string | null
+    confirmedAt: Date | null
+    confirmedByUserId: string | null
+    returnedAt: Date | null
+    returnedByUserId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProgressBillingCountAggregateOutputType = {
+    id: number
+    factoryFloorOrderId: number
+    appliedAt: number
+    billingMonth: number
+    amount: number
+    kind: number
+    status: number
+    comment: number
+    photos: number
+    appliedByUserId: number
+    confirmedAt: number
+    confirmedByUserId: number
+    returnedAt: number
+    returnedByUserId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProgressBillingAvgAggregateInputType = {
+    amount?: true
+  }
+
+  export type ProgressBillingSumAggregateInputType = {
+    amount?: true
+  }
+
+  export type ProgressBillingMinAggregateInputType = {
+    id?: true
+    factoryFloorOrderId?: true
+    appliedAt?: true
+    billingMonth?: true
+    amount?: true
+    kind?: true
+    status?: true
+    comment?: true
+    appliedByUserId?: true
+    confirmedAt?: true
+    confirmedByUserId?: true
+    returnedAt?: true
+    returnedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProgressBillingMaxAggregateInputType = {
+    id?: true
+    factoryFloorOrderId?: true
+    appliedAt?: true
+    billingMonth?: true
+    amount?: true
+    kind?: true
+    status?: true
+    comment?: true
+    appliedByUserId?: true
+    confirmedAt?: true
+    confirmedByUserId?: true
+    returnedAt?: true
+    returnedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProgressBillingCountAggregateInputType = {
+    id?: true
+    factoryFloorOrderId?: true
+    appliedAt?: true
+    billingMonth?: true
+    amount?: true
+    kind?: true
+    status?: true
+    comment?: true
+    photos?: true
+    appliedByUserId?: true
+    confirmedAt?: true
+    confirmedByUserId?: true
+    returnedAt?: true
+    returnedByUserId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProgressBillingAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProgressBilling to aggregate.
+     */
+    where?: ProgressBillingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProgressBillings to fetch.
+     */
+    orderBy?: ProgressBillingOrderByWithRelationInput | ProgressBillingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProgressBillingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProgressBillings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProgressBillings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProgressBillings
+    **/
+    _count?: true | ProgressBillingCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProgressBillingAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProgressBillingSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProgressBillingMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProgressBillingMaxAggregateInputType
+  }
+
+  export type GetProgressBillingAggregateType<T extends ProgressBillingAggregateArgs> = {
+        [P in keyof T & keyof AggregateProgressBilling]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProgressBilling[P]>
+      : GetScalarType<T[P], AggregateProgressBilling[P]>
+  }
+
+
+
+
+  export type ProgressBillingGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProgressBillingWhereInput
+    orderBy?: ProgressBillingOrderByWithAggregationInput | ProgressBillingOrderByWithAggregationInput[]
+    by: ProgressBillingScalarFieldEnum[] | ProgressBillingScalarFieldEnum
+    having?: ProgressBillingScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProgressBillingCountAggregateInputType | true
+    _avg?: ProgressBillingAvgAggregateInputType
+    _sum?: ProgressBillingSumAggregateInputType
+    _min?: ProgressBillingMinAggregateInputType
+    _max?: ProgressBillingMaxAggregateInputType
+  }
+
+  export type ProgressBillingGroupByOutputType = {
+    id: string
+    factoryFloorOrderId: string
+    appliedAt: Date
+    billingMonth: string
+    amount: bigint
+    kind: $Enums.ProgressBillingKind
+    status: $Enums.ProgressBillingStatus
+    comment: string | null
+    photos: JsonValue
+    appliedByUserId: string
+    confirmedAt: Date | null
+    confirmedByUserId: string | null
+    returnedAt: Date | null
+    returnedByUserId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProgressBillingCountAggregateOutputType | null
+    _avg: ProgressBillingAvgAggregateOutputType | null
+    _sum: ProgressBillingSumAggregateOutputType | null
+    _min: ProgressBillingMinAggregateOutputType | null
+    _max: ProgressBillingMaxAggregateOutputType | null
+  }
+
+  type GetProgressBillingGroupByPayload<T extends ProgressBillingGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProgressBillingGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProgressBillingGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProgressBillingGroupByOutputType[P]>
+            : GetScalarType<T[P], ProgressBillingGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProgressBillingSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    factoryFloorOrderId?: boolean
+    appliedAt?: boolean
+    billingMonth?: boolean
+    amount?: boolean
+    kind?: boolean
+    status?: boolean
+    comment?: boolean
+    photos?: boolean
+    appliedByUserId?: boolean
+    confirmedAt?: boolean
+    confirmedByUserId?: boolean
+    returnedAt?: boolean
+    returnedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    factoryFloorOrder?: boolean | FactoryFloorOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["progressBilling"]>
+
+  export type ProgressBillingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    factoryFloorOrderId?: boolean
+    appliedAt?: boolean
+    billingMonth?: boolean
+    amount?: boolean
+    kind?: boolean
+    status?: boolean
+    comment?: boolean
+    photos?: boolean
+    appliedByUserId?: boolean
+    confirmedAt?: boolean
+    confirmedByUserId?: boolean
+    returnedAt?: boolean
+    returnedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    factoryFloorOrder?: boolean | FactoryFloorOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["progressBilling"]>
+
+  export type ProgressBillingSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    factoryFloorOrderId?: boolean
+    appliedAt?: boolean
+    billingMonth?: boolean
+    amount?: boolean
+    kind?: boolean
+    status?: boolean
+    comment?: boolean
+    photos?: boolean
+    appliedByUserId?: boolean
+    confirmedAt?: boolean
+    confirmedByUserId?: boolean
+    returnedAt?: boolean
+    returnedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    factoryFloorOrder?: boolean | FactoryFloorOrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["progressBilling"]>
+
+  export type ProgressBillingSelectScalar = {
+    id?: boolean
+    factoryFloorOrderId?: boolean
+    appliedAt?: boolean
+    billingMonth?: boolean
+    amount?: boolean
+    kind?: boolean
+    status?: boolean
+    comment?: boolean
+    photos?: boolean
+    appliedByUserId?: boolean
+    confirmedAt?: boolean
+    confirmedByUserId?: boolean
+    returnedAt?: boolean
+    returnedByUserId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProgressBillingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "factoryFloorOrderId" | "appliedAt" | "billingMonth" | "amount" | "kind" | "status" | "comment" | "photos" | "appliedByUserId" | "confirmedAt" | "confirmedByUserId" | "returnedAt" | "returnedByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["progressBilling"]>
+  export type ProgressBillingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    factoryFloorOrder?: boolean | FactoryFloorOrderDefaultArgs<ExtArgs>
+  }
+  export type ProgressBillingIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    factoryFloorOrder?: boolean | FactoryFloorOrderDefaultArgs<ExtArgs>
+  }
+  export type ProgressBillingIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    factoryFloorOrder?: boolean | FactoryFloorOrderDefaultArgs<ExtArgs>
+  }
+
+  export type $ProgressBillingPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProgressBilling"
+    objects: {
+      factoryFloorOrder: Prisma.$FactoryFloorOrderPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      factoryFloorOrderId: string
+      appliedAt: Date
+      billingMonth: string
+      amount: bigint
+      kind: $Enums.ProgressBillingKind
+      status: $Enums.ProgressBillingStatus
+      comment: string | null
+      photos: Prisma.JsonValue
+      appliedByUserId: string
+      confirmedAt: Date | null
+      confirmedByUserId: string | null
+      returnedAt: Date | null
+      returnedByUserId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["progressBilling"]>
+    composites: {}
+  }
+
+  type ProgressBillingGetPayload<S extends boolean | null | undefined | ProgressBillingDefaultArgs> = $Result.GetResult<Prisma.$ProgressBillingPayload, S>
+
+  type ProgressBillingCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProgressBillingFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProgressBillingCountAggregateInputType | true
+    }
+
+  export interface ProgressBillingDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProgressBilling'], meta: { name: 'ProgressBilling' } }
+    /**
+     * Find zero or one ProgressBilling that matches the filter.
+     * @param {ProgressBillingFindUniqueArgs} args - Arguments to find a ProgressBilling
+     * @example
+     * // Get one ProgressBilling
+     * const progressBilling = await prisma.progressBilling.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProgressBillingFindUniqueArgs>(args: SelectSubset<T, ProgressBillingFindUniqueArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProgressBilling that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProgressBillingFindUniqueOrThrowArgs} args - Arguments to find a ProgressBilling
+     * @example
+     * // Get one ProgressBilling
+     * const progressBilling = await prisma.progressBilling.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProgressBillingFindUniqueOrThrowArgs>(args: SelectSubset<T, ProgressBillingFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProgressBilling that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProgressBillingFindFirstArgs} args - Arguments to find a ProgressBilling
+     * @example
+     * // Get one ProgressBilling
+     * const progressBilling = await prisma.progressBilling.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProgressBillingFindFirstArgs>(args?: SelectSubset<T, ProgressBillingFindFirstArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProgressBilling that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProgressBillingFindFirstOrThrowArgs} args - Arguments to find a ProgressBilling
+     * @example
+     * // Get one ProgressBilling
+     * const progressBilling = await prisma.progressBilling.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProgressBillingFindFirstOrThrowArgs>(args?: SelectSubset<T, ProgressBillingFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProgressBillings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProgressBillingFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProgressBillings
+     * const progressBillings = await prisma.progressBilling.findMany()
+     * 
+     * // Get first 10 ProgressBillings
+     * const progressBillings = await prisma.progressBilling.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const progressBillingWithIdOnly = await prisma.progressBilling.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProgressBillingFindManyArgs>(args?: SelectSubset<T, ProgressBillingFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProgressBilling.
+     * @param {ProgressBillingCreateArgs} args - Arguments to create a ProgressBilling.
+     * @example
+     * // Create one ProgressBilling
+     * const ProgressBilling = await prisma.progressBilling.create({
+     *   data: {
+     *     // ... data to create a ProgressBilling
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProgressBillingCreateArgs>(args: SelectSubset<T, ProgressBillingCreateArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProgressBillings.
+     * @param {ProgressBillingCreateManyArgs} args - Arguments to create many ProgressBillings.
+     * @example
+     * // Create many ProgressBillings
+     * const progressBilling = await prisma.progressBilling.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProgressBillingCreateManyArgs>(args?: SelectSubset<T, ProgressBillingCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProgressBillings and returns the data saved in the database.
+     * @param {ProgressBillingCreateManyAndReturnArgs} args - Arguments to create many ProgressBillings.
+     * @example
+     * // Create many ProgressBillings
+     * const progressBilling = await prisma.progressBilling.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProgressBillings and only return the `id`
+     * const progressBillingWithIdOnly = await prisma.progressBilling.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProgressBillingCreateManyAndReturnArgs>(args?: SelectSubset<T, ProgressBillingCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProgressBilling.
+     * @param {ProgressBillingDeleteArgs} args - Arguments to delete one ProgressBilling.
+     * @example
+     * // Delete one ProgressBilling
+     * const ProgressBilling = await prisma.progressBilling.delete({
+     *   where: {
+     *     // ... filter to delete one ProgressBilling
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProgressBillingDeleteArgs>(args: SelectSubset<T, ProgressBillingDeleteArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProgressBilling.
+     * @param {ProgressBillingUpdateArgs} args - Arguments to update one ProgressBilling.
+     * @example
+     * // Update one ProgressBilling
+     * const progressBilling = await prisma.progressBilling.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProgressBillingUpdateArgs>(args: SelectSubset<T, ProgressBillingUpdateArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProgressBillings.
+     * @param {ProgressBillingDeleteManyArgs} args - Arguments to filter ProgressBillings to delete.
+     * @example
+     * // Delete a few ProgressBillings
+     * const { count } = await prisma.progressBilling.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProgressBillingDeleteManyArgs>(args?: SelectSubset<T, ProgressBillingDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProgressBillings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProgressBillingUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProgressBillings
+     * const progressBilling = await prisma.progressBilling.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProgressBillingUpdateManyArgs>(args: SelectSubset<T, ProgressBillingUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProgressBillings and returns the data updated in the database.
+     * @param {ProgressBillingUpdateManyAndReturnArgs} args - Arguments to update many ProgressBillings.
+     * @example
+     * // Update many ProgressBillings
+     * const progressBilling = await prisma.progressBilling.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProgressBillings and only return the `id`
+     * const progressBillingWithIdOnly = await prisma.progressBilling.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProgressBillingUpdateManyAndReturnArgs>(args: SelectSubset<T, ProgressBillingUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProgressBilling.
+     * @param {ProgressBillingUpsertArgs} args - Arguments to update or create a ProgressBilling.
+     * @example
+     * // Update or create a ProgressBilling
+     * const progressBilling = await prisma.progressBilling.upsert({
+     *   create: {
+     *     // ... data to create a ProgressBilling
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProgressBilling we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProgressBillingUpsertArgs>(args: SelectSubset<T, ProgressBillingUpsertArgs<ExtArgs>>): Prisma__ProgressBillingClient<$Result.GetResult<Prisma.$ProgressBillingPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProgressBillings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProgressBillingCountArgs} args - Arguments to filter ProgressBillings to count.
+     * @example
+     * // Count the number of ProgressBillings
+     * const count = await prisma.progressBilling.count({
+     *   where: {
+     *     // ... the filter for the ProgressBillings we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProgressBillingCountArgs>(
+      args?: Subset<T, ProgressBillingCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProgressBillingCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProgressBilling.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProgressBillingAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProgressBillingAggregateArgs>(args: Subset<T, ProgressBillingAggregateArgs>): Prisma.PrismaPromise<GetProgressBillingAggregateType<T>>
+
+    /**
+     * Group by ProgressBilling.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProgressBillingGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProgressBillingGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProgressBillingGroupByArgs['orderBy'] }
+        : { orderBy?: ProgressBillingGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProgressBillingGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProgressBillingGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProgressBilling model
+   */
+  readonly fields: ProgressBillingFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProgressBilling.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProgressBillingClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    factoryFloorOrder<T extends FactoryFloorOrderDefaultArgs<ExtArgs> = {}>(args?: Subset<T, FactoryFloorOrderDefaultArgs<ExtArgs>>): Prisma__FactoryFloorOrderClient<$Result.GetResult<Prisma.$FactoryFloorOrderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProgressBilling model
+   */
+  interface ProgressBillingFieldRefs {
+    readonly id: FieldRef<"ProgressBilling", 'String'>
+    readonly factoryFloorOrderId: FieldRef<"ProgressBilling", 'String'>
+    readonly appliedAt: FieldRef<"ProgressBilling", 'DateTime'>
+    readonly billingMonth: FieldRef<"ProgressBilling", 'String'>
+    readonly amount: FieldRef<"ProgressBilling", 'BigInt'>
+    readonly kind: FieldRef<"ProgressBilling", 'ProgressBillingKind'>
+    readonly status: FieldRef<"ProgressBilling", 'ProgressBillingStatus'>
+    readonly comment: FieldRef<"ProgressBilling", 'String'>
+    readonly photos: FieldRef<"ProgressBilling", 'Json'>
+    readonly appliedByUserId: FieldRef<"ProgressBilling", 'String'>
+    readonly confirmedAt: FieldRef<"ProgressBilling", 'DateTime'>
+    readonly confirmedByUserId: FieldRef<"ProgressBilling", 'String'>
+    readonly returnedAt: FieldRef<"ProgressBilling", 'DateTime'>
+    readonly returnedByUserId: FieldRef<"ProgressBilling", 'String'>
+    readonly createdAt: FieldRef<"ProgressBilling", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProgressBilling", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProgressBilling findUnique
+   */
+  export type ProgressBillingFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * Filter, which ProgressBilling to fetch.
+     */
+    where: ProgressBillingWhereUniqueInput
+  }
+
+  /**
+   * ProgressBilling findUniqueOrThrow
+   */
+  export type ProgressBillingFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * Filter, which ProgressBilling to fetch.
+     */
+    where: ProgressBillingWhereUniqueInput
+  }
+
+  /**
+   * ProgressBilling findFirst
+   */
+  export type ProgressBillingFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * Filter, which ProgressBilling to fetch.
+     */
+    where?: ProgressBillingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProgressBillings to fetch.
+     */
+    orderBy?: ProgressBillingOrderByWithRelationInput | ProgressBillingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProgressBillings.
+     */
+    cursor?: ProgressBillingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProgressBillings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProgressBillings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProgressBillings.
+     */
+    distinct?: ProgressBillingScalarFieldEnum | ProgressBillingScalarFieldEnum[]
+  }
+
+  /**
+   * ProgressBilling findFirstOrThrow
+   */
+  export type ProgressBillingFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * Filter, which ProgressBilling to fetch.
+     */
+    where?: ProgressBillingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProgressBillings to fetch.
+     */
+    orderBy?: ProgressBillingOrderByWithRelationInput | ProgressBillingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProgressBillings.
+     */
+    cursor?: ProgressBillingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProgressBillings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProgressBillings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProgressBillings.
+     */
+    distinct?: ProgressBillingScalarFieldEnum | ProgressBillingScalarFieldEnum[]
+  }
+
+  /**
+   * ProgressBilling findMany
+   */
+  export type ProgressBillingFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * Filter, which ProgressBillings to fetch.
+     */
+    where?: ProgressBillingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProgressBillings to fetch.
+     */
+    orderBy?: ProgressBillingOrderByWithRelationInput | ProgressBillingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProgressBillings.
+     */
+    cursor?: ProgressBillingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProgressBillings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProgressBillings.
+     */
+    skip?: number
+    distinct?: ProgressBillingScalarFieldEnum | ProgressBillingScalarFieldEnum[]
+  }
+
+  /**
+   * ProgressBilling create
+   */
+  export type ProgressBillingCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProgressBilling.
+     */
+    data: XOR<ProgressBillingCreateInput, ProgressBillingUncheckedCreateInput>
+  }
+
+  /**
+   * ProgressBilling createMany
+   */
+  export type ProgressBillingCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProgressBillings.
+     */
+    data: ProgressBillingCreateManyInput | ProgressBillingCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProgressBilling createManyAndReturn
+   */
+  export type ProgressBillingCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProgressBillings.
+     */
+    data: ProgressBillingCreateManyInput | ProgressBillingCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProgressBilling update
+   */
+  export type ProgressBillingUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProgressBilling.
+     */
+    data: XOR<ProgressBillingUpdateInput, ProgressBillingUncheckedUpdateInput>
+    /**
+     * Choose, which ProgressBilling to update.
+     */
+    where: ProgressBillingWhereUniqueInput
+  }
+
+  /**
+   * ProgressBilling updateMany
+   */
+  export type ProgressBillingUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProgressBillings.
+     */
+    data: XOR<ProgressBillingUpdateManyMutationInput, ProgressBillingUncheckedUpdateManyInput>
+    /**
+     * Filter which ProgressBillings to update
+     */
+    where?: ProgressBillingWhereInput
+    /**
+     * Limit how many ProgressBillings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProgressBilling updateManyAndReturn
+   */
+  export type ProgressBillingUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * The data used to update ProgressBillings.
+     */
+    data: XOR<ProgressBillingUpdateManyMutationInput, ProgressBillingUncheckedUpdateManyInput>
+    /**
+     * Filter which ProgressBillings to update
+     */
+    where?: ProgressBillingWhereInput
+    /**
+     * Limit how many ProgressBillings to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProgressBilling upsert
+   */
+  export type ProgressBillingUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProgressBilling to update in case it exists.
+     */
+    where: ProgressBillingWhereUniqueInput
+    /**
+     * In case the ProgressBilling found by the `where` argument doesn't exist, create a new ProgressBilling with this data.
+     */
+    create: XOR<ProgressBillingCreateInput, ProgressBillingUncheckedCreateInput>
+    /**
+     * In case the ProgressBilling was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProgressBillingUpdateInput, ProgressBillingUncheckedUpdateInput>
+  }
+
+  /**
+   * ProgressBilling delete
+   */
+  export type ProgressBillingDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+    /**
+     * Filter which ProgressBilling to delete.
+     */
+    where: ProgressBillingWhereUniqueInput
+  }
+
+  /**
+   * ProgressBilling deleteMany
+   */
+  export type ProgressBillingDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProgressBillings to delete
+     */
+    where?: ProgressBillingWhereInput
+    /**
+     * Limit how many ProgressBillings to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProgressBilling without action
+   */
+  export type ProgressBillingDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProgressBilling
+     */
+    select?: ProgressBillingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProgressBilling
+     */
+    omit?: ProgressBillingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProgressBillingInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -67977,6 +69361,28 @@ export namespace Prisma {
   export type CompletionReportScalarFieldEnum = (typeof CompletionReportScalarFieldEnum)[keyof typeof CompletionReportScalarFieldEnum]
 
 
+  export const ProgressBillingScalarFieldEnum: {
+    id: 'id',
+    factoryFloorOrderId: 'factoryFloorOrderId',
+    appliedAt: 'appliedAt',
+    billingMonth: 'billingMonth',
+    amount: 'amount',
+    kind: 'kind',
+    status: 'status',
+    comment: 'comment',
+    photos: 'photos',
+    appliedByUserId: 'appliedByUserId',
+    confirmedAt: 'confirmedAt',
+    confirmedByUserId: 'confirmedByUserId',
+    returnedAt: 'returnedAt',
+    returnedByUserId: 'returnedByUserId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProgressBillingScalarFieldEnum = (typeof ProgressBillingScalarFieldEnum)[keyof typeof ProgressBillingScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -68524,6 +69930,34 @@ export namespace Prisma {
    * Reference to a field of type 'OrderCompletionStatus[]'
    */
   export type ListEnumOrderCompletionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrderCompletionStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProgressBillingKind'
+   */
+  export type EnumProgressBillingKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProgressBillingKind'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProgressBillingKind[]'
+   */
+  export type ListEnumProgressBillingKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProgressBillingKind[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProgressBillingStatus'
+   */
+  export type EnumProgressBillingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProgressBillingStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'ProgressBillingStatus[]'
+   */
+  export type ListEnumProgressBillingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProgressBillingStatus[]'>
     
 
 
@@ -72734,6 +74168,7 @@ export namespace Prisma {
     documents?: DocumentListRelationFilter
     evaluations?: EvaluationListRelationFilter
     completionReport?: XOR<CompletionReportNullableScalarRelationFilter, CompletionReportWhereInput> | null
+    progressBillings?: ProgressBillingListRelationFilter
   }
 
   export type FactoryFloorOrderOrderByWithRelationInput = {
@@ -72757,6 +74192,7 @@ export namespace Prisma {
     documents?: DocumentOrderByRelationAggregateInput
     evaluations?: EvaluationOrderByRelationAggregateInput
     completionReport?: CompletionReportOrderByWithRelationInput
+    progressBillings?: ProgressBillingOrderByRelationAggregateInput
   }
 
   export type FactoryFloorOrderWhereUniqueInput = Prisma.AtLeast<{
@@ -72783,6 +74219,7 @@ export namespace Prisma {
     documents?: DocumentListRelationFilter
     evaluations?: EvaluationListRelationFilter
     completionReport?: XOR<CompletionReportNullableScalarRelationFilter, CompletionReportWhereInput> | null
+    progressBillings?: ProgressBillingListRelationFilter
   }, "id">
 
   export type FactoryFloorOrderOrderByWithAggregationInput = {
@@ -73190,6 +74627,118 @@ export namespace Prisma {
     additionalWorkAmount?: BigIntNullableWithAggregatesFilter<"CompletionReport"> | bigint | number | null
     createdAt?: DateTimeWithAggregatesFilter<"CompletionReport"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CompletionReport"> | Date | string
+  }
+
+  export type ProgressBillingWhereInput = {
+    AND?: ProgressBillingWhereInput | ProgressBillingWhereInput[]
+    OR?: ProgressBillingWhereInput[]
+    NOT?: ProgressBillingWhereInput | ProgressBillingWhereInput[]
+    id?: StringFilter<"ProgressBilling"> | string
+    factoryFloorOrderId?: StringFilter<"ProgressBilling"> | string
+    appliedAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    billingMonth?: StringFilter<"ProgressBilling"> | string
+    amount?: BigIntFilter<"ProgressBilling"> | bigint | number
+    kind?: EnumProgressBillingKindFilter<"ProgressBilling"> | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFilter<"ProgressBilling"> | $Enums.ProgressBillingStatus
+    comment?: StringNullableFilter<"ProgressBilling"> | string | null
+    photos?: JsonFilter<"ProgressBilling">
+    appliedByUserId?: StringFilter<"ProgressBilling"> | string
+    confirmedAt?: DateTimeNullableFilter<"ProgressBilling"> | Date | string | null
+    confirmedByUserId?: StringNullableFilter<"ProgressBilling"> | string | null
+    returnedAt?: DateTimeNullableFilter<"ProgressBilling"> | Date | string | null
+    returnedByUserId?: StringNullableFilter<"ProgressBilling"> | string | null
+    createdAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    updatedAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    factoryFloorOrder?: XOR<FactoryFloorOrderScalarRelationFilter, FactoryFloorOrderWhereInput>
+  }
+
+  export type ProgressBillingOrderByWithRelationInput = {
+    id?: SortOrder
+    factoryFloorOrderId?: SortOrder
+    appliedAt?: SortOrder
+    billingMonth?: SortOrder
+    amount?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    photos?: SortOrder
+    appliedByUserId?: SortOrder
+    confirmedAt?: SortOrderInput | SortOrder
+    confirmedByUserId?: SortOrderInput | SortOrder
+    returnedAt?: SortOrderInput | SortOrder
+    returnedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    factoryFloorOrder?: FactoryFloorOrderOrderByWithRelationInput
+  }
+
+  export type ProgressBillingWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ProgressBillingWhereInput | ProgressBillingWhereInput[]
+    OR?: ProgressBillingWhereInput[]
+    NOT?: ProgressBillingWhereInput | ProgressBillingWhereInput[]
+    factoryFloorOrderId?: StringFilter<"ProgressBilling"> | string
+    appliedAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    billingMonth?: StringFilter<"ProgressBilling"> | string
+    amount?: BigIntFilter<"ProgressBilling"> | bigint | number
+    kind?: EnumProgressBillingKindFilter<"ProgressBilling"> | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFilter<"ProgressBilling"> | $Enums.ProgressBillingStatus
+    comment?: StringNullableFilter<"ProgressBilling"> | string | null
+    photos?: JsonFilter<"ProgressBilling">
+    appliedByUserId?: StringFilter<"ProgressBilling"> | string
+    confirmedAt?: DateTimeNullableFilter<"ProgressBilling"> | Date | string | null
+    confirmedByUserId?: StringNullableFilter<"ProgressBilling"> | string | null
+    returnedAt?: DateTimeNullableFilter<"ProgressBilling"> | Date | string | null
+    returnedByUserId?: StringNullableFilter<"ProgressBilling"> | string | null
+    createdAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    updatedAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    factoryFloorOrder?: XOR<FactoryFloorOrderScalarRelationFilter, FactoryFloorOrderWhereInput>
+  }, "id">
+
+  export type ProgressBillingOrderByWithAggregationInput = {
+    id?: SortOrder
+    factoryFloorOrderId?: SortOrder
+    appliedAt?: SortOrder
+    billingMonth?: SortOrder
+    amount?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    comment?: SortOrderInput | SortOrder
+    photos?: SortOrder
+    appliedByUserId?: SortOrder
+    confirmedAt?: SortOrderInput | SortOrder
+    confirmedByUserId?: SortOrderInput | SortOrder
+    returnedAt?: SortOrderInput | SortOrder
+    returnedByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProgressBillingCountOrderByAggregateInput
+    _avg?: ProgressBillingAvgOrderByAggregateInput
+    _max?: ProgressBillingMaxOrderByAggregateInput
+    _min?: ProgressBillingMinOrderByAggregateInput
+    _sum?: ProgressBillingSumOrderByAggregateInput
+  }
+
+  export type ProgressBillingScalarWhereWithAggregatesInput = {
+    AND?: ProgressBillingScalarWhereWithAggregatesInput | ProgressBillingScalarWhereWithAggregatesInput[]
+    OR?: ProgressBillingScalarWhereWithAggregatesInput[]
+    NOT?: ProgressBillingScalarWhereWithAggregatesInput | ProgressBillingScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProgressBilling"> | string
+    factoryFloorOrderId?: StringWithAggregatesFilter<"ProgressBilling"> | string
+    appliedAt?: DateTimeWithAggregatesFilter<"ProgressBilling"> | Date | string
+    billingMonth?: StringWithAggregatesFilter<"ProgressBilling"> | string
+    amount?: BigIntWithAggregatesFilter<"ProgressBilling"> | bigint | number
+    kind?: EnumProgressBillingKindWithAggregatesFilter<"ProgressBilling"> | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusWithAggregatesFilter<"ProgressBilling"> | $Enums.ProgressBillingStatus
+    comment?: StringNullableWithAggregatesFilter<"ProgressBilling"> | string | null
+    photos?: JsonWithAggregatesFilter<"ProgressBilling">
+    appliedByUserId?: StringWithAggregatesFilter<"ProgressBilling"> | string
+    confirmedAt?: DateTimeNullableWithAggregatesFilter<"ProgressBilling"> | Date | string | null
+    confirmedByUserId?: StringNullableWithAggregatesFilter<"ProgressBilling"> | string | null
+    returnedAt?: DateTimeNullableWithAggregatesFilter<"ProgressBilling"> | Date | string | null
+    returnedByUserId?: StringNullableWithAggregatesFilter<"ProgressBilling"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProgressBilling"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProgressBilling"> | Date | string
   }
 
   export type AdminCompanyCreateInput = {
@@ -77877,6 +79426,7 @@ export namespace Prisma {
     documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateInput = {
@@ -77899,6 +79449,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUpdateInput = {
@@ -77921,6 +79472,7 @@ export namespace Prisma {
     documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateInput = {
@@ -77943,6 +79495,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderCreateManyInput = {
@@ -78370,6 +79923,138 @@ export namespace Prisma {
     hasAdditionalWork?: BoolFieldUpdateOperationsInput | boolean
     additionalWorkDescription?: NullableStringFieldUpdateOperationsInput | string | null
     additionalWorkAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProgressBillingCreateInput = {
+    id?: string
+    appliedAt?: Date | string
+    billingMonth: string
+    amount: bigint | number
+    kind?: $Enums.ProgressBillingKind
+    status?: $Enums.ProgressBillingStatus
+    comment?: string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId: string
+    confirmedAt?: Date | string | null
+    confirmedByUserId?: string | null
+    returnedAt?: Date | string | null
+    returnedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    factoryFloorOrder: FactoryFloorOrderCreateNestedOneWithoutProgressBillingsInput
+  }
+
+  export type ProgressBillingUncheckedCreateInput = {
+    id?: string
+    factoryFloorOrderId: string
+    appliedAt?: Date | string
+    billingMonth: string
+    amount: bigint | number
+    kind?: $Enums.ProgressBillingKind
+    status?: $Enums.ProgressBillingStatus
+    comment?: string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId: string
+    confirmedAt?: Date | string | null
+    confirmedByUserId?: string | null
+    returnedAt?: Date | string | null
+    returnedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProgressBillingUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    billingMonth?: StringFieldUpdateOperationsInput | string
+    amount?: BigIntFieldUpdateOperationsInput | bigint | number
+    kind?: EnumProgressBillingKindFieldUpdateOperationsInput | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFieldUpdateOperationsInput | $Enums.ProgressBillingStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    confirmedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    returnedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    returnedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    factoryFloorOrder?: FactoryFloorOrderUpdateOneRequiredWithoutProgressBillingsNestedInput
+  }
+
+  export type ProgressBillingUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    factoryFloorOrderId?: StringFieldUpdateOperationsInput | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    billingMonth?: StringFieldUpdateOperationsInput | string
+    amount?: BigIntFieldUpdateOperationsInput | bigint | number
+    kind?: EnumProgressBillingKindFieldUpdateOperationsInput | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFieldUpdateOperationsInput | $Enums.ProgressBillingStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    confirmedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    returnedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    returnedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProgressBillingCreateManyInput = {
+    id?: string
+    factoryFloorOrderId: string
+    appliedAt?: Date | string
+    billingMonth: string
+    amount: bigint | number
+    kind?: $Enums.ProgressBillingKind
+    status?: $Enums.ProgressBillingStatus
+    comment?: string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId: string
+    confirmedAt?: Date | string | null
+    confirmedByUserId?: string | null
+    returnedAt?: Date | string | null
+    returnedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProgressBillingUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    billingMonth?: StringFieldUpdateOperationsInput | string
+    amount?: BigIntFieldUpdateOperationsInput | bigint | number
+    kind?: EnumProgressBillingKindFieldUpdateOperationsInput | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFieldUpdateOperationsInput | $Enums.ProgressBillingStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    confirmedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    returnedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    returnedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProgressBillingUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    factoryFloorOrderId?: StringFieldUpdateOperationsInput | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    billingMonth?: StringFieldUpdateOperationsInput | string
+    amount?: BigIntFieldUpdateOperationsInput | bigint | number
+    kind?: EnumProgressBillingKindFieldUpdateOperationsInput | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFieldUpdateOperationsInput | $Enums.ProgressBillingStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    confirmedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    returnedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    returnedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -81949,6 +83634,16 @@ export namespace Prisma {
     isNot?: CompletionReportWhereInput | null
   }
 
+  export type ProgressBillingListRelationFilter = {
+    every?: ProgressBillingWhereInput
+    some?: ProgressBillingWhereInput
+    none?: ProgressBillingWhereInput
+  }
+
+  export type ProgressBillingOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type FactoryFloorOrderCountOrderByAggregateInput = {
     id?: SortOrder
     factoryFloorId?: SortOrder
@@ -82267,6 +83962,103 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedJsonFilter<$PrismaModel>
     _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type EnumProgressBillingKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingKind | EnumProgressBillingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingKindFilter<$PrismaModel> | $Enums.ProgressBillingKind
+  }
+
+  export type EnumProgressBillingStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingStatus | EnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingStatusFilter<$PrismaModel> | $Enums.ProgressBillingStatus
+  }
+
+  export type ProgressBillingCountOrderByAggregateInput = {
+    id?: SortOrder
+    factoryFloorOrderId?: SortOrder
+    appliedAt?: SortOrder
+    billingMonth?: SortOrder
+    amount?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    comment?: SortOrder
+    photos?: SortOrder
+    appliedByUserId?: SortOrder
+    confirmedAt?: SortOrder
+    confirmedByUserId?: SortOrder
+    returnedAt?: SortOrder
+    returnedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProgressBillingAvgOrderByAggregateInput = {
+    amount?: SortOrder
+  }
+
+  export type ProgressBillingMaxOrderByAggregateInput = {
+    id?: SortOrder
+    factoryFloorOrderId?: SortOrder
+    appliedAt?: SortOrder
+    billingMonth?: SortOrder
+    amount?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    comment?: SortOrder
+    appliedByUserId?: SortOrder
+    confirmedAt?: SortOrder
+    confirmedByUserId?: SortOrder
+    returnedAt?: SortOrder
+    returnedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProgressBillingMinOrderByAggregateInput = {
+    id?: SortOrder
+    factoryFloorOrderId?: SortOrder
+    appliedAt?: SortOrder
+    billingMonth?: SortOrder
+    amount?: SortOrder
+    kind?: SortOrder
+    status?: SortOrder
+    comment?: SortOrder
+    appliedByUserId?: SortOrder
+    confirmedAt?: SortOrder
+    confirmedByUserId?: SortOrder
+    returnedAt?: SortOrder
+    returnedByUserId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProgressBillingSumOrderByAggregateInput = {
+    amount?: SortOrder
+  }
+
+  export type EnumProgressBillingKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingKind | EnumProgressBillingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingKindWithAggregatesFilter<$PrismaModel> | $Enums.ProgressBillingKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProgressBillingKindFilter<$PrismaModel>
+    _max?: NestedEnumProgressBillingKindFilter<$PrismaModel>
+  }
+
+  export type EnumProgressBillingStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingStatus | EnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingStatusWithAggregatesFilter<$PrismaModel> | $Enums.ProgressBillingStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProgressBillingStatusFilter<$PrismaModel>
+    _max?: NestedEnumProgressBillingStatusFilter<$PrismaModel>
   }
 
   export type AdminUserCreateNestedManyWithoutAdminCompanyInput = {
@@ -86180,6 +87972,13 @@ export namespace Prisma {
     connect?: CompletionReportWhereUniqueInput
   }
 
+  export type ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput = {
+    create?: XOR<ProgressBillingCreateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput> | ProgressBillingCreateWithoutFactoryFloorOrderInput[] | ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput[]
+    connectOrCreate?: ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput | ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput[]
+    createMany?: ProgressBillingCreateManyFactoryFloorOrderInputEnvelope
+    connect?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+  }
+
   export type BillingRequestUncheckedCreateNestedManyWithoutFactoryFloorOrderInput = {
     create?: XOR<BillingRequestCreateWithoutFactoryFloorOrderInput, BillingRequestUncheckedCreateWithoutFactoryFloorOrderInput> | BillingRequestCreateWithoutFactoryFloorOrderInput[] | BillingRequestUncheckedCreateWithoutFactoryFloorOrderInput[]
     connectOrCreate?: BillingRequestCreateOrConnectWithoutFactoryFloorOrderInput | BillingRequestCreateOrConnectWithoutFactoryFloorOrderInput[]
@@ -86219,6 +88018,13 @@ export namespace Prisma {
     create?: XOR<CompletionReportCreateWithoutFactoryFloorOrderInput, CompletionReportUncheckedCreateWithoutFactoryFloorOrderInput>
     connectOrCreate?: CompletionReportCreateOrConnectWithoutFactoryFloorOrderInput
     connect?: CompletionReportWhereUniqueInput
+  }
+
+  export type ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput = {
+    create?: XOR<ProgressBillingCreateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput> | ProgressBillingCreateWithoutFactoryFloorOrderInput[] | ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput[]
+    connectOrCreate?: ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput | ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput[]
+    createMany?: ProgressBillingCreateManyFactoryFloorOrderInputEnvelope
+    connect?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
   }
 
   export type NullableEnumOrderStatusFieldUpdateOperationsInput = {
@@ -86317,6 +88123,20 @@ export namespace Prisma {
     update?: XOR<XOR<CompletionReportUpdateToOneWithWhereWithoutFactoryFloorOrderInput, CompletionReportUpdateWithoutFactoryFloorOrderInput>, CompletionReportUncheckedUpdateWithoutFactoryFloorOrderInput>
   }
 
+  export type ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput = {
+    create?: XOR<ProgressBillingCreateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput> | ProgressBillingCreateWithoutFactoryFloorOrderInput[] | ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput[]
+    connectOrCreate?: ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput | ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput[]
+    upsert?: ProgressBillingUpsertWithWhereUniqueWithoutFactoryFloorOrderInput | ProgressBillingUpsertWithWhereUniqueWithoutFactoryFloorOrderInput[]
+    createMany?: ProgressBillingCreateManyFactoryFloorOrderInputEnvelope
+    set?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    disconnect?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    delete?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    connect?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    update?: ProgressBillingUpdateWithWhereUniqueWithoutFactoryFloorOrderInput | ProgressBillingUpdateWithWhereUniqueWithoutFactoryFloorOrderInput[]
+    updateMany?: ProgressBillingUpdateManyWithWhereWithoutFactoryFloorOrderInput | ProgressBillingUpdateManyWithWhereWithoutFactoryFloorOrderInput[]
+    deleteMany?: ProgressBillingScalarWhereInput | ProgressBillingScalarWhereInput[]
+  }
+
   export type BillingRequestUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput = {
     create?: XOR<BillingRequestCreateWithoutFactoryFloorOrderInput, BillingRequestUncheckedCreateWithoutFactoryFloorOrderInput> | BillingRequestCreateWithoutFactoryFloorOrderInput[] | BillingRequestUncheckedCreateWithoutFactoryFloorOrderInput[]
     connectOrCreate?: BillingRequestCreateOrConnectWithoutFactoryFloorOrderInput | BillingRequestCreateOrConnectWithoutFactoryFloorOrderInput[]
@@ -86395,6 +88215,20 @@ export namespace Prisma {
     delete?: CompletionReportWhereInput | boolean
     connect?: CompletionReportWhereUniqueInput
     update?: XOR<XOR<CompletionReportUpdateToOneWithWhereWithoutFactoryFloorOrderInput, CompletionReportUpdateWithoutFactoryFloorOrderInput>, CompletionReportUncheckedUpdateWithoutFactoryFloorOrderInput>
+  }
+
+  export type ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput = {
+    create?: XOR<ProgressBillingCreateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput> | ProgressBillingCreateWithoutFactoryFloorOrderInput[] | ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput[]
+    connectOrCreate?: ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput | ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput[]
+    upsert?: ProgressBillingUpsertWithWhereUniqueWithoutFactoryFloorOrderInput | ProgressBillingUpsertWithWhereUniqueWithoutFactoryFloorOrderInput[]
+    createMany?: ProgressBillingCreateManyFactoryFloorOrderInputEnvelope
+    set?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    disconnect?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    delete?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    connect?: ProgressBillingWhereUniqueInput | ProgressBillingWhereUniqueInput[]
+    update?: ProgressBillingUpdateWithWhereUniqueWithoutFactoryFloorOrderInput | ProgressBillingUpdateWithWhereUniqueWithoutFactoryFloorOrderInput[]
+    updateMany?: ProgressBillingUpdateManyWithWhereWithoutFactoryFloorOrderInput | ProgressBillingUpdateManyWithWhereWithoutFactoryFloorOrderInput[]
+    deleteMany?: ProgressBillingScalarWhereInput | ProgressBillingScalarWhereInput[]
   }
 
   export type FactoryFloorCreateNestedOneWithoutImagesInput = {
@@ -86537,6 +88371,28 @@ export namespace Prisma {
     upsert?: FactoryFloorOrderUpsertWithoutCompletionReportInput
     connect?: FactoryFloorOrderWhereUniqueInput
     update?: XOR<XOR<FactoryFloorOrderUpdateToOneWithWhereWithoutCompletionReportInput, FactoryFloorOrderUpdateWithoutCompletionReportInput>, FactoryFloorOrderUncheckedUpdateWithoutCompletionReportInput>
+  }
+
+  export type FactoryFloorOrderCreateNestedOneWithoutProgressBillingsInput = {
+    create?: XOR<FactoryFloorOrderCreateWithoutProgressBillingsInput, FactoryFloorOrderUncheckedCreateWithoutProgressBillingsInput>
+    connectOrCreate?: FactoryFloorOrderCreateOrConnectWithoutProgressBillingsInput
+    connect?: FactoryFloorOrderWhereUniqueInput
+  }
+
+  export type EnumProgressBillingKindFieldUpdateOperationsInput = {
+    set?: $Enums.ProgressBillingKind
+  }
+
+  export type EnumProgressBillingStatusFieldUpdateOperationsInput = {
+    set?: $Enums.ProgressBillingStatus
+  }
+
+  export type FactoryFloorOrderUpdateOneRequiredWithoutProgressBillingsNestedInput = {
+    create?: XOR<FactoryFloorOrderCreateWithoutProgressBillingsInput, FactoryFloorOrderUncheckedCreateWithoutProgressBillingsInput>
+    connectOrCreate?: FactoryFloorOrderCreateOrConnectWithoutProgressBillingsInput
+    upsert?: FactoryFloorOrderUpsertWithoutProgressBillingsInput
+    connect?: FactoryFloorOrderWhereUniqueInput
+    update?: XOR<XOR<FactoryFloorOrderUpdateToOneWithWhereWithoutProgressBillingsInput, FactoryFloorOrderUpdateWithoutProgressBillingsInput>, FactoryFloorOrderUncheckedUpdateWithoutProgressBillingsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -87398,6 +89254,40 @@ export namespace Prisma {
     gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedEnumProgressBillingKindFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingKind | EnumProgressBillingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingKindFilter<$PrismaModel> | $Enums.ProgressBillingKind
+  }
+
+  export type NestedEnumProgressBillingStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingStatus | EnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingStatusFilter<$PrismaModel> | $Enums.ProgressBillingStatus
+  }
+
+  export type NestedEnumProgressBillingKindWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingKind | EnumProgressBillingKindFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingKind[] | ListEnumProgressBillingKindFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingKindWithAggregatesFilter<$PrismaModel> | $Enums.ProgressBillingKind
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProgressBillingKindFilter<$PrismaModel>
+    _max?: NestedEnumProgressBillingKindFilter<$PrismaModel>
+  }
+
+  export type NestedEnumProgressBillingStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProgressBillingStatus | EnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProgressBillingStatus[] | ListEnumProgressBillingStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumProgressBillingStatusWithAggregatesFilter<$PrismaModel> | $Enums.ProgressBillingStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProgressBillingStatusFilter<$PrismaModel>
+    _max?: NestedEnumProgressBillingStatusFilter<$PrismaModel>
   }
 
   export type AdminUserCreateWithoutAdminCompanyInput = {
@@ -92428,6 +94318,7 @@ export namespace Prisma {
     documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateWithoutBillingRequestsInput = {
@@ -92449,6 +94340,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderCreateOrConnectWithoutBillingRequestsInput = {
@@ -92672,6 +94564,7 @@ export namespace Prisma {
     documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateWithoutBillingRequestsInput = {
@@ -92693,6 +94586,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type UserUpsertWithoutBillingRequestsInput = {
@@ -93184,6 +95078,7 @@ export namespace Prisma {
     documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateWithoutAdditionalOrdersInput = {
@@ -93205,6 +95100,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderCreateOrConnectWithoutAdditionalOrdersInput = {
@@ -93322,6 +95218,7 @@ export namespace Prisma {
     documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateWithoutAdditionalOrdersInput = {
@@ -93343,6 +95240,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type UnitUpsertWithoutAdditionalOrdersInput = {
@@ -95520,6 +97418,7 @@ export namespace Prisma {
     documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateWithoutMessagesInput = {
@@ -95541,6 +97440,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderCreateOrConnectWithoutMessagesInput = {
@@ -95706,6 +97606,7 @@ export namespace Prisma {
     documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateWithoutMessagesInput = {
@@ -95727,6 +97628,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type CompanyCreateWithoutTemplateMessagesInput = {
@@ -98520,6 +100422,7 @@ export namespace Prisma {
     messages?: MessageCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateWithoutDocumentsInput = {
@@ -98541,6 +100444,7 @@ export namespace Prisma {
     messages?: MessageUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderCreateOrConnectWithoutDocumentsInput = {
@@ -98908,6 +100812,7 @@ export namespace Prisma {
     messages?: MessageUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateWithoutDocumentsInput = {
@@ -98929,6 +100834,7 @@ export namespace Prisma {
     messages?: MessageUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type CompanyUpsertWithoutOrdererDocumentsInput = {
@@ -99292,6 +101198,7 @@ export namespace Prisma {
     messages?: MessageCreateNestedManyWithoutFactoryFloorOrderInput
     documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateWithoutEvaluationsInput = {
@@ -99313,6 +101220,7 @@ export namespace Prisma {
     messages?: MessageUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderCreateOrConnectWithoutEvaluationsInput = {
@@ -99680,6 +101588,7 @@ export namespace Prisma {
     messages?: MessageUpdateManyWithoutFactoryFloorOrderNestedInput
     documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateWithoutEvaluationsInput = {
@@ -99701,6 +101610,7 @@ export namespace Prisma {
     messages?: MessageUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type CompanyUpsertWithoutGivenEvaluationsInput = {
@@ -104152,6 +106062,7 @@ export namespace Prisma {
     documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateWithoutFactoryFloorInput = {
@@ -104173,6 +106084,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderCreateOrConnectWithoutFactoryFloorInput = {
@@ -105791,6 +107703,52 @@ export namespace Prisma {
     create: XOR<CompletionReportCreateWithoutFactoryFloorOrderInput, CompletionReportUncheckedCreateWithoutFactoryFloorOrderInput>
   }
 
+  export type ProgressBillingCreateWithoutFactoryFloorOrderInput = {
+    id?: string
+    appliedAt?: Date | string
+    billingMonth: string
+    amount: bigint | number
+    kind?: $Enums.ProgressBillingKind
+    status?: $Enums.ProgressBillingStatus
+    comment?: string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId: string
+    confirmedAt?: Date | string | null
+    confirmedByUserId?: string | null
+    returnedAt?: Date | string | null
+    returnedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput = {
+    id?: string
+    appliedAt?: Date | string
+    billingMonth: string
+    amount: bigint | number
+    kind?: $Enums.ProgressBillingKind
+    status?: $Enums.ProgressBillingStatus
+    comment?: string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId: string
+    confirmedAt?: Date | string | null
+    confirmedByUserId?: string | null
+    returnedAt?: Date | string | null
+    returnedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProgressBillingCreateOrConnectWithoutFactoryFloorOrderInput = {
+    where: ProgressBillingWhereUniqueInput
+    create: XOR<ProgressBillingCreateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput>
+  }
+
+  export type ProgressBillingCreateManyFactoryFloorOrderInputEnvelope = {
+    data: ProgressBillingCreateManyFactoryFloorOrderInput | ProgressBillingCreateManyFactoryFloorOrderInput[]
+    skipDuplicates?: boolean
+  }
+
   export type FactoryFloorUpsertWithoutOrdersInput = {
     update: XOR<FactoryFloorUpdateWithoutOrdersInput, FactoryFloorUncheckedUpdateWithoutOrdersInput>
     create: XOR<FactoryFloorCreateWithoutOrdersInput, FactoryFloorUncheckedCreateWithoutOrdersInput>
@@ -105997,6 +107955,44 @@ export namespace Prisma {
     additionalWorkAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProgressBillingUpsertWithWhereUniqueWithoutFactoryFloorOrderInput = {
+    where: ProgressBillingWhereUniqueInput
+    update: XOR<ProgressBillingUpdateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedUpdateWithoutFactoryFloorOrderInput>
+    create: XOR<ProgressBillingCreateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedCreateWithoutFactoryFloorOrderInput>
+  }
+
+  export type ProgressBillingUpdateWithWhereUniqueWithoutFactoryFloorOrderInput = {
+    where: ProgressBillingWhereUniqueInput
+    data: XOR<ProgressBillingUpdateWithoutFactoryFloorOrderInput, ProgressBillingUncheckedUpdateWithoutFactoryFloorOrderInput>
+  }
+
+  export type ProgressBillingUpdateManyWithWhereWithoutFactoryFloorOrderInput = {
+    where: ProgressBillingScalarWhereInput
+    data: XOR<ProgressBillingUpdateManyMutationInput, ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderInput>
+  }
+
+  export type ProgressBillingScalarWhereInput = {
+    AND?: ProgressBillingScalarWhereInput | ProgressBillingScalarWhereInput[]
+    OR?: ProgressBillingScalarWhereInput[]
+    NOT?: ProgressBillingScalarWhereInput | ProgressBillingScalarWhereInput[]
+    id?: StringFilter<"ProgressBilling"> | string
+    factoryFloorOrderId?: StringFilter<"ProgressBilling"> | string
+    appliedAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    billingMonth?: StringFilter<"ProgressBilling"> | string
+    amount?: BigIntFilter<"ProgressBilling"> | bigint | number
+    kind?: EnumProgressBillingKindFilter<"ProgressBilling"> | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFilter<"ProgressBilling"> | $Enums.ProgressBillingStatus
+    comment?: StringNullableFilter<"ProgressBilling"> | string | null
+    photos?: JsonFilter<"ProgressBilling">
+    appliedByUserId?: StringFilter<"ProgressBilling"> | string
+    confirmedAt?: DateTimeNullableFilter<"ProgressBilling"> | Date | string | null
+    confirmedByUserId?: StringNullableFilter<"ProgressBilling"> | string | null
+    returnedAt?: DateTimeNullableFilter<"ProgressBilling"> | Date | string | null
+    returnedByUserId?: StringNullableFilter<"ProgressBilling"> | string | null
+    createdAt?: DateTimeFilter<"ProgressBilling"> | Date | string
+    updatedAt?: DateTimeFilter<"ProgressBilling"> | Date | string
   }
 
   export type FactoryFloorCreateWithoutImagesInput = {
@@ -106906,6 +108902,7 @@ export namespace Prisma {
     messages?: MessageCreateNestedManyWithoutFactoryFloorOrderInput
     documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderUncheckedCreateWithoutCompletionReportInput = {
@@ -106927,6 +108924,7 @@ export namespace Prisma {
     messages?: MessageUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
     evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
+    progressBillings?: ProgressBillingUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
   }
 
   export type FactoryFloorOrderCreateOrConnectWithoutCompletionReportInput = {
@@ -106964,6 +108962,7 @@ export namespace Prisma {
     messages?: MessageUpdateManyWithoutFactoryFloorOrderNestedInput
     documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateWithoutCompletionReportInput = {
@@ -106985,6 +108984,111 @@ export namespace Prisma {
     messages?: MessageUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
+  }
+
+  export type FactoryFloorOrderCreateWithoutProgressBillingsInput = {
+    id?: string
+    workCompanyId: string
+    status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
+    actualAmount?: bigint | number | null
+    inspectionData?: NullableJsonNullValueInput | InputJsonValue
+    answersTimeExpired?: Date | string | null
+    message?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    deletedAt?: Date | string | null
+    factoryFloor: FactoryFloorCreateNestedOneWithoutOrdersInput
+    billingRequests?: BillingRequestCreateNestedManyWithoutFactoryFloorOrderInput
+    additionalOrders?: AdditionalOrderCreateNestedManyWithoutFactoryFloorOrderInput
+    messages?: MessageCreateNestedManyWithoutFactoryFloorOrderInput
+    documents?: DocumentCreateNestedManyWithoutFactoryFloorOrderInput
+    evaluations?: EvaluationCreateNestedManyWithoutFactoryFloorOrderInput
+    completionReport?: CompletionReportCreateNestedOneWithoutFactoryFloorOrderInput
+  }
+
+  export type FactoryFloorOrderUncheckedCreateWithoutProgressBillingsInput = {
+    id?: string
+    factoryFloorId: string
+    workCompanyId: string
+    status?: $Enums.OrderStatus | null
+    completionStatus?: $Enums.OrderCompletionStatus
+    completedDay?: Date | string | null
+    actualAmount?: bigint | number | null
+    inspectionData?: NullableJsonNullValueInput | InputJsonValue
+    answersTimeExpired?: Date | string | null
+    message?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    deletedAt?: Date | string | null
+    billingRequests?: BillingRequestUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
+    additionalOrders?: AdditionalOrderUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
+    messages?: MessageUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
+    documents?: DocumentUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
+    evaluations?: EvaluationUncheckedCreateNestedManyWithoutFactoryFloorOrderInput
+    completionReport?: CompletionReportUncheckedCreateNestedOneWithoutFactoryFloorOrderInput
+  }
+
+  export type FactoryFloorOrderCreateOrConnectWithoutProgressBillingsInput = {
+    where: FactoryFloorOrderWhereUniqueInput
+    create: XOR<FactoryFloorOrderCreateWithoutProgressBillingsInput, FactoryFloorOrderUncheckedCreateWithoutProgressBillingsInput>
+  }
+
+  export type FactoryFloorOrderUpsertWithoutProgressBillingsInput = {
+    update: XOR<FactoryFloorOrderUpdateWithoutProgressBillingsInput, FactoryFloorOrderUncheckedUpdateWithoutProgressBillingsInput>
+    create: XOR<FactoryFloorOrderCreateWithoutProgressBillingsInput, FactoryFloorOrderUncheckedCreateWithoutProgressBillingsInput>
+    where?: FactoryFloorOrderWhereInput
+  }
+
+  export type FactoryFloorOrderUpdateToOneWithWhereWithoutProgressBillingsInput = {
+    where?: FactoryFloorOrderWhereInput
+    data: XOR<FactoryFloorOrderUpdateWithoutProgressBillingsInput, FactoryFloorOrderUncheckedUpdateWithoutProgressBillingsInput>
+  }
+
+  export type FactoryFloorOrderUpdateWithoutProgressBillingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workCompanyId?: StringFieldUpdateOperationsInput | string
+    status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    inspectionData?: NullableJsonNullValueInput | InputJsonValue
+    answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    factoryFloor?: FactoryFloorUpdateOneRequiredWithoutOrdersNestedInput
+    billingRequests?: BillingRequestUpdateManyWithoutFactoryFloorOrderNestedInput
+    additionalOrders?: AdditionalOrderUpdateManyWithoutFactoryFloorOrderNestedInput
+    messages?: MessageUpdateManyWithoutFactoryFloorOrderNestedInput
+    documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
+    evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
+    completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+  }
+
+  export type FactoryFloorOrderUncheckedUpdateWithoutProgressBillingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    factoryFloorId?: StringFieldUpdateOperationsInput | string
+    workCompanyId?: StringFieldUpdateOperationsInput | string
+    status?: NullableEnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus | null
+    completionStatus?: EnumOrderCompletionStatusFieldUpdateOperationsInput | $Enums.OrderCompletionStatus
+    completedDay?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    actualAmount?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    inspectionData?: NullableJsonNullValueInput | InputJsonValue
+    answersTimeExpired?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    billingRequests?: BillingRequestUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
+    additionalOrders?: AdditionalOrderUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
+    messages?: MessageUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
+    documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
+    evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
+    completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
   }
 
   export type AdminUserCreateManyAdminCompanyInput = {
@@ -110591,6 +112695,7 @@ export namespace Prisma {
     documents?: DocumentUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateWithoutFactoryFloorInput = {
@@ -110612,6 +112717,7 @@ export namespace Prisma {
     documents?: DocumentUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     evaluations?: EvaluationUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
     completionReport?: CompletionReportUncheckedUpdateOneWithoutFactoryFloorOrderNestedInput
+    progressBillings?: ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderNestedInput
   }
 
   export type FactoryFloorOrderUncheckedUpdateManyWithoutFactoryFloorInput = {
@@ -110947,6 +113053,24 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type ProgressBillingCreateManyFactoryFloorOrderInput = {
+    id?: string
+    appliedAt?: Date | string
+    billingMonth: string
+    amount: bigint | number
+    kind?: $Enums.ProgressBillingKind
+    status?: $Enums.ProgressBillingStatus
+    comment?: string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId: string
+    confirmedAt?: Date | string | null
+    confirmedByUserId?: string | null
+    returnedAt?: Date | string | null
+    returnedByUserId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type BillingRequestUpdateWithoutFactoryFloorOrderInput = {
     id?: StringFieldUpdateOperationsInput | string
     subNo?: NullableIntFieldUpdateOperationsInput | number | null
@@ -111199,6 +113323,60 @@ export namespace Prisma {
     communication?: IntFieldUpdateOperationsInput | number
     reliability?: IntFieldUpdateOperationsInput | number
     comment?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProgressBillingUpdateWithoutFactoryFloorOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    billingMonth?: StringFieldUpdateOperationsInput | string
+    amount?: BigIntFieldUpdateOperationsInput | bigint | number
+    kind?: EnumProgressBillingKindFieldUpdateOperationsInput | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFieldUpdateOperationsInput | $Enums.ProgressBillingStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    confirmedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    returnedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    returnedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProgressBillingUncheckedUpdateWithoutFactoryFloorOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    billingMonth?: StringFieldUpdateOperationsInput | string
+    amount?: BigIntFieldUpdateOperationsInput | bigint | number
+    kind?: EnumProgressBillingKindFieldUpdateOperationsInput | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFieldUpdateOperationsInput | $Enums.ProgressBillingStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    confirmedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    returnedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    returnedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProgressBillingUncheckedUpdateManyWithoutFactoryFloorOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    appliedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    billingMonth?: StringFieldUpdateOperationsInput | string
+    amount?: BigIntFieldUpdateOperationsInput | bigint | number
+    kind?: EnumProgressBillingKindFieldUpdateOperationsInput | $Enums.ProgressBillingKind
+    status?: EnumProgressBillingStatusFieldUpdateOperationsInput | $Enums.ProgressBillingStatus
+    comment?: NullableStringFieldUpdateOperationsInput | string | null
+    photos?: JsonNullValueInput | InputJsonValue
+    appliedByUserId?: StringFieldUpdateOperationsInput | string
+    confirmedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    confirmedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    returnedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    returnedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

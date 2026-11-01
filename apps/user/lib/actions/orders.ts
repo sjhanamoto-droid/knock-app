@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma";
 import { requireSession } from "@/lib/session";
 import { requireKyc } from "@/lib/actions/verification";
 import { generateOrderSheet } from "@/lib/services/document-generator";
@@ -10,6 +9,7 @@ import { sendPushToUsers } from "@/lib/push";
 import { recalculateTrustScore } from "@/lib/services/trust-score";
 import { toJstCalendarDate } from "@/lib/helpers/billing-period";
 import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
+import { rollupFloorCompletion } from "@/lib/helpers/floor-rollup";
 
 export async function getOrders(status?: string) {
   const user = await requireSession();
@@ -772,44 +772,6 @@ export async function acceptOrder(orderId: string) {
   return result;
 }
 
-// ============ V2: 現場ステータスのロールアップ（発注書の完了状況 → 現場） ============
-
-/**
- * 発注書(FactoryFloorOrder)の状態から現場ステータスを算出して反映する。
- * - 回答待ち(PENDING/APPROVED)の発注、または未完了(≠CLOSED)の確定発注が1つでもあれば「施工中」
- * - 確定発注がすべて完了(CLOSED)なら「工事完了」（finishDay = 最終の完了日）
- * 追加工事の依頼で 工事完了→施工中 に戻り、その施工報告で再び 工事完了 になる往復をここで担う。
- * 発注前(未発注/下書き/発注済)や取引終端(DEAL_COMPLETED)の現場は対象外。
- */
-async function rollupFloorCompletion(tx: Prisma.TransactionClient, factoryFloorId: string) {
-  const floor = await tx.factoryFloor.findUnique({
-    where: { id: factoryFloorId },
-    select: { status: true, finishDay: true },
-  });
-  if (!floor) return null;
-  if (floor.status !== "IN_PROGRESS" && floor.status !== "COMPLETED") return floor.status;
-
-  const orders = await tx.factoryFloorOrder.findMany({
-    where: { factoryFloorId, deletedAt: null, status: { in: ["PENDING", "APPROVED", "CONFIRMED"] } },
-    select: { status: true, completionStatus: true, completedDay: true },
-  });
-  const confirmed = orders.filter((o) => o.status === "CONFIRMED");
-  const hasOpen = orders.some((o) => o.status !== "CONFIRMED" || o.completionStatus !== "CLOSED");
-  const nextStatus = confirmed.length > 0 && !hasOpen ? "COMPLETED" : "IN_PROGRESS";
-
-  // 現場の完了日 = 完了済み発注書の最終完了日
-  const latestCompleted = confirmed
-    .map((o) => o.completedDay)
-    .filter((d): d is Date => !!d)
-    .reduce<Date | null>((mx, d) => (!mx || d > mx ? d : mx), null);
-
-  await tx.factoryFloor.update({
-    where: { id: factoryFloorId },
-    data: { status: nextStatus, finishDay: latestCompleted ?? floor.finishDay },
-  });
-  return nextStatus;
-}
-
 // ============ V2: 施工報告（受注者）＝発注書の完了・請求対象化 ============
 
 export async function submitCompletionReport(data: {
@@ -845,6 +807,16 @@ export async function submitCompletionReport(data: {
   const ordererCompanyId = order.factoryFloor.companyId;
 
   const result = await prisma.$transaction(async (tx) => {
+    // 出来高の送信・確定と直列化するため発注書の行をロックしてから判定する（progress-billing.ts と同じ順序）
+    await tx.$queryRaw`SELECT id FROM factory_floor_orders WHERE id = ${data.factoryFloorOrderId} FOR UPDATE`;
+    // 出来高を確定済み/確定待ちの発注書は、残りを「出来高（残りすべて）」で報告し発注者の確定で完了する
+    const activeProgress = await tx.progressBilling.count({
+      where: { factoryFloorOrderId: data.factoryFloorOrderId, status: { in: ["PENDING", "CONFIRMED"] } },
+    });
+    if (activeProgress > 0) {
+      throw new Error("この発注書は出来高で報告中です。工事完了画面の「完了を報告する」から残りを報告してください");
+    }
+
     // 二重送信対策: 未完了(≠CLOSED)の確定発注だけを原子的に完了(CLOSED)へ遷移し、重複処理を防ぐ。
     // この時点で注文書金額が完了月の請求対象データになる。
     const claim = await tx.factoryFloorOrder.updateMany({
@@ -1002,6 +974,13 @@ export async function revertCompletion(orderId: string) {
   if (order.status !== "CONFIRMED" || order.completionStatus !== "CLOSED") {
     throw new Error("差し戻せる状態ではありません");
   }
+  // 出来高の確定で完了した発注書は、確定済みの金額を変更できないため差し戻せない
+  const confirmedProgress = await prisma.progressBilling.count({
+    where: { factoryFloorOrderId: orderId, status: "CONFIRMED" },
+  });
+  if (confirmedProgress > 0) {
+    throw new Error("この発注書は出来高の確定で完了しているため差し戻せません");
+  }
 
   const invoicedOrderIds = await getInvoicedOrderIds({ orderCompanyId: user.companyId });
   if (invoicedOrderIds.has(orderId)) {
@@ -1097,6 +1076,8 @@ export async function getWorkCompletion(factoryFloorId: string) {
       parent: { select: { name: true } },
       companyId: true,
       workCompanyId: true,
+      company: { select: { name: true } },
+      workCompany: { select: { name: true } },
       status: true,
       // 回答待ち(PENDING/APPROVED)の発注も返す。現場ステータスのロールアップと同じ集合で、
       // 追加工事の依頼中に「工事完了」と表示されないようにする。
@@ -1110,9 +1091,22 @@ export async function getWorkCompletion(factoryFloorId: string) {
           completedDay: true,
           inspectionData: true,
           completionReport: { select: { id: true } },
+          progressBillings: {
+            orderBy: { appliedAt: "asc" },
+            select: {
+              id: true,
+              appliedAt: true,
+              billingMonth: true,
+              amount: true,
+              kind: true,
+              status: true,
+              confirmedAt: true,
+              returnedAt: true,
+            },
+          },
           documents: {
             where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
-            select: { id: true, documentNumber: true, totalAmount: true, metadata: true },
+            select: { id: true, documentNumber: true, subtotal: true, totalAmount: true, metadata: true },
             orderBy: { issuedAt: "asc" },
           },
         },
@@ -1149,6 +1143,8 @@ export async function getWorkCompletion(factoryFloorId: string) {
     parentName: floor.parent?.name ?? null,
     status: floor.status,
     isOrderer: floor.companyId === user.companyId,
+    ordererName: floor.company?.name ?? "",
+    workerName: floor.workCompany?.name ?? "",
     orders: floor.orders.map((o) => {
       const sheet = o.documents[0] ?? null;
       const insp = o.inspectionData as
@@ -1185,9 +1181,22 @@ export async function getWorkCompletion(factoryFloorId: string) {
         isAdditional,
         items,
         subtotal,
+        // 出来高（発注書ごと）。注文書金額(税抜)に対する確定済み/確定待ち/残りは画面で集計する
+        progress: o.progressBillings.map((p) => ({
+          id: p.id,
+          appliedAt: p.appliedAt.toISOString(),
+          billingMonth: p.billingMonth,
+          amount: Number(p.amount),
+          kind: p.kind,
+          status: p.status,
+          confirmedAt: p.confirmedAt?.toISOString() ?? null,
+          returnedAt: p.returnedAt?.toISOString() ?? null,
+        })),
         orderSheet: sheet
           ? {
               documentNumber: sheet.documentNumber,
+              // 注文書金額(税抜)はサーバーの出来高チェックと同じく非VOIDの注文書の合計
+              subtotal: o.documents.reduce((sum, d) => sum + Number(d.subtotal ?? 0), 0),
               totalAmount: Number(sheet.totalAmount ?? 0),
               siteName: ((sheet.metadata as Record<string, unknown> | null)?.siteName as string) ?? null,
             }

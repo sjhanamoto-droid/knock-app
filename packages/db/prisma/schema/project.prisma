@@ -98,6 +98,7 @@ model FactoryFloorOrder {
   documents          Document[]
   evaluations        Evaluation[]
   completionReport   CompletionReport?
+  progressBillings   ProgressBilling[] // 出来高（発注書ごと・何回でも）
 
   @@index([factoryFloorId, deletedAt])
   @@index([workCompanyId, deletedAt])
@@ -180,4 +181,43 @@ model CompletionReport {
   updatedAt               DateTime          @updatedAt
 
   @@map("completion_reports")
+}
+
+// ============ 出来高（発注書ごとの部分完了の報告・確定） ============
+// 受注者が終わった分の金額(税抜)を報告し、発注者が確定すると申請月の請求対象になる。
+// 残額すべてを報告した FINAL が確定すると発注書は完了(CLOSED)。差し戻した履歴も消さずに残す。
+
+enum ProgressBillingKind {
+  PARTIAL // 出来高（一部完了）
+  FINAL   // 最終（残額すべて）
+}
+
+enum ProgressBillingStatus {
+  PENDING   // 確定待ち
+  CONFIRMED // 確定済
+  RETURNED  // 差し戻し
+}
+
+model ProgressBilling {
+  id                  String                @id @default(cuid())
+  factoryFloorOrderId String
+  factoryFloorOrder   FactoryFloorOrder     @relation(fields: [factoryFloorOrderId], references: [id])
+  appliedAt           DateTime              @default(now()) // 申請(送信)日時
+  billingMonth        String                // 請求月 YYYYMM（申請月。確定日では決めない）
+  amount              BigInt                // 金額（税抜・円）
+  kind                ProgressBillingKind   @default(PARTIAL)
+  status              ProgressBillingStatus @default(PENDING)
+  comment             String?
+  photos              Json                  @default("[]")
+  appliedByUserId     String
+  confirmedAt         DateTime?
+  confirmedByUserId   String?
+  returnedAt          DateTime?
+  returnedByUserId    String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([factoryFloorOrderId, status])
+  @@index([billingMonth, status])
+  @@map("progress_billings")
 }

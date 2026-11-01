@@ -830,6 +830,25 @@ exports.Prisma.CompletionReportScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProgressBillingScalarFieldEnum = {
+  id: 'id',
+  factoryFloorOrderId: 'factoryFloorOrderId',
+  appliedAt: 'appliedAt',
+  billingMonth: 'billingMonth',
+  amount: 'amount',
+  kind: 'kind',
+  status: 'status',
+  comment: 'comment',
+  photos: 'photos',
+  appliedByUserId: 'appliedByUserId',
+  confirmedAt: 'confirmedAt',
+  confirmedByUserId: 'confirmedByUserId',
+  returnedAt: 'returnedAt',
+  returnedByUserId: 'returnedByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1056,6 +1075,17 @@ exports.OrderCompletionStatus = exports.$Enums.OrderCompletionStatus = {
   CLOSED: 'CLOSED'
 };
 
+exports.ProgressBillingKind = exports.$Enums.ProgressBillingKind = {
+  PARTIAL: 'PARTIAL',
+  FINAL: 'FINAL'
+};
+
+exports.ProgressBillingStatus = exports.$Enums.ProgressBillingStatus = {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  RETURNED: 'RETURNED'
+};
+
 exports.Prisma.ModelName = {
   AdminCompany: 'AdminCompany',
   AdminUser: 'AdminUser',
@@ -1106,7 +1136,8 @@ exports.Prisma.ModelName = {
   FactoryFloorPdf: 'FactoryFloorPdf',
   FactoryFloorOccupation: 'FactoryFloorOccupation',
   PriceOrderDetail: 'PriceOrderDetail',
-  CompletionReport: 'CompletionReport'
+  CompletionReport: 'CompletionReport',
+  ProgressBilling: 'ProgressBilling'
 };
 
 /**

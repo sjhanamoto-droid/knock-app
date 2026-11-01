@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { generateInvoice } from "@/lib/services/document-generator";
 import { getBillingPeriod } from "@/lib/helpers/billing-period";
+import { getInvoicedProgressIds } from "@/lib/helpers/invoiced-orders";
 
 /**
  * 支払期日を計算（invoices.ts のコピー）
@@ -78,7 +79,20 @@ export async function generateDraftInvoices(companyId: string) {
     },
   });
 
-  if (orders.length === 0) return [];
+  // 確定済みの出来高（請求月=申請月）も受注者ごとの請求対象に含める
+  const progressItems = await prisma.progressBilling.findMany({
+    where: {
+      status: "CONFIRMED",
+      billingMonth: yearMonth,
+      factoryFloorOrder: { deletedAt: null, factoryFloor: { companyId, deletedAt: null } },
+    },
+    select: { factoryFloorOrder: { select: { workCompanyId: true } } },
+  });
+
+  // 過去の申請月の出来高で、その月の締め処理より後に確定したものを先に拾う
+  const lateIds = await generateLateProgressInvoices(companyId, yearMonth, company.paymentDueType);
+
+  if (orders.length === 0 && progressItems.length === 0) return lateIds;
 
   // 既存のドラフト請求書を確認
   const existingInvoices = await prisma.document.findMany({
@@ -94,14 +108,19 @@ export async function generateDraftInvoices(companyId: string) {
   const invoicedWorkers = new Set(existingInvoices.map((i) => i.workerCompanyId));
 
   // 受注者ごとにユニークなIDを集める
-  const workerIds = [...new Set(orders.map((o) => o.workCompanyId))].filter(
+  const workerIds = [
+    ...new Set([
+      ...orders.map((o) => o.workCompanyId),
+      ...progressItems.map((p) => p.factoryFloorOrder.workCompanyId),
+    ]),
+  ].filter(
     (id) => !invoicedWorkers.has(id)
   );
 
   // 支払期日を計算
   const dueDate = calculateDueDate(company.paymentDueType, year, month);
 
-  const createdIds: string[] = [];
+  const createdIds: string[] = [...lateIds];
   for (const workerCompanyId of workerIds) {
     try {
       const docId = await generateInvoice(workerCompanyId, companyId, yearMonth);
@@ -120,6 +139,53 @@ export async function generateDraftInvoices(companyId: string) {
   }
 
   return createdIds;
+}
+
+/**
+ * 出来高は申請月で請求するため、申請月の締め処理（その月の自動生成）より後に確定した出来高
+ * （例: 10/31申請→11/2確定、差し戻し後に元の申請月で再送信）はその月の自動生成に乗らない。
+ * 確定済み・未請求で申請月が当月より前の出来高を、受注者×申請月ごとに追加の請求書(DRAFT)にする。
+ * 同じ月に既存の請求書があっても、二重請求ガードで未請求分だけが載る（同じ月に複数枚はOK）。
+ */
+async function generateLateProgressInvoices(
+  companyId: string,
+  currentYearMonth: string,
+  paymentDueType: string | null,
+): Promise<string[]> {
+  const late = await prisma.progressBilling.findMany({
+    where: {
+      status: "CONFIRMED",
+      billingMonth: { lt: currentYearMonth },
+      factoryFloorOrder: { deletedAt: null, factoryFloor: { companyId, deletedAt: null } },
+    },
+    select: { id: true, billingMonth: true, factoryFloorOrder: { select: { workCompanyId: true } } },
+  });
+  if (late.length === 0) return [];
+
+  const invoiced = await getInvoicedProgressIds({ orderCompanyId: companyId });
+  const groups = new Set(
+    late
+      .filter((p) => !invoiced.has(p.id))
+      .map((p) => `${p.factoryFloorOrder.workCompanyId}::${p.billingMonth}`)
+  );
+
+  const created: string[] = [];
+  for (const key of groups) {
+    const [workerCompanyId, billingMonth] = key.split("::");
+    try {
+      const docId = await generateInvoice(workerCompanyId, companyId, billingMonth);
+      const dueDate = calculateDueDate(
+        paymentDueType,
+        parseInt(billingMonth.substring(0, 4), 10),
+        parseInt(billingMonth.substring(4, 6), 10)
+      );
+      await prisma.document.update({ where: { id: docId }, data: { status: "DRAFT", dueDate } });
+      created.push(docId);
+    } catch {
+      // 請求対象なし（同時に作成済み等）はスキップ
+    }
+  }
+  return created;
 }
 
 /**
