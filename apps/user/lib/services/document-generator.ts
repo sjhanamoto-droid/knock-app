@@ -3,9 +3,8 @@ import path from "path";
 import { prisma } from "@/lib/prisma";
 import { generateOrderSheetPdf, type OrderSheetPdfData } from "./order-sheet-pdf";
 import { generateInvoicePdf, type InvoicePdfData } from "./invoice-pdf";
-import { getBillingPeriod, getBillingMonth, toJstCalendarDate } from "@/lib/helpers/billing-period";
-import { getInvoicedOrderIds, getInvoicedProgressIds } from "@/lib/helpers/invoiced-orders";
-import { PROGRESS_KEY_PREFIX, progressLineName, progressTax } from "@/lib/helpers/progress-billing";
+import { getBillingPeriod, getBillingMonth } from "@/lib/helpers/billing-period";
+import { getInvoicedOrderIds } from "@/lib/helpers/invoiced-orders";
 import { calcOrderSubtotal, calcTax } from "@/lib/helpers/order-amount";
 
 /**
@@ -412,149 +411,10 @@ export async function generateOrderAcceptance(
 }
 
 /**
- * 請求書の明細1行（合算の単位）。
- * - ORDER: 施工報告で完了(CLOSED)した発注書。注文書金額をそのまま請求（完了日の締め月）
- * - PROGRESS: 発注者が確定した出来高。金額(税抜)を申請月に請求（表記「工事名 出来高[10月分]」）
- * 出来高を確定済みの発注書は ORDER として重複請求しない（getBillableOrdersForInvoice で除外）。
- */
-export type InvoiceRow = {
-  /** 請求書内で一意のキー（発注ID or "pb:<出来高ID>"）。請求書詳細の追加/削除にも使う */
-  key: string;
-  type: "ORDER" | "PROGRESS";
-  orderId: string;
-  progressBillingId: string | null;
-  /** 明細の日付（完了日 / 出来高の申請日） */
-  date: Date | null;
-  /** 明細の工事名（出来高は「工事名 出来高[10月分]」） */
-  siteName: string;
-  parentSiteName: string | null;
-  siteCode: string;
-  documentNumber: string;
-  /** 出来高の請求月(YYYYMM)・種別 */
-  billingMonth: string | null;
-  progressKind: "PARTIAL" | "FINAL" | null;
-  subtotal: number;
-  taxAmount: number;
-  totalAmount: number;
-};
-
-type OrderForRow = {
-  id: string;
-  completedDay: Date | null;
-  factoryFloor: {
-    name: string | null;
-    code: string | null;
-    parent: { code: string | null; name?: string | null } | null;
-  };
-  documents: {
-    documentNumber: string | null;
-    subtotal: bigint | null;
-    taxAmount: bigint | null;
-    totalAmount: bigint | null;
-    metadata: unknown;
-  }[];
-};
-
-function orderRow(order: OrderForRow): InvoiceRow {
-  const sheet = order.documents[0];
-  const sum = (key: "subtotal" | "taxAmount" | "totalAmount") =>
-    order.documents.reduce((s, d) => s + Number(d[key] ?? 0), 0);
-  return {
-    key: order.id,
-    type: "ORDER",
-    orderId: order.id,
-    progressBillingId: null,
-    date: order.completedDay,
-    siteName:
-      order.factoryFloor.name ??
-      ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
-      "",
-    parentSiteName: order.factoryFloor.parent?.name ?? null,
-    siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
-    documentNumber: sheet?.documentNumber ?? "",
-    billingMonth: null,
-    progressKind: null,
-    // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
-    subtotal: sum("subtotal"),
-    taxAmount: sum("taxAmount"),
-    totalAmount: sum("totalAmount"),
-  };
-}
-
-const progressRowSelect = {
-  id: true,
-  appliedAt: true,
-  billingMonth: true,
-  amount: true,
-  kind: true,
-  factoryFloorOrderId: true,
-  factoryFloorOrder: {
-    select: {
-      workCompanyId: true,
-      factoryFloor: {
-        select: {
-          companyId: true,
-          name: true,
-          code: true,
-          parent: { select: { code: true, name: true } },
-        },
-      },
-      documents: {
-        where: { type: "ORDER_SHEET" as const, status: { not: "VOID" as const }, deletedAt: null },
-        select: { documentNumber: true, metadata: true },
-      },
-    },
-  },
-} as const;
-
-type ProgressForRow = {
-  id: string;
-  appliedAt: Date;
-  billingMonth: string;
-  amount: bigint;
-  kind: "PARTIAL" | "FINAL";
-  factoryFloorOrderId: string;
-  factoryFloorOrder: {
-    factoryFloor: {
-      name: string | null;
-      code: string | null;
-      parent: { code: string | null; name: string | null } | null;
-    };
-    documents: { documentNumber: string | null; metadata: unknown }[];
-  };
-};
-
-function progressRow(p: ProgressForRow): InvoiceRow {
-  const floor = p.factoryFloorOrder.factoryFloor;
-  const sheet = p.factoryFloorOrder.documents[0];
-  const baseName =
-    floor.name ?? ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ?? "";
-  const subtotal = Number(p.amount);
-  const taxAmount = progressTax(subtotal);
-  return {
-    key: `${PROGRESS_KEY_PREFIX}${p.id}`,
-    type: "PROGRESS",
-    orderId: p.factoryFloorOrderId,
-    progressBillingId: p.id,
-    date: toJstCalendarDate(p.appliedAt),
-    siteName: progressLineName(baseName, p.billingMonth, p.kind),
-    parentSiteName: floor.parent?.name ?? null,
-    siteCode: floor.code ?? floor.parent?.code ?? "",
-    documentNumber: sheet?.documentNumber ?? "",
-    billingMonth: p.billingMonth,
-    progressKind: p.kind,
-    subtotal,
-    taxAmount,
-    totalAmount: subtotal + taxAmount,
-  };
-}
-
-/**
  * 月次請求書に合算する発注（請求対象）を抽出する。
  * generateInvoice と、請求書作成前のプレビュー(getInvoicePreviewForWorker)で同じ条件を使うため共通化。
  * - 発注者の締め日に基づく請求期間に完了(CLOSED)した、受注者⇄発注者ペアの確定発注
  * - 注文書(ORDER_SHEET)があるもののみ
- * - 出来高を確定済みの発注書は除外（出来高側で申請月ごとに請求する）
  * - すでに非VOIDの請求書に含まれている発注は除外（excludeInvoiceIds = 再集計中の自分自身）
  */
 export async function getBillableOrdersForInvoice(
@@ -582,7 +442,6 @@ export async function getBillableOrdersForInvoice(
       workCompanyId: workerCompanyId,
       factoryFloor: { companyId: orderCompanyId, deletedAt: null },
       completedDay: { gte: startOfMonth, lte: endOfMonth },
-      progressBillings: { none: { status: "CONFIRMED" } },
     },
     select: {
       id: true,
@@ -618,84 +477,65 @@ export async function getBillableOrdersForInvoice(
 }
 
 /**
- * 月次請求書に合算する出来高（確定済み・請求月=yearMonth・未請求）を抽出する。
- * 請求月は申請月で決まる（確定日ではない）。確定待ち・差し戻しは含めない。
+ * 請求書を自動生成（月次締め処理）
  */
-export async function getBillableProgressForInvoice(
+export async function generateInvoice(
   workerCompanyId: string,
   orderCompanyId: string,
   yearMonth: string, // YYYYMM
-  excludeInvoiceIds: string[] = [],
-) {
-  const items = await prisma.progressBilling.findMany({
-    where: {
-      status: "CONFIRMED",
-      billingMonth: yearMonth,
-      factoryFloorOrder: {
-        deletedAt: null,
-        workCompanyId: workerCompanyId,
-        factoryFloor: { companyId: orderCompanyId, deletedAt: null },
-      },
-    },
-    select: progressRowSelect,
-    orderBy: { appliedAt: "asc" },
-  });
-  const invoiced = await getInvoicedProgressIds({ workerCompanyId, orderCompanyId, excludeInvoiceIds });
-  return items.filter((p) => !invoiced.has(p.id));
-}
+  excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(再集計中の自分自身)
+): Promise<string> {
+  const billableOrders = await getBillableOrdersForInvoice(
+    workerCompanyId,
+    orderCompanyId,
+    yearMonth,
+    excludeInvoiceIds
+  );
 
-/** その月に合算する明細（発注書＋出来高）。プレビューと生成で同じ結果になる */
-export async function getBillableRowsForInvoice(
-  workerCompanyId: string,
-  orderCompanyId: string,
-  yearMonth: string,
-  excludeInvoiceIds: string[] = [],
-): Promise<InvoiceRow[]> {
-  const [orders, progress] = await Promise.all([
-    getBillableOrdersForInvoice(workerCompanyId, orderCompanyId, yearMonth, excludeInvoiceIds),
-    getBillableProgressForInvoice(workerCompanyId, orderCompanyId, yearMonth, excludeInvoiceIds),
-  ]);
-  return sortRows([...orders.map(orderRow), ...progress.map(progressRow)]);
-}
-
-function sortRows(rows: InvoiceRow[]): InvoiceRow[] {
-  return rows.sort((a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0));
-}
-
-/** 明細から請求書(PDF＋Document)を作成する。generateInvoice / generateInvoiceFromOrders 共通 */
-async function createInvoiceDocument(params: {
-  rows: InvoiceRow[];
-  workerCompanyId: string;
-  orderCompanyId: string;
-  yearMonth: string;
-  issuedAtFallback: Date;
-}): Promise<string> {
-  const { rows, workerCompanyId, orderCompanyId, yearMonth } = params;
+  if (billableOrders.length === 0) {
+    throw new Error("対象月に請求対象の工事がありません");
+  }
 
   const documentNumber = await generateDocumentNumber("INVOICE", yearMonth);
 
-  // 合算: 発注書は注文書金額、出来高は確定金額(税抜)＋消費税
-  const totalSubtotal = BigInt(rows.reduce((s, r) => s + r.subtotal, 0));
-  const totalTax = BigInt(rows.reduce((s, r) => s + r.taxAmount, 0));
-  const totalTotal = BigInt(rows.reduce((s, r) => s + r.totalAmount, 0));
+  // 合算: 各発注の非VOIDの注文書金額をそのまま合計
+  let totalSubtotal = BigInt(0);
+  let totalTax = BigInt(0);
+  let totalTotal = BigInt(0);
 
-  const [workerCompany, orderCompany] = await Promise.all([
-    prisma.company.findUnique({ where: { id: workerCompanyId } }),
-    prisma.company.findUnique({ where: { id: orderCompanyId } }),
-  ]);
+  for (const order of billableOrders) {
+    for (const sheet of order.documents) {
+      totalSubtotal += sheet.subtotal ?? BigInt(0);
+      totalTax += sheet.taxAmount ?? BigInt(0);
+      totalTotal += sheet.totalAmount ?? BigInt(0);
+    }
+  }
 
-  const issuedAt = latestCompletedDay(
-    rows.map((r) => ({ completedDay: r.date })),
-    params.issuedAtFallback
-  );
+  const workerCompany = await prisma.company.findUnique({
+    where: { id: workerCompanyId },
+  });
 
-  const lineItems = rows.map((r) => ({
-    documentNumber: r.documentNumber,
-    date: r.date,
-    siteName: r.siteName,
-    siteCode: r.siteCode,
-    amount: r.subtotal,
-  }));
+  const orderCompany = await prisma.company.findUnique({
+    where: { id: orderCompanyId },
+  });
+
+  const issuedAt = latestCompletedDay(billableOrders, new Date());
+
+  // PDF生成データ: 各発注の注文書を明細行に
+  const lineItems = billableOrders.map((order) => {
+    const sheet = order.documents[0];
+    return {
+      documentNumber: sheet?.documentNumber ?? "",
+      date: order.completedDay,
+      siteName:
+        order.factoryFloor.name ??
+        ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+        "",
+      siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
+      // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
+    };
+  });
 
   const pdfData: InvoicePdfData = {
     documentNumber,
@@ -724,17 +564,12 @@ async function createInvoiceDocument(params: {
   const pdfDataUrl = generateInvoicePdf(pdfData);
   const pdfFilePath = savePdfToFile(pdfDataUrl, documentNumber);
 
-  const orderIds = [...new Set(rows.filter((r) => r.type === "ORDER").map((r) => r.orderId))];
-  const progressBillingIds = rows
-    .filter((r) => r.type === "PROGRESS")
-    .map((r) => r.progressBillingId as string);
-
   const document = await prisma.document.create({
     data: {
       type: "INVOICE",
       status: "ISSUED",
       documentNumber,
-      factoryFloorOrderId: rows[0].orderId, // 代表の発注ID
+      factoryFloorOrderId: billableOrders[0].id, // 代表の発注ID
       orderCompanyId,
       workerCompanyId,
       subtotal: totalSubtotal,
@@ -745,18 +580,20 @@ async function createInvoiceDocument(params: {
       issuedAt,
       yearMonth,
       metadata: {
-        // orderIds = 注文書金額で請求した発注 / progressBillingIds = 出来高で請求した分（二重請求ガードの基準）
-        orderIds,
-        progressBillingIds,
-        lineItems: rows.map((r) => ({
-          documentNumber: r.documentNumber,
-          siteName: r.siteName,
-          siteCode: r.siteCode,
-          amount: r.subtotal,
-          ...(r.type === "PROGRESS"
-            ? { progressBillingId: r.progressBillingId, billingMonth: r.billingMonth, progressKind: r.progressKind }
-            : {}),
-        })),
+        orderIds: billableOrders.map((o) => o.id),
+        lineItems: billableOrders.map((order) => {
+          const sheet = order.documents[0];
+          return {
+            documentNumber: sheet?.documentNumber ?? "",
+            siteName:
+              order.factoryFloor.name ??
+              ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+              "",
+            siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
+            // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
+          };
+        }),
       },
     },
   });
@@ -765,119 +602,79 @@ async function createInvoiceDocument(params: {
 }
 
 /**
- * 請求書を自動生成（月次締め処理）
- */
-export async function generateInvoice(
-  workerCompanyId: string,
-  orderCompanyId: string,
-  yearMonth: string, // YYYYMM
-  excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(再集計中の自分自身)
-): Promise<string> {
-  const rows = await getBillableRowsForInvoice(workerCompanyId, orderCompanyId, yearMonth, excludeInvoiceIds);
-
-  if (rows.length === 0) {
-    throw new Error("対象月に請求対象の工事がありません");
-  }
-
-  return createInvoiceDocument({
-    rows,
-    workerCompanyId,
-    orderCompanyId,
-    yearMonth,
-    issuedAtFallback: new Date(),
-  });
-}
-
-/**
- * 指定された発注ID・出来高IDから請求書を生成（手動作成・作り直し用）
- * 発注は注文書(ORDER_SHEET)金額を、出来高は確定金額を合算する。
+ * 指定された発注IDから請求書を生成（手動作成用）
+ * 各発注の注文書(ORDER_SHEET)金額をそのまま合算する。
  */
 export async function generateInvoiceFromOrders(
   orderIds: string[],
   billingDate: Date, // 完了日が取れない場合の発行日・請求月のフォールバック
   excludeInvoiceIds: string[] = [], // 二重請求ガードから外す請求書ID(作り直し中の自分自身)
-  progressBillingIds: string[] = [],
 ): Promise<string> {
-  const orders = orderIds.length
-    ? await prisma.factoryFloorOrder.findMany({
-        where: {
-          id: { in: orderIds },
-          deletedAt: null,
-          completionStatus: "CLOSED",
-          // 出来高を確定済みの発注書は注文書金額で重複請求しない
-          progressBillings: { none: { status: "CONFIRMED" } },
-        },
+  const orders = await prisma.factoryFloorOrder.findMany({
+    where: {
+      id: { in: orderIds },
+      deletedAt: null,
+      completionStatus: "CLOSED",
+    },
+    select: {
+      id: true,
+      completedDay: true,
+      workCompanyId: true,
+      factoryFloorId: true,
+      factoryFloor: { select: { companyId: true, name: true, code: true, parent: { select: { code: true } } } },
+      documents: {
+        where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
         select: {
           id: true,
-          completedDay: true,
-          workCompanyId: true,
-          factoryFloorId: true,
-          factoryFloor: {
-            select: { companyId: true, name: true, code: true, parent: { select: { code: true, name: true } } },
-          },
-          documents: {
-            where: { type: "ORDER_SHEET", status: { not: "VOID" }, deletedAt: null },
-            select: {
-              id: true,
-              documentNumber: true,
-              subtotal: true,
-              taxAmount: true,
-              totalAmount: true,
-              metadata: true,
-            },
-          },
+          documentNumber: true,
+          subtotal: true,
+          taxAmount: true,
+          totalAmount: true,
+          metadata: true,
         },
-      })
-    : [];
-  const progress = progressBillingIds.length
-    ? await prisma.progressBilling.findMany({
-        where: { id: { in: progressBillingIds }, status: "CONFIRMED", factoryFloorOrder: { deletedAt: null } },
-        select: progressRowSelect,
-      })
-    : [];
+      },
+    },
+  });
 
   // 注文書(ORDER_SHEET)が無い発注は請求対象外
   const ordersWithSheet = orders.filter((o) => o.documents.length > 0);
 
-  if (ordersWithSheet.length === 0 && progress.length === 0) {
+  if (ordersWithSheet.length === 0) {
     throw new Error("請求対象の工事がありません");
   }
 
   // 全て同一の (workerCompanyId, orderCompanyId) であることを検証
-  const pairs = [
-    ...ordersWithSheet.map((o) => `${o.workCompanyId}::${o.factoryFloor.companyId}`),
-    ...progress.map((p) => `${p.factoryFloorOrder.workCompanyId}::${p.factoryFloorOrder.factoryFloor.companyId}`),
-  ];
-  if (new Set(pairs).size !== 1) {
-    throw new Error("異なる取引先の工事が混在しています");
+  const workerCompanyId = ordersWithSheet[0].workCompanyId;
+  const orderCompanyId = ordersWithSheet[0].factoryFloor.companyId;
+  for (const order of ordersWithSheet) {
+    if (order.workCompanyId !== workerCompanyId || order.factoryFloor.companyId !== orderCompanyId) {
+      throw new Error("異なる取引先の工事が混在しています");
+    }
   }
-  const [workerCompanyId, orderCompanyId] = pairs[0].split("::");
 
-  // 二重請求ガード: すでに非VOIDの請求書に含まれている発注・出来高は除外する。
+  // 二重請求ガード: すでに非VOIDの請求書に含まれている発注は除外する。
   // excludeInvoiceIds = 作り直し中の自分自身(まだ非VOID)は除外対象から外す。
-  const [invoicedOrderIds, invoicedProgressIds] = await Promise.all([
-    getInvoicedOrderIds({ workerCompanyId, orderCompanyId, excludeInvoiceIds }),
-    getInvoicedProgressIds({ workerCompanyId, orderCompanyId, excludeInvoiceIds }),
-  ]);
+  const invoicedOrderIds = await getInvoicedOrderIds({
+    workerCompanyId,
+    orderCompanyId,
+    excludeInvoiceIds,
+  });
   const billableOrders = ordersWithSheet.filter((o) => !invoicedOrderIds.has(o.id));
-  const billableProgress = progress.filter((p) => !invoicedProgressIds.has(p.id));
 
-  if (billableOrders.length === 0 && billableProgress.length === 0) {
+  if (billableOrders.length === 0) {
     throw new Error("選択した工事はすべて請求済みです");
   }
 
-  // 請求月は「発行日」ではなく工事の締め月（完了日＋発注者の締め日）／出来高の申請月で決める。
-  // 締め月が混在する場合は最新を採用。
+  // 請求月は「発行日」ではなく工事の締め月（完了日＋発注者の締め日）で決める。
+  // 候補一覧・納品書一覧(getBillingMonth)と同じ基準に揃える。締め月が混在する場合は最新を採用。
   const ordererClosing = await prisma.company.findUnique({
     where: { id: orderCompanyId },
     select: { billingClosingDay: true },
   });
-  const billingMonths = [
-    ...billableOrders.map((o) =>
+  const billingMonths = billableOrders
+    .map((o) =>
       o.completedDay ? getBillingMonth(o.completedDay, ordererClosing?.billingClosingDay ?? null) : null
-    ),
-    ...billableProgress.map((p) => p.billingMonth),
-  ]
+    )
     .filter((m): m is string => m !== null)
     .sort();
   const yearMonth =
@@ -885,11 +682,103 @@ export async function generateInvoiceFromOrders(
       ? billingMonths[billingMonths.length - 1]
       : `${billingDate.getFullYear()}${String(billingDate.getMonth() + 1).padStart(2, "0")}`;
 
-  return createInvoiceDocument({
-    rows: sortRows([...billableOrders.map(orderRow), ...billableProgress.map(progressRow)]),
-    workerCompanyId,
-    orderCompanyId,
-    yearMonth,
-    issuedAtFallback: billingDate,
+  const documentNumber = await generateDocumentNumber("INVOICE", yearMonth);
+  const issuedAt = latestCompletedDay(billableOrders, billingDate);
+
+  let totalSubtotal = BigInt(0);
+  let totalTax = BigInt(0);
+  let totalTotal = BigInt(0);
+
+  for (const order of billableOrders) {
+    for (const sheet of order.documents) {
+      totalSubtotal += sheet.subtotal ?? BigInt(0);
+      totalTax += sheet.taxAmount ?? BigInt(0);
+      totalTotal += sheet.totalAmount ?? BigInt(0);
+    }
+  }
+
+  const workerCompany = await prisma.company.findUnique({
+    where: { id: workerCompanyId },
   });
+
+  const orderCompany = await prisma.company.findUnique({
+    where: { id: orderCompanyId },
+  });
+
+  const lineItems = billableOrders.map((order) => {
+    const sheet = order.documents[0];
+    return {
+      documentNumber: sheet?.documentNumber ?? "",
+      date: order.completedDay,
+      siteName:
+        order.factoryFloor.name ??
+        ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+        "",
+      siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
+      // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
+    };
+  });
+
+  const pdfData: InvoicePdfData = {
+    documentNumber,
+    issuedAt,
+    yearMonth,
+    workerCompanyName: workerCompany?.name ?? "",
+    workerCompanyPostalCode: workerCompany?.postalCode ?? "",
+    workerCompanyAddress: buildAddress(workerCompany),
+    workerCompanyInvoiceNumber: workerCompany?.invoiceNumber ?? "",
+    workerCompanyTel: workerCompany?.telNumber ?? "",
+    workerCompanyEmail: workerCompany?.email ?? "",
+    orderCompanyName: orderCompany?.name ?? "",
+    lineItems,
+    subtotal: Number(totalSubtotal),
+    taxAmount10: Number(totalTax),
+    totalAmount: Number(totalTotal),
+    bankName: workerCompany?.bankName ?? "",
+    bankBranchName: workerCompany?.bankBranchName ?? "",
+    bankAccountType: workerCompany?.bankAccountType === "CURRENT" ? "当座" : "普通",
+    bankAccountNumber: workerCompany?.bankAccountNumber ?? "",
+    bankAccountName: workerCompany?.bankAccountName ?? "",
+    stampImageBase64: loadStampImageBase64(workerCompany?.stampImage),
+  };
+
+  const pdfDataUrl = generateInvoicePdf(pdfData);
+  const pdfFilePath = savePdfToFile(pdfDataUrl, documentNumber);
+
+  const doc = await prisma.document.create({
+    data: {
+      type: "INVOICE",
+      status: "ISSUED",
+      documentNumber,
+      factoryFloorOrderId: billableOrders[0].id,
+      orderCompanyId,
+      workerCompanyId,
+      subtotal: totalSubtotal,
+      taxAmount: totalTax,
+      totalAmount: totalTotal,
+      invoiceNumber: workerCompany?.invoiceNumber,
+      pdfUrl: pdfFilePath,
+      issuedAt,
+      yearMonth,
+      metadata: {
+        orderIds: billableOrders.map((o) => o.id),
+        lineItems: billableOrders.map((order) => {
+          const sheet = order.documents[0];
+          return {
+            documentNumber: sheet?.documentNumber ?? "",
+            siteName:
+              order.factoryFloor.name ??
+              ((sheet?.metadata as Record<string, unknown> | null)?.siteName as string) ??
+              "",
+            siteCode: order.factoryFloor.code ?? order.factoryFloor.parent?.code ?? "",
+            // 明細行の金額は税抜(小計)で表示する。小計・消費税・合計は別途集計。
+      amount: order.documents.reduce((sum, s) => sum + Number(s.subtotal ?? 0), 0),
+          };
+        }),
+      },
+    },
+  });
+
+  return doc.id;
 }

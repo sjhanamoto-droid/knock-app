@@ -295,7 +295,7 @@ export function CompletionReportClient({ initialOrder, orderId, viewerCompanyId,
             {isOrderer && order.completionStatus === "CLOSED" && (
               isInvoiced ? (
                 <p className="text-center text-[12px] text-knock-text-secondary">
-                  この発注書は請求書に含まれている（または出来高で確定済みの）ため、差し戻しはできません。
+                  この発注書は請求書に含まれているため、差し戻しはできません。
                 </p>
               ) : (
                 <div className="flex flex-col gap-1.5">

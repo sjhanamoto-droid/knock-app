@@ -290,12 +290,11 @@ export function OrderDetailClient({ initialOrder, orderId }: Props) {
         {/* アクション: 受注者 - 施工報告（提出＝この発注書の完了） / 現場全体の完了状況 */}
         {!isOrderer && order.status === "CONFIRMED" && order.completionStatus !== "CLOSED" && (
           <>
-            {/* すべて完了（施工報告）か一部だけ（出来高）かを選んで報告する */}
             <Link
-              href={`/orders/${order.id}/progress/report`}
+              href={`/orders/${order.id}/completion-report`}
               className="rounded-xl bg-green-500 py-3.5 text-center text-[14px] font-bold text-white shadow-sm transition-all active:scale-[0.98]"
             >
-              完了を報告する
+              施工報告を提出して完了する
             </Link>
             <Link
               href={`/work-completion/${order.factoryFloor.id}`}

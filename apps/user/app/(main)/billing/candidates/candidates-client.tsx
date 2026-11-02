@@ -199,9 +199,7 @@ export function CandidatesClient({ candidates, year, month }: Props) {
                           <p className="mt-0.5 text-[11px] text-knock-text-secondary">
                             {o.documentNumber}
                             {o.siteCode ? ` / 工事番号 ${o.siteCode}` : ""}
-                            {o.completedDay
-                              ? ` / ${o.type === "PROGRESS" ? "申請" : "完了"} ${new Date(o.completedDay).toLocaleDateString("ja-JP")}`
-                              : ""}
+                            {o.completedDay ? ` / 完了 ${new Date(o.completedDay).toLocaleDateString("ja-JP")}` : ""}
                           </p>
                         </div>
                         <div className="shrink-0 text-right">
